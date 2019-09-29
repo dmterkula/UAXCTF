@@ -17,31 +17,6 @@ class MeetPerformanceController(@field:Autowired
 
 
     @RequestMapping(value = ["/getMeetResultByName"], method = [RequestMethod.GET])
-    fun getMeetResultsByName(@RequestParam(value = "firstName") firstName: String,
-                             @RequestParam(value = "lastName") lastName: String,
-                             @RequestParam(value = "startSeason", required = false, defaultValue = "") startSeason: String,
-                             @RequestParam(value = "endSeason", required = false, defaultValue = "") endSeason: String,
-                             @RequestParam(value = "sortMethod", required = false, defaultValue = "time") sortMethod: String,
-                             @RequestParam(value = "count", required = false, defaultValue = "10") count: Int): RunnerMeetPerformanceResponse {
-
-        var startDate = Date.valueOf("$CURRENT_YEAR-01-01")
-        var endDate = Date.valueOf("$CURRENT_YEAR-12-31")
-
-        if (!startSeason.isEmpty()) {
-            startDate = Date.valueOf("$startSeason-01-01")
-        }
-
-        if (!endSeason.isEmpty()) {
-            endDate = Date.valueOf("$endSeason-12-31")
-        }
-
-        val sortingMethodContainer = getSortingMethod(sortMethod)
-
-        return meetPerformanceService.getMeetPerformancesForRunnerWithName(firstName, lastName, startDate, endDate, sortingMethodContainer, count)
-    }
-
-
-    @RequestMapping(value = ["/getMeetResultByNameContaining"], method = [RequestMethod.GET])
     fun getMeetResultsByName(@RequestParam(value = "filter.runner") partialName: String,
                              @RequestParam(value = "filter.startSeason", required = false, defaultValue = "") startSeason: String,
                              @RequestParam(value = "filter.endSeason", required = false, defaultValue = "") endSeason: String,

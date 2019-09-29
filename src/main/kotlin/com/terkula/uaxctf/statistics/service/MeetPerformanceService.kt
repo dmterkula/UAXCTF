@@ -38,23 +38,6 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
-    fun getMeetPerformancesForRunnerWithName(first: String, last: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): RunnerMeetPerformanceResponse {
-
-        val runner = runnerRepository.findByName("$first $last")
-        val performanceList = meetPerformanceRepository.findByRunnerId(runner.id)
-
-        var meetPerformanceDTOS = sortingMethodContainer.sortingFunction(performanceList
-                .map {
-                    val meet = meetRepository.findByIdAndDateBetween(it.meetId, startDate, endDate)[0]
-                    MeetPerformanceDTO(meet.name, meet.date, it.time, it.place)
-                }.toMutableList()).take(count)
-
-
-        // find meets by id and then strip off other props you need to construct this
-        return RunnerMeetPerformanceResponse(runner, meetPerformanceDTOS)
-
-    }
-
     fun getMeetPerformancesForRunnerWithNameContaining(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): RunnerMeetPerformanceResponse {
         // find runners matching partial name
         val runnerIds = runnerRepository.findByNameContaining(partialName).map{ it.id }
