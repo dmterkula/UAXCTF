@@ -8,7 +8,7 @@ import java.sql.Date
 import java.util.stream.IntStream
 import kotlin.streams.toList
 
-@RestController("/")
+@RestController()
 class SeasonBestController(@field:Autowired
                    internal var seasonBestService: SeasonBestService) {
 
