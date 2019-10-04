@@ -29,14 +29,11 @@ class WorkoutCreationController(@field:Autowired
             @RequestParam(value = "distance", required = true) distance: Int,
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
             @Pattern(
-                    regexp = "goal|pr|seasonBest|seasonBestAverage",
+                    regexp = "goal|pr|seasonBest|seasonAverage",
                     message = "The value provided for pace is invalid. Valid values are 'goal', 'pr' or 'seasonBest', or 'seasonBestAverage'")
-            @RequestParam(value = "pace", required = true) pace: String
-                           ): WorkoutCreationResponse? {
+            @RequestParam(value = "pace", required = true) pace: String): WorkoutCreationResponse? {
 
         return workoutCreationService.createWorkout(workoutType, distance, pace)
-
-
     }
 
 }
