@@ -4,10 +4,7 @@ import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 class XcDataLoader(@field:Autowired
@@ -21,5 +18,21 @@ class XcDataLoader(@field:Autowired
         return "loaded"
     }
 
+
+    @ApiOperation("Loads milesplit data for meet that has been entered in the mile split table.")
+    @RequestMapping(value = ["xc/load/mileSplit/{meetId}"], method = [RequestMethod.GET])
+    fun loadMileSplits(@PathVariable("meetId") meetId: Int): String {
+
+        meetPerformanceService.loadMileSplits(meetId)
+        return "loaded mile splits"
+    }
+
+    @ApiOperation("Clean milesplit time formats")
+    @RequestMapping(value = ["xc/load/cleanMileSplitData"], method = [RequestMethod.GET])
+    fun cleanMileSplits(@RequestParam(value = "meetId", defaultValue = "0") meetId: Int = 0): String {
+
+        meetPerformanceService.cleanMileSplits(meetId)
+        return "cleanedMileSplits"
+    }
 
 }
