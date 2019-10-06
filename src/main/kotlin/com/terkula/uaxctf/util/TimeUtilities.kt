@@ -56,3 +56,25 @@ fun substractDays(date: Date, days: Int): Date {
     c.add(Calendar.DATE, days *-1)
     return Date(c.timeInMillis)
 }
+
+fun String.convertHourMileSplitToMinuteSecond(): String {
+    val test = "0:07:22"
+    val test1 = "07:22"
+
+    var corrected = this
+
+    if (corrected[0] == '0') {
+        corrected = corrected.substring(1)
+    }
+
+    if (corrected[0] == ':') {
+        corrected = corrected.substring(1)
+    }
+
+    if(corrected[0] == '0') {
+        corrected = corrected.substring(1)
+    }
+
+    return corrected
+
+}

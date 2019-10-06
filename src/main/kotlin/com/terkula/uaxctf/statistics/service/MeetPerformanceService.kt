@@ -1,15 +1,16 @@
 package com.terkula.uaxctf.statistics.service
 
+import com.terkula.uaxctf.statisitcs.model.MeetMileSplit
+import com.terkula.uaxctf.statisitcs.model.RawMileSplit
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.XCMeetPerformance
+import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.RunnerPerformanceDTO
-import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
-import com.terkula.uaxctf.statistics.repository.MeetRepository
-import com.terkula.uaxctf.statistics.repository.RaceResultRepository
-import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetPerformanceResponse
+import com.terkula.uaxctf.util.convertHourMileSplitToMinuteSecond
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -20,7 +21,11 @@ class MeetPerformanceService(@field:Autowired
                              private val meetPerformanceRepository: MeetPerformanceRepository,
                              @field:Autowired
                              private val runnerRepository: RunnerRepository, @field:Autowired
-                             private val raceResultRepository: RaceResultRepository) {
+                             private val raceResultRepository: RaceResultRepository,
+                             @field:Autowired
+                             private val rawMileSplitRepository: RawMileSplitRepository,
+                             @field:Autowired
+                             private val mileSplitRepository: MeetMileSplitRepository) {
 
     fun loadMeetPerformance(meetId: Int) {
         val runners = runnerRepository.findAll().asSequence().toList()
@@ -38,6 +43,44 @@ class MeetPerformanceService(@field:Autowired
         meetPerformanceRepository.saveAll(xcMeetPerformances)
 
     }
+
+    fun loadMileSplits(meetId: Int) {
+        val runners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR)
+        val rawMileSplits = rawMileSplitRepository.findAll().asSequence().toList()
+
+        val mileSplits = rawMileSplits.map { split ->
+            val runnerList = runners.filter { runner: Runner -> runner.name.equals(split.name, ignoreCase = true) }
+            if (runnerList.isEmpty()) {
+                println("runner name in mile split table does not matcher roster: " + split.name)
+            }
+
+            return@map MeetMileSplit(meetId, runnerList[0].id, split.mileOne, split.mileTwo, split.mileThree)
+        }
+
+        mileSplitRepository.saveAll(mileSplits)
+
+    }
+
+    fun cleanMileSplits(meetId: Int) {
+
+        var toClean = if (meetId == 0) {
+            mileSplitRepository.findAll().asSequence().toList()
+        } else {
+            mileSplitRepository.findByMeetId(meetId).asSequence().toList()
+        }
+
+        var cleanedMileSplits = mutableListOf<MeetMileSplit>()
+
+        for(mileSplit in toClean) {
+            cleanedMileSplits.add(MeetMileSplit(mileSplit.meetId, mileSplit.runnerId, mileSplit.mileOne.convertHourMileSplitToMinuteSecond(),
+                    mileSplit.mileTwo.convertHourMileSplitToMinuteSecond(), mileSplit.mileThree.convertHourMileSplitToMinuteSecond()))
+        }
+
+        mileSplitRepository.saveAll(cleanedMileSplits)
+
+    }
+
+
 
     fun getMeetPerformancesForRunnerWithNameContaining(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): List<RunnerPerformanceDTO> {
         // find runners matching partial name
