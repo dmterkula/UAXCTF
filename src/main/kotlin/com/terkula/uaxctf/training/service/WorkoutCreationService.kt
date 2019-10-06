@@ -3,7 +3,6 @@ package com.terkula.uaxctf.training.service
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
-import com.terkula.uaxctf.statistics.dto.toMinuteSecondString
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
@@ -17,6 +16,7 @@ import com.terkula.uaxctf.training.response.WorkoutCreationMetadata
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date

@@ -46,7 +46,7 @@ class MeetPerformanceController(@field:Autowired
 
         val sortingMethodContainer = getSortingMethod(sortMethod)
 
-        return meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(partialName, startDate, endDate,  sortingMethodContainer, count)
+        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(partialName, startDate, endDate,  sortingMethodContainer, count))
     }
 
     @ApiOperation("Returns the meet results for the given runner in the given season")
@@ -77,7 +77,7 @@ class MeetPerformanceController(@field:Autowired
 
         val sortingMethodContainer = getSortingMethod(sortMethod)
 
-        return meetPerformanceService.getMeetPerformancesAtMeetName(partialName, startDate, endDate,  sortingMethodContainer, count)
+        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesAtMeetName(partialName, startDate, endDate,  sortingMethodContainer, count))
     }
 
 

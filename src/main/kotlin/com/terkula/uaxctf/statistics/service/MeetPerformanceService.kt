@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.XCMeetPerformance
+import com.terkula.uaxctf.statistics.dto.RunnerPerformanceDTO
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RaceResultRepository
@@ -38,7 +39,7 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
-    fun getMeetPerformancesForRunnerWithNameContaining(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): RunnerMeetPerformanceResponse {
+    fun getMeetPerformancesForRunnerWithNameContaining(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): List<RunnerPerformanceDTO> {
         // find runners matching partial name
         val runnerIds = runnerRepository.findByNameContaining(partialName).map{ it.id }
 
@@ -60,28 +61,27 @@ class MeetPerformanceService(@field:Autowired
 
         // group performances by id.
         // map runnerId to a MeetDTO constructed from performances and meet info map
-        val performanceMap = performances.groupBy { it.runnerId }
+        val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
                     runners[it.key]!! to sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
                         val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
                         MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place)
                     }.toMutableList()).take(count)
-                }.toMap()
+                }.map {
+                    RunnerPerformanceDTO(it.first, it.second)
+                }
 
-        return RunnerMeetPerformanceResponse(performanceMap)
+        return runnerPerformanceDTOs
 
     }
 
-
-    fun getMeetPerformancesAtMeetName(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): RunnerMeetPerformanceResponse {
+    fun getMeetPerformancesAtMeetName(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): List<RunnerPerformanceDTO> {
         // find runners matching partial name
-
 
         val meets =  meetRepository.findByNameContainsAndDateBetween(partialName, startDate, endDate)
 
         // construct map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()
-
 
         // get meets within date range
 
@@ -95,20 +95,19 @@ class MeetPerformanceService(@field:Autowired
 
         // group performances by id.
         // map runnerId to a MeetDTO constructed from performances and meet info map
-        val performanceMap = performances.groupBy { it.runnerId }
+        val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
                     runners[it.key]!! to sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
                         val meet = meetMap[meetPerformance.meetId]!!
                         MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place)
                     }.toMutableList()).take(count)
-                }.toMap()
+                }.map {
+            RunnerPerformanceDTO(it.first, it.second)
+        }
 
-        return RunnerMeetPerformanceResponse(performanceMap)
+        return runnerPerformanceDTOs
 
     }
-
-
-
 
 }
 

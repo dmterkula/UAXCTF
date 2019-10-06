@@ -1,6 +1,5 @@
 package com.terkula.uaxctf.statistics.service
 
-import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
@@ -10,6 +9,7 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.dto.ImprovementRateDTO
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -29,7 +29,6 @@ class ImprovementRateService (@field:Autowired
         if (excludedMeet.isNotEmpty()) {
             meets = meets.filter { !it.name.contains(excludedMeet) }.toMutableList()
         }
-
 
         // look up map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()
@@ -129,7 +128,6 @@ class ImprovementRateService (@field:Autowired
 
         return rateOfImprovements
     }
-
 
     fun List<Double>.calculateAverageRateOfImprovement(): Pair<Double, Int> {
 

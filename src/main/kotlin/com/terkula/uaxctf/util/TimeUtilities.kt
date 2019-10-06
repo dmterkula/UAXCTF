@@ -1,5 +1,10 @@
 package com.terkula.uaxctf.util
 
+import java.sql.Date
+import java.util.Calendar
+
+
+
 fun String.calculateSecondsFrom(): Double {
     val splitTime = this.split(":")
     assert(splitTime.size == 2)
@@ -30,6 +35,24 @@ fun Double.toMinutesAndSeconds(): String {
             }
         return minutes.toString() + ":" + seconds.toString()
     }
+}
 
+fun Double.toMinuteSecondString(): String {
+    val minutes: Int = (this / 60).toInt()
+    var seconds = (this % 60).round(1)
+    return if (this < 1) {
+        seconds *= -1
+        val secondsString = seconds.toPaddedString()
+        "-" + minutes *-1 + ":" + secondsString
+    } else {
+        minutes.toString() + ":" + seconds.toPaddedString()
+    }
 
+}
+
+fun substractDays(date: Date, days: Int): Date {
+    val c = Calendar.getInstance()
+    c.time = date
+    c.add(Calendar.DATE, days *-1)
+    return Date(c.timeInMillis)
 }

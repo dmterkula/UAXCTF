@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.dto
 
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import com.terkula.uaxctf.util.toPaddedString
 import java.sql.Date
 
@@ -54,19 +55,6 @@ fun List<MeetPerformanceDTO>.getTimeDifferencesAsDoubles(): MutableList<Double> 
 
     }
     return timeDifferences
-}
-
-fun Double.toMinuteSecondString(): String {
-    val minutes: Int = (this / 60).toInt()
-    var seconds = (this % 60).round(1)
-    return if (this < 1) {
-        seconds *= -1
-        val secondsString = seconds.toPaddedString()
-        "-" + minutes *-1 + ":" + secondsString
-    } else {
-        minutes.toString() + ":" + seconds.toPaddedString()
-    }
-
 }
 
 
