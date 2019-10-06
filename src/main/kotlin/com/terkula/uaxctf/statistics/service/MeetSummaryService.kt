@@ -8,11 +8,9 @@ import com.terkula.uaxctf.statistics.dto.SummaryImprovementRateDTO
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.repository.MeetRepository
-import com.terkula.uaxctf.statistics.response.MeetProgressionResponse
-import com.terkula.uaxctf.statistics.response.MeetSummaryResponse
-import com.terkula.uaxctf.statistics.response.PRResponse
-import com.terkula.uaxctf.statistics.response.SeasonBestResponse
+import com.terkula.uaxctf.statistics.response.*
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -27,7 +25,9 @@ class MeetSummaryService (@field:Autowired
                           @field: Autowired
                           internal var meetProgressionService: MeetProgressionService,
                           @field: Autowired
-                          internal var meetRepository: MeetRepository) {
+                          internal var meetRepository: MeetRepository,
+                          @field: Autowired
+                          internal var goalService: XcGoalService) {
 
 
     fun getLastMeetSummary(startSeasonDate: Date, endSeasonDate: Date, meetName: String): MeetSummaryResponse {
@@ -47,6 +47,9 @@ class MeetSummaryService (@field:Autowired
         )
         val prResponse = PRResponse(prs.size, prs)
 
+
+        val metGoalsResponse = MetGoalResponse(goalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startSeasonDate, endSeasonDate))
+
         val improvementRateDTOs = improvementRateService.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
 
         val faster = improvementRateDTOs.filter { it.improvementRate <= 0 }.toMutableList().sortedBy { it.improvementRate }
@@ -56,7 +59,7 @@ class MeetSummaryService (@field:Autowired
 
         val medianImprovementRate = improvementRateDTOs.map { it.improvementRate }.sorted()[(improvementRateDTOs.size/2)]
 
-        val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate, medianImprovementRate, ImprovementRatePair(faster.size, faster), ImprovementRatePair(slower.size, slower))
+        val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate.toMinuteSecondString(), medianImprovementRate.toMinuteSecondString(), ImprovementRatePair(faster.size, faster), ImprovementRatePair(slower.size, slower))
 
 
         var startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
@@ -66,14 +69,10 @@ class MeetSummaryService (@field:Autowired
         val fasterThanLastYear =  meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster")
         val slowerThanLastYear = meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower")
 
-
         val fasterResponse = MeetProgressionResponse(fasterThanLastYear.size, fasterThanLastYear)
         val slowerResponse = MeetProgressionResponse(slowerThanLastYear.size, slowerThanLastYear)
 
-        return MeetSummaryResponse(seasonBestResponse, prResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
-
-
-        //todo NTH: bake in who is on streaks of getting faster each race
+        return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
 
     }
 

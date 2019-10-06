@@ -30,7 +30,7 @@ class SeasonBestController(@field:Autowired
             endDate = Date.valueOf("$season-12-31")
         }
 
-        val seasonBests = seasonBestService.findWhoseSeasonBestIsFirstMeet(startDate, endDate)
+        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
 
         return SeasonBestResponse(seasonBests.size, seasonBests)
 
