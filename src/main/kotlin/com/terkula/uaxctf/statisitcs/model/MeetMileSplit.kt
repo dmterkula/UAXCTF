@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statisitcs.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.terkula.uaxctf.util.calculateSecondsFrom
 import javax.persistence.*
 
 @Entity
@@ -21,4 +22,24 @@ class MeetMileSplit (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonIgnore
     val id: Int = 0
+}
+
+fun MeetMileSplit.calculateFirstToSecondMileDifference(): Double {
+    return mileTwo.calculateSecondsFrom() - mileOne.calculateSecondsFrom()
+}
+
+fun MeetMileSplit.calculateSecondToThirdMileDifference(): Double {
+    return mileThree.calculateSecondsFrom() - mileTwo.calculateSecondsFrom()
+}
+
+fun MeetMileSplit.calculateTotalDifferenceBetween(): Double {
+    return (mileThree.calculateSecondsFrom() - mileTwo.calculateSecondsFrom()) + (mileTwo.calculateSecondsFrom() - mileOne.calculateSecondsFrom())
+}
+
+fun MeetMileSplit.calculateSpread(): Double {
+
+    val list = listOf(this.mileOne.calculateSecondsFrom(), this.mileTwo.calculateSecondsFrom(), this.mileThree.calculateSecondsFrom())
+
+    return list.max()!! - list.min()!!
+
 }

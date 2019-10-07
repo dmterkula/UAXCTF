@@ -3,12 +3,16 @@ package com.terkula.uaxctf.util
 import java.sql.Date
 import java.util.Calendar
 
-
-
 fun String.calculateSecondsFrom(): Double {
+
     val splitTime = this.split(":")
     assert(splitTime.size == 2)
-    return splitTime[0].toDouble() * 60 + splitTime[1].toDouble()
+
+    return if (this.contains('-')) {
+        splitTime[0].toDouble() * 60 + splitTime[1].toDouble() *-1
+    } else {
+        splitTime[0].toDouble() * 60 + splitTime[1].toDouble()
+    }
 }
 
 fun Double.round(decimals: Int = 2): Double = "%.${decimals}f".format(this).toDouble()
@@ -21,26 +25,10 @@ fun Double.toPaddedString(): String {
     }
 }
 
-fun Double.toMinutesAndSeconds(): String {
-
-    val minutes = (this / 60).toInt()
-    val seconds = this % 60
-
-    if (minutes <= 0) {
-        return seconds.round(2).toString()
-    } else {
-        if (seconds < 10)
-            if(seconds < 1) {
-                return minutes.toString() + ":" + "00" + seconds.toString()
-            }
-        return minutes.toString() + ":" + seconds.toString()
-    }
-}
-
 fun Double.toMinuteSecondString(): String {
     val minutes: Int = (this / 60).toInt()
     var seconds = (this % 60).round(1)
-    return if (this < 1) {
+    return if (this < 0) {
         seconds *= -1
         val secondsString = seconds.toPaddedString()
         "-" + minutes *-1 + ":" + secondsString
