@@ -46,8 +46,6 @@ fun substractDays(date: Date, days: Int): Date {
 }
 
 fun String.convertHourMileSplitToMinuteSecond(): String {
-    val test = "0:07:22"
-    val test1 = "07:22"
 
     var corrected = this
 
