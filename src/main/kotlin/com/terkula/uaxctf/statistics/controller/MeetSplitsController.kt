@@ -49,10 +49,10 @@ class MeetSplitsController(@field:Autowired
             @ApiParam("Filters results for runner matching the given name in the given season")
             @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
             @ApiParam("Filters results for runner matching the given name in the given season. Defaults to current season" +
-                    "Valid values are 'spread','firstTwoSecond', 'secondToThird' or 'all'")
+                    "Valid values are 'spread', 'firstTwoSecond', 'secondToThird' or 'all' ")
             @Pattern(
                     regexp = "firstToSecond|secondToThird|all|spread",
-                    message = "The value provided for filter.split changes what split differences are calculated. Valid values are spread, 'firstTwoSecond', 'secondToThird' or 'all'")
+                    message = "The value provided for filter.split changes what split differences are calculated. Valid values are 'spread', 'firstTwoSecond', 'secondToThird' or 'all'")
             @RequestParam(value = "filter.split", required = false, defaultValue = "all") split: String = "all",
             @ApiParam("The value provided sort.method changes what order the results are returned in." +
                     "The value provided sort.method changes what order the results are returned in. Valid values are 'lowest', 'highest'")
