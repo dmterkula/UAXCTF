@@ -1,6 +1,5 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
