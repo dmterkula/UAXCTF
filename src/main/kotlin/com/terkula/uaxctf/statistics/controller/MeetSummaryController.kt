@@ -20,14 +20,15 @@ class MeetSummaryController(@field:Autowired
     @RequestMapping(value = ["xc/meetSummary"], method = [RequestMethod.GET])
     fun getLastMeetSummary(
             @ApiParam("Filters results for just a meet matching the given meet name/partial name")
-            @RequestParam(value = "filter.meet", required = true) meetName: String): MeetSummaryResponse {
+            @RequestParam(value = "filter.meet", required = true) meetName: String,
+            @ApiParam("Limits number of results for improvement rates and fastest lastMile")
+            @RequestParam(value = "page.size", required = false, defaultValue = "7") limit: Int): MeetSummaryResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        return meetSummaryService.getLastMeetSummary(startDate, endDate, meetName)
+        return meetSummaryService.getLastMeetSummary(startDate, endDate, meetName, limit)
 
     }
-
 
 }
