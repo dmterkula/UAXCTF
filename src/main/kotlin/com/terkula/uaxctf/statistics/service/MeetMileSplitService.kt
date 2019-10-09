@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
+import com.terkula.uaxctf.statistics.dto.MeetSplitStatisticDTO
 import com.terkula.uaxctf.statistics.dto.MeetSplitsDTO
 import com.terkula.uaxctf.statistics.dto.RunnerAvgMileSplitDifferenceDTO
 import com.terkula.uaxctf.statistics.dto.RunnerMeetSplitDTO
@@ -8,6 +9,7 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.util.calculateSecondsFrom
@@ -57,7 +59,7 @@ class MeetMileSplitService(@field:Autowired
     }
 
 
-    fun getMeetSplitInfo(filterMeet: String, split: String, startDate: Date, endDate: Date, sort: String,
+    fun getMeetSplitInfo(filterMeet: String, splitType: MeetSplitsOption, startDate: Date, endDate: Date, sort: String,
                          limit: Int): List<RunnerAvgMileSplitDifferenceDTO> {
         // all meets in date range
 
@@ -76,20 +78,20 @@ class MeetMileSplitService(@field:Autowired
         // all runners with splits
         val runners = splits.map { runnerRepository.findById(it.key).get() }.map { it.id to it }.toMap()
 
-        val runnerAverages = when (split) {
-            "firstToSecond" -> {
+        val runnerAverages = when (splitType.value) {
+            MeetSplitsOption.FirstToSecondMile.value -> {
                 splits.map {
                     Triple<Runner, List<Double>, Int>(runners[it.key]!!, it.value.map { meetSplits -> meetSplits.calculateFirstToSecondMileDifference() }, it.value.size)
                 }
 
             }
-            "secondToThird" -> {
+            MeetSplitsOption.SecondToThirdMile.value -> {
                 splits.map {
                     Triple<Runner, List<Double>, Int>(runners[it.key]!!, it.value.map { meetSplits -> meetSplits.calculateSecondToThirdMileDifference() }, it.value.size)
                 }
 
             }
-            "spread" -> {
+            MeetSplitsOption.Spread.value -> {
                 splits.map {
                     Triple<Runner, List<Double>, Int> (runners[it.key]!!, it.value.map { meetSplits -> meetSplits.calculateSpread() }, it.value.size)
                 }
@@ -103,13 +105,63 @@ class MeetMileSplitService(@field:Autowired
         }
 
         val splitDTOs = runnerAverages.map {
-            RunnerAvgMileSplitDifferenceDTO(it.first, split, it.second.average().toMinuteSecondString(), it.third )
+            RunnerAvgMileSplitDifferenceDTO(it.first, splitType.value, it.second.average().toMinuteSecondString(), it.third )
         }.toMutableList()
 
         return when (sort) {
             "lowest" -> splitDTOs.sortedBy { it.avgDifference.calculateSecondsFrom() }
             else -> splitDTOs.sortedByDescending{ it.avgDifference.calculateSecondsFrom() }
         }.take(limit)
+    }
+
+    fun findMeetWithSignificantSplitStat(startDate: Date, endDate: Date, splitType: MeetSplitsOption, sort: String): List<MeetSplitStatisticDTO> {
+
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+
+        val meetStatisticDTOs = meets.map { it to meetMileSplitRepository.findByMeetId(it.id) }.toMap()
+                .filter { it.value.isNotEmpty() }
+                .map {
+                    it.key to calculateDesiredMeetStatistic(splitType, it.value)
+                }.map {
+                    MeetSplitStatisticDTO(it.first, splitType.value, it.second)
+                }.toMutableList()
+
+        return when (sort) {
+            "lowest" -> meetStatisticDTOs.sortedBy { it.value }
+            else -> meetStatisticDTOs.sortedByDescending { it.value }
+        }
+    }
+
+    fun calculateDesiredMeetStatistic(splitType: MeetSplitsOption, meetSplits: List<MeetMileSplit>): Double {
+
+        return when (splitType.value) {
+            MeetSplitsOption.FirstToSecondMile.value -> meetSplits.calculateAverageFirstToSecondMileDifference()
+            MeetSplitsOption.SecondToThirdMile.value -> meetSplits.calculateAverageSecondToThirdMileDifference()
+            MeetSplitsOption.Spread.value -> meetSplits.calculateAverageSpread()
+            else -> meetSplits.calculateTotalAverageDifference()
+        }
+
+    }
+
+    fun getStatisticsForMeet(filterMeet: String, startDate: Date, endDate: Date): List<NamedStatistic> {
+        // all meets in date range
+        val meets = if( filterMeet.isEmpty()) {
+            meetRepository.findByDateBetween(startDate, endDate)
+        } else {
+            meetRepository.findByNameContainsAndDateBetween(filterMeet, startDate, endDate)
+        }
+
+        // all splits at meets in date range
+        val splits = meets.
+                map { meetMileSplitRepository.findByMeetId(it.id) }
+                .filter { it.isNotEmpty() }
+                .flatten()
+
+        return listOf(NamedStatistic(MeetSplitsOption.FirstToSecondMile.value, calculateDesiredMeetStatistic(MeetSplitsOption.FirstToSecondMile, splits)),
+                NamedStatistic(MeetSplitsOption.SecondToThirdMile.value, calculateDesiredMeetStatistic(MeetSplitsOption.SecondToThirdMile, splits)),
+                NamedStatistic(MeetSplitsOption.Combined.value, calculateDesiredMeetStatistic(MeetSplitsOption.Combined, splits)),
+                NamedStatistic(MeetSplitsOption.Spread.value, calculateDesiredMeetStatistic(MeetSplitsOption.Spread, splits)))
+
     }
 
 }

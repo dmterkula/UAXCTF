@@ -8,6 +8,7 @@ import com.terkula.uaxctf.statistics.dto.SummaryImprovementRateDTO
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.repository.MeetRepository
+import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.response.*
 import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
@@ -34,7 +35,7 @@ class MeetSummaryService (@field:Autowired
 
     fun getLastMeetSummary(startSeasonDate: Date, endSeasonDate: Date, meetName: String, limit: Int): MeetSummaryResponse {
 
-        var targetMeet: Meet
+        val targetMeet: Meet
         try {
             targetMeet = meetRepository.findByNameContainsAndDateBetween(meetName, startSeasonDate, endSeasonDate).first()
         } catch (e: Exception) {
@@ -48,7 +49,11 @@ class MeetSummaryService (@field:Autowired
         )
         val prResponse = PRResponse(prs.size, prs)
 
+
         val metGoalsResponse = MetGoalResponse(goalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startSeasonDate, endSeasonDate))
+
+        val meetSplitStatisticResponse =  MeetSplitsStatisticsSummaryResponse(meetMileSplitService.getStatisticsForMeet(meetName, startSeasonDate, endSeasonDate))
+
 
         val improvementRateDTOs = improvementRateService.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
 
@@ -56,17 +61,18 @@ class MeetSummaryService (@field:Autowired
         val slower = improvementRateDTOs.filter { it.improvementRate > 0 }.toMutableList().sortedBy { it.improvementRate }
 
         val averageImprovementRate = (improvementRateDTOs.map { it.improvementRate }.sum()/improvementRateDTOs.size).round(2)
+        val medianImprovementRate = improvementRateDTOs.map { it.improvementRate }.sorted()[(improvementRateDTOs.size / 2)]
 
-        val medianImprovementRate = improvementRateDTOs.map { it.improvementRate }.sorted()[(improvementRateDTOs.size/2)]
 
         val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate.toMinuteSecondString(), medianImprovementRate.toMinuteSecondString(),
                 ImprovementRatePair(faster.size, faster.take(limit)), ImprovementRatePair(slower.size, slower.take(limit)))
 
         val fastestLastMileResponse = RunnerAvgSplitDifferenceResponse(meetMileSplitService.getMeetSplitInfo(
-                meetName, "secondToThird", startSeasonDate, endSeasonDate, "lowest", limit))
+                meetName, MeetSplitsOption.SecondToThirdMile, startSeasonDate, endSeasonDate, "lowest", limit))
 
-        var startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
-        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+        val startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
+        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+
 
         val fasterThanLastYear =  meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster")
         val slowerThanLastYear = meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower")
@@ -74,7 +80,7 @@ class MeetSummaryService (@field:Autowired
         val fasterResponse = MeetProgressionResponse(fasterThanLastYear.size, fasterThanLastYear.take(limit))
         val slowerResponse = MeetProgressionResponse(slowerThanLastYear.size, slowerThanLastYear.take(limit))
 
-        return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, fastestLastMileResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
+        return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, meetSplitStatisticResponse, fastestLastMileResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
 
     }
 

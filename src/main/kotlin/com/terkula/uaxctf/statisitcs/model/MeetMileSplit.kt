@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statisitcs.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.terkula.uaxctf.util.calculateSecondsFrom
+import com.terkula.uaxctf.util.round
 import javax.persistence.*
 
 @Entity
@@ -41,5 +42,23 @@ fun MeetMileSplit.calculateSpread(): Double {
     val list = listOf(this.mileOne.calculateSecondsFrom(), this.mileTwo.calculateSecondsFrom(), this.mileThree.calculateSecondsFrom())
 
     return list.max()!! - list.min()!!
+
+}
+
+fun List<MeetMileSplit>.calculateAverageFirstToSecondMileDifference(): Double {
+    return this.map { it.calculateFirstToSecondMileDifference() }.average().round(2)
+}
+
+fun List<MeetMileSplit>.calculateAverageSecondToThirdMileDifference(): Double {
+    return this.map { it.calculateSecondToThirdMileDifference() }.average().round(2)
+}
+
+fun List<MeetMileSplit>.calculateTotalAverageDifference(): Double {
+    return this.map { it.calculateTotalDifferenceBetween() }.average().round(2)
+}
+
+fun List<MeetMileSplit>.calculateAverageSpread(): Double {
+
+    return this.map { it.calculateSpread() }.average().round(2)
 
 }
