@@ -37,7 +37,7 @@ class MeetSummaryService (@field:Autowired
 
         val targetMeet: Meet
         try {
-            targetMeet = meetRepository.findByNameContainsAndDateBetween(meetName, startSeasonDate, endSeasonDate).first()
+            targetMeet = meetRepository.findByNameAndDateBetween(meetName, startSeasonDate, endSeasonDate).first()
         } catch (e: Exception) {
             throw MeetNotFoundException("unable to find meet by name: $meetName")
         }

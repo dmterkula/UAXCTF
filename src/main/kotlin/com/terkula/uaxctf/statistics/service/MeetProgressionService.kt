@@ -50,7 +50,7 @@ class MeetProgressionService(@field:Autowired
 
     fun getProgressionFromMeetForAllRunnersBetweenDates(meetName: String, startDate: Date, endDate: Date, filterBy: String): List<MeetProgressionDTO> {
 
-        val meets = meetRepository.findByNameContainsAndDateBetween(meetName, startDate, endDate)
+        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
 
         val meetMap = meets.map { it.id to it }.toMap()
 

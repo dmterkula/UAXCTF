@@ -45,7 +45,7 @@ class MeetMileSplitService(@field:Autowired
                 .filter {
                     it.meetName in meets.map { meet -> meet.name }
                 }.map {
-                    meetRepository.findByNameContainsAndDateBetween(it.meetName, startDate, endDate).first().id to it
+                    meetRepository.findByNameAndDateBetween(it.meetName, startDate, endDate).first().id to it
                 }.toMap()
 
         return RunnerMeetSplitResponse(runner, meets.map { it.id to meetMileSplitRepository.findByMeetIdAndRunnerId(it.id, runner.id).firstOrNull() }
@@ -66,7 +66,7 @@ class MeetMileSplitService(@field:Autowired
         val meets = if( filterMeet.isEmpty()) {
             meetRepository.findByDateBetween(startDate, endDate)
         } else {
-            meetRepository.findByNameContainsAndDateBetween(filterMeet, startDate, endDate)
+            meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
         }
 
         // all splits at meets in date range
@@ -148,7 +148,7 @@ class MeetMileSplitService(@field:Autowired
         val meets = if( filterMeet.isEmpty()) {
             meetRepository.findByDateBetween(startDate, endDate)
         } else {
-            meetRepository.findByNameContainsAndDateBetween(filterMeet, startDate, endDate)
+            meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
         }
 
         // all splits at meets in date range
