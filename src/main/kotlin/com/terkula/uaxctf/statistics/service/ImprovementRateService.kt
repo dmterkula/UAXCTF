@@ -9,7 +9,6 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.dto.ImprovementRateDTO
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
-import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -94,7 +93,7 @@ class ImprovementRateService (@field:Autowired
     fun getImprovementRatesAtGivenMeet(seasonStartDate: Date, seasonEndDate: Date, givenMeet: String): List<ImprovementRateDTO> {
 
 
-        val summaryMeet = meetRepository.findByNameContainsAndDateBetween(givenMeet, seasonStartDate, seasonEndDate).first()
+        val summaryMeet = meetRepository.findByNameAndDateBetween(givenMeet, seasonStartDate, seasonEndDate).first()
 
         // get all meets in season/date range
         var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate).toMutableList().sortedBy { it.date }

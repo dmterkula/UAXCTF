@@ -64,3 +64,7 @@ fun String.convertHourMileSplitToMinuteSecond(): String {
     return corrected
 
 }
+
+fun Date.getYearString(): String {
+    return this.toLocalDate().year.toString()
+}

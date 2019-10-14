@@ -17,7 +17,6 @@ class XcDataLoader(@field:Autowired
         return "loaded"
     }
 
-
     @ApiOperation("Loads milesplit data for meet that has been entered in the mile split table.")
     @RequestMapping(value = ["xc/load/mileSplit/{meetId}"], method = [RequestMethod.GET])
     fun loadMileSplits(@PathVariable("meetId") meetId: Int): String {
@@ -30,8 +29,16 @@ class XcDataLoader(@field:Autowired
     @RequestMapping(value = ["xc/load/cleanMileSplitData"], method = [RequestMethod.GET])
     fun cleanMileSplits(@RequestParam(value = "meetId", defaultValue = "0") meetId: Int = 0): String {
 
-        meetPerformanceService.cleanMileSplits(meetId)
+        meetPerformanceService.cleanSplits(meetId)
         return "cleanedMileSplits"
+    }
+
+    @ApiOperation("Load Time Trial Data")
+    @RequestMapping(value = ["xc/load/TimeTrialResult"], method = [RequestMethod.GET])
+    fun loadWorkoutData(@RequestParam(value = "season") season: String): String {
+
+        meetPerformanceService.loadTimeTrial(season)
+        return "loaded time trial"
     }
 
 }

@@ -18,7 +18,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 @SpringBootApplication
 @ComponentScan(basePackages = ["com.terkula"])
-@EnableJpaRepositories("com.terkula.uaxctf.statistics.repository")
+@EnableJpaRepositories("com.terkula.uaxctf.statistics.repository", "com.terkula.uaxctf.training.repository" )
 @EnableSwagger2
 class UaxctfApplication {
 
