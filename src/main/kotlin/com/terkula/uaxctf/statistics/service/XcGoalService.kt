@@ -72,7 +72,11 @@ class XcGoalService (@field:Autowired
         val meets: List<Meet>
         try {
             meets = meetRepository.findByDateBetween(startSeasonDate, endSeasonDate).toMutableList().sortedBy { it.date }
-            targetMeet = meets.filter { it.name.contains(meetName, ignoreCase = true) }.first()
+            try {
+                targetMeet = meets.filter { it.name == meetName }.first()
+            } catch (e: Exception) {
+                throw MeetNotFoundException("could not find a meet matching the given name: $meetName")
+            }
 
         } catch (e: Exception) {
             throw MeetNotFoundException("unable to find meet by name: $meetName")
