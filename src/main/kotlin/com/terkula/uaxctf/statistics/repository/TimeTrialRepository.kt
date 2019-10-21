@@ -9,4 +9,6 @@ interface TimeTrialRepository: CrudRepository<TimeTrial, Int> {
 
     fun findByRunnerIdAndSeason(runnerId: Int, season: String): List<TimeTrial>
 
+    fun findBySeason(season: String): List<TimeTrial>
+
 }
