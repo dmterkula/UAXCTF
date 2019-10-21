@@ -49,7 +49,7 @@ class WorkoutResultService (
 
         val workout = if (workouts.isEmpty()) {
             throw WorkoutNotFoundException("no workout found for the given date:  $date")
-        } else if (workouts.size == 1){
+        } else if (workouts.size == 1) {
             workouts.first()
         } else {
             if (type.isNotEmpty()) {
@@ -182,6 +182,16 @@ class WorkoutResultService (
                 }.toMutableList()
 
         return RunnerWorkoutResultsResponse(runner, sortRunnerWorkoutsByMethod(workoutsForRunner, sortMethod))
+
+    }
+
+    fun getEveryRunnerWhoHasRanAWorkout(startDate: Date, endDate: Date): List<Runner> {
+        return workoutRepository.findByDateBetween(startDate, endDate)
+                .map { workoutSplitRepository.findByWorkoutId(it.id) }
+                .flatten()
+                .map { it.runnerId }
+                .distinct()
+                .map {runnerRepository.findById(it).get()}
 
     }
 
