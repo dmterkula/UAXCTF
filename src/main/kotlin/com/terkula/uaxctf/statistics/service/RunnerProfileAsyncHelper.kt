@@ -7,35 +7,46 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.util.getFirstDayOfYear
 import com.terkula.uaxctf.util.getLastDayOfYear
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.scheduling.annotation.Async
+import org.springframework.scheduling.annotation.AsyncResult
 import org.springframework.stereotype.Component
 import java.sql.Date
 import java.time.Instant
+import java.util.concurrent.Future
 
 @Component
-class RunnerProfileService (
-        @field:Autowired
-        internal var runnerRepository: RunnerRepository,
-        @field:Autowired
-        internal var seasonBestService: SeasonBestService,
-        @field:Autowired
-        internal var personalRecordService: PersonalRecordService,
-        @field: Autowired
-        internal var meetRepository: MeetRepository,
-        @field: Autowired
-        internal var meetMileSplitService: MeetMileSplitService,
-        @field: Autowired
-        internal val workoutResultService: WorkoutResultService,
-        @field: Autowired
-        internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper) {
+open class RunnerProfileAsyncHelper (@field:Autowired
+                                internal var runnerRepository: RunnerRepository,
+                                @field:Autowired
+                                internal var seasonBestService: SeasonBestService,
+                                @field:Autowired
+                                internal var personalRecordService: PersonalRecordService,
+                                @field: Autowired
+                                internal var meetRepository: MeetRepository,
+                                @field: Autowired
+                                internal var goalService: XcGoalService,
+                                @field: Autowired
+                                internal var meetMileSplitService: MeetMileSplitService,
+                                @field: Autowired
+                                internal val runnerConsistencyRankService: ConsistencyRankService,
+                                @field: Autowired
+                                internal val timeTrialProgressionService: TimeTrialProgressionService,
+                                @field: Autowired
+                                internal val workoutResultService: WorkoutResultService,
+                                @field: Autowired
+                                internal val meetPerformanceService: MeetPerformanceService) {
 
 
     fun buildRunnerProfile(name: String): RunnerProfileDTO {
+
+        // todo can you find a way to speed this up? takes about 15s... can make calls async? limit queries to DB where possible?
 
         val runner =
                 try {
@@ -55,23 +66,9 @@ class RunnerProfileService (
             }
         }
 
-        ////////// async oeprations //////////
-        val meetSplitsAsync = runnerProfileAsyncHelper.getAllMeetSplits(name, startDate, endDate)
-        val workoutConsistency = runnerProfileAsyncHelper.getWorkoutConsistency(startDate, endDate)
-        val raceConsistency = runnerProfileAsyncHelper.getRaceConsistency(startDate, endDate)
-        val totalConsistency =  runnerProfileAsyncHelper.getTotalConsistency(startDate, endDate, 1.0)
-        val progressions = runnerProfileAsyncHelper.getTimeTrialProgression(startDate, endDate)
-        val lastYearStart = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-01-01")
-        val lastYearEnd = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-12-31")
-        val lastYearPerformances =
-                runnerProfileAsyncHelper.getMeetPerformancesLastYear(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20)
-        val allSeasonBestsAsync = runnerProfileAsyncHelper.getAllSeasonBests(startDate, endDate)
-        val timeTrials = runnerProfileAsyncHelper.getTimeTrials(startDate, endDate)
-        val goalAsync = runnerProfileAsyncHelper.getGoalForRunner(name, MeetPerformanceController.CURRENT_YEAR)
+        val meetSplits = meetMileSplitService.getAllMeetMileSplitsForRunner(name, startDate, endDate).mileSplits
 
-        //////// end async operations /////////
-
-        val mostConsistentRace = meetSplitsAsync.get().sortedBy { it.meetSplitsDTO!!.toMeetSplit().calculateSpread() }
+        val mostConsistentRace = meetSplits.sortedBy { it.meetSplitsDTO!!.toMeetSplit().calculateSpread() }
                 .firstOrNull()
 
         val seasonBestSplits = getSplitsForMeetPerformances(seasonBest?.meetPerformanceDTO, runner)
@@ -86,11 +83,11 @@ class RunnerProfileService (
 
         var prSplits: RunnerMeetSplitDTO? = null
 
-        if (pr !=null ) {
+        if (pr != null) {
             prSplits = getSplitsForMeetPerformances(pr, runner)
         }
 
-        val goal: String? = goalAsync.get().first().time
+        val goal: String? = goalService.getRunnersGoalForSeason(name, MeetPerformanceController.CURRENT_YEAR).first().time
 
         val workouts = workoutResultService.getWorkoutsForRunner(startDate, endDate, name, 0, "", "").workouts
         var lastWorkout: RunnerWorkoutResultsDTO? = null
@@ -98,37 +95,38 @@ class RunnerProfileService (
             lastWorkout = workouts.sortedBy { it.workout.date }.first()
         }
 
-
-
-        val workoutRank = workoutConsistency.get()!!
+        val workoutConsistency =
+                runnerConsistencyRankService.getRunnersOrderedByMostConsistentWorkouts(startDate, endDate)
+        val workoutRank = workoutConsistency
                 .filter { it.runner.id == runner.id }
                 .map {
                     ValuedRank("Workout Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
                 }
                 .firstOrNull()
 
-        val raceRank = raceConsistency.get()!!
+        val raceConsistency = runnerConsistencyRankService.getRunnersOrderedByMostConsistentRaces(startDate, endDate)
+        val raceRank = raceConsistency
                 .filter { it.runner.id == runner.id }
                 .map {
                     ValuedRank("Race Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
                 }
                 .firstOrNull()
 
-
-        val combinedRank = totalConsistency.get()!!
+        val totalConsistency = runnerConsistencyRankService.getRunnersOrderedMostConsistent(startDate, endDate, 1.0)
+        val combinedRank = totalConsistency
                 .filter { it.runner.id == runner.id }
                 .map { ValuedRank("Workout And Race Consistency Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString()) }
                 .firstOrNull()
 
-        val progressionRank = progressions.get()!!
+        val progressionRank = timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate)
                 .filter { it.runner.id == runner.id }
-                .map { ValuedRank( "Progression Rank", it.rank, it.improvement ) }
+                .map { ValuedRank("Progression Rank", it.rank, it.improvement) }
                 .firstOrNull()
 
 
         ////////// build season best rank //////////
 
-        val allSeasonBests = allSeasonBestsAsync.get()!!.map { it.runner to it.seasonBest }
+        val allSeasonBests = seasonBestService.getAllSeasonBests(startDate, endDate).map { it.runner to it.seasonBest }
                 .filter {
                     it.second.isNotEmpty()
                 }
@@ -138,7 +136,7 @@ class RunnerProfileService (
 
         // get time trial results as fall backs for runners with no season best yet
 
-        val allAdjustedTimeTrials = timeTrials.get()!!
+        val allAdjustedTimeTrials = timeTrialProgressionService.getAllAdjustedTimeTrials(startDate, endDate)
                 .map { it.runnerId to it.time }
                 .filter {
                     !allSeasonBests.map { sb -> sb.first }.contains(it.first)
@@ -163,18 +161,20 @@ class RunnerProfileService (
             upcomingMeet = upcomingMeets.first()
         }
 
-        val lastYearPerformanceAtUpcomingMeet: MeetPerformanceDTO?
+        var lastYearPerformanceAtUpcomingMeet: MeetPerformanceDTO?
         var upComingMeetSplitsLastYear: RunnerMeetSplitDTO? = null
 
         if (upcomingMeet != null) {
-            val performances = lastYearPerformances.get()!!
+            val lastYearStart = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-01-01")
+            val lastYearEnd = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-12-31")
+            val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20)
                     .map {
                         it.performance
                     }.flatten()
 
-            lastYearPerformanceAtUpcomingMeet = performances.firstOrNull {
+            lastYearPerformanceAtUpcomingMeet = performances.filter {
                 it.meetName.equals(upcomingMeet.name, ignoreCase = true)
-            }
+            }.firstOrNull()
 
 
             upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
@@ -206,5 +206,54 @@ class RunnerProfileService (
         return splits
 
     }
+
+    @Async
+    open fun getWorkoutConsistency(startDate: Date, endDate: Date): Future<List<RunnerConsistencyDTO>> {
+        return AsyncResult(runnerConsistencyRankService.getRunnersOrderedByMostConsistentWorkouts(startDate, endDate))
+    }
+
+
+    @Async
+    open fun getRaceConsistency(startDate: Date, endDate: Date): Future<List<RunnerConsistencyDTO>> {
+        return AsyncResult(runnerConsistencyRankService.getRunnersOrderedByMostConsistentRaces(startDate, endDate))
+    }
+
+    @Async
+    open fun getTotalConsistency(startDate: Date, endDate: Date, weight: Double): Future<List<RunnerConsistencyDTO>> {
+        return AsyncResult(runnerConsistencyRankService.getRunnersOrderedMostConsistent(startDate, endDate, weight))
+    }
+
+    @Async
+    open fun getTimeTrialProgression(startDate: Date, endDate: Date): Future<List<TimeTrialImprovementDTO>> {
+        return AsyncResult(timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate))
+    }
+
+    @Async
+    open fun getMeetPerformancesLastYear(name: String, startDate: Date, endDate: Date,
+                                           sortingMethodContainer: SortingMethodContainer, count: Int): Future<List<RunnerPerformanceDTO>> {
+        return AsyncResult(meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, startDate, endDate,
+                sortingMethodContainer, count))
+    }
+
+    @Async
+    open fun getAllSeasonBests(startDate: Date, endDate: Date): Future<List<SeasonBestDTO>> {
+        return AsyncResult(seasonBestService.getAllSeasonBests(startDate, endDate))
+    }
+
+    @Async
+    open fun getTimeTrials(startDate: Date, endDate: Date): Future<List<TimeTrial>> {
+        return AsyncResult(timeTrialProgressionService.getAllAdjustedTimeTrials(startDate, endDate))
+    }
+
+    @Async
+    open fun getGoalForRunner(name: String, year: String): Future<List<RunnerGoalDTO>> {
+        return AsyncResult(goalService.getRunnersGoalForSeason(name, year))
+    }
+
+    @Async
+    open fun getAllMeetSplits(name: String, startDate: Date, endDate: Date): Future<List<RunnerMeetSplitDTO>>  {
+        return AsyncResult(meetMileSplitService.getAllMeetMileSplitsForRunner(name, startDate, endDate).mileSplits)
+    }
+
 
 }
