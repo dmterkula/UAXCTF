@@ -24,25 +24,16 @@ class TimeTrialProgressionService (@field: Autowired
     fun getRankedProgressionSinceTimeTrial(startDate: Date, endDate: Date): List<TimeTrialImprovementDTO> {
 
 
-        val adjustedTimeTrialResults = timeTrialRepository.findBySeason(startDate.getYearString())
-                .map {
-                    TimeTrial(it.runnerId, scaleTo5k((mile * 3), it.time.calculateSecondsFrom()).toMinuteSecondString(), it.place, it.season)
-                }
+        val adjustedTimeTrialResults = getAllAdjustedTimeTrials(startDate, endDate)
 
         val runners = adjustedTimeTrialResults
                 .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
                 .toMap()
 
-       val runnerToAdjustedTimeTrial = adjustedTimeTrialResults
-                .map { runners[it.runnerId]!! to it }
-                .toMap()
-
-
         val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
                 .filter { it.runner.id in runners.keys }
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()
-
 
         return adjustedTimeTrialResults
                 .map { it to seasonBests[it.runnerId] }
@@ -57,6 +48,13 @@ class TimeTrialProgressionService (@field: Autowired
                     TimeTrialImprovementDTO(index + 1, it.runner, it.adjustedTimeTrial, it.seasonBest, it.improvement) }
     }
 
+    fun getAllAdjustedTimeTrials(startDate: Date, endDate: Date): List<TimeTrial> {
+        return timeTrialRepository.findBySeason(startDate.getYearString())
+                .map {
+                    TimeTrial(it.runnerId, scaleTo5k((mile * 3), it.time.calculateSecondsFrom()).toMinuteSecondString(), it.place, it.season)
+                }
+
+    }
 
     companion object {
         val mile: Double = 1609.0

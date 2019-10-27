@@ -76,3 +76,13 @@ fun scaleTo5k(distance: Double, time: Double): Double {
     return (time / distance) * 5000
 
 }
+
+fun Date.getFirstDayOfYear(): Date {
+    return Date.valueOf(this.getYearString() + "-01-01")
+
+}
+
+fun Date.getLastDayOfYear(): Date {
+    return Date.valueOf(this.getYearString() + "-12-31")
+
+}

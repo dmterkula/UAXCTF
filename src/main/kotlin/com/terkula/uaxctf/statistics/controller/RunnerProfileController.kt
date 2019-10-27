@@ -1,7 +1,6 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.statistics.exception.UnsupportedAPIOperationException
-import com.terkula.uaxctf.statistics.response.PRResponse
+import com.terkula.uaxctf.statistics.response.RunnerProfileResponse
 import com.terkula.uaxctf.statistics.service.RunnerProfileService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
@@ -19,11 +18,9 @@ class RunnerProfileController (@field:Autowired
     @RequestMapping(value = ["xc/runnerProfile/"], method = [RequestMethod.GET])
     fun getAllPRsByYear(
             @ApiParam("Specifies the runner whose profile is to be returned")
-            @RequestParam(value = "filter.name", required = true) name: String): String {
+            @RequestParam(value = "filter.name", required = true) name: String): RunnerProfileResponse {
 
-
-        runnerProfileService.buildRunnerProfile(name)
-        return "test"
+        return RunnerProfileResponse(runnerProfileService.buildRunnerProfile(name))
 
     }
 

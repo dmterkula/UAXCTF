@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statistics.dto
 
-import com.terkula.uaxctf.statisitcs.model.Runner
+import com.fasterxml.jackson.annotation.JsonInclude
 
-class RunnerMeetSplitDTO (val meetPerformanceDTO: MeetPerformanceDTO, val meetSplitsDTO: MeetSplitsDTO)
+@JsonInclude(JsonInclude.Include.NON_NULL)
+class RunnerMeetSplitDTO (val meetPerformanceDTO: MeetPerformanceDTO, val meetSplitsDTO: MeetSplitsDTO?)
