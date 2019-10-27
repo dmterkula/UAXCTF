@@ -6,6 +6,8 @@ import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
+import org.springframework.scheduling.annotation.EnableAsync
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import springfox.documentation.builders.ApiInfoBuilder
 import springfox.documentation.builders.PathSelectors
 import springfox.documentation.builders.RequestHandlerSelectors
@@ -15,11 +17,13 @@ import springfox.documentation.spring.web.plugins.Docket
 import springfox.documentation.swagger.web.UiConfiguration
 import springfox.documentation.swagger.web.UiConfigurationBuilder
 import springfox.documentation.swagger2.annotations.EnableSwagger2
+import java.util.concurrent.Executor
 
 @SpringBootApplication
 @ComponentScan(basePackages = ["com.terkula"])
 @EnableJpaRepositories("com.terkula.uaxctf.statistics.repository", "com.terkula.uaxctf.training.repository" )
 @EnableSwagger2
+@EnableAsync
 class UaxctfApplication {
 
 	@Bean
@@ -55,6 +59,19 @@ class UaxctfApplication {
 	}
 
 }
+
+@Bean(name = ["asyncExecutor"])
+fun asyncExecutor(): Executor {
+	val executor = ThreadPoolTaskExecutor()
+	executor.isDaemon = true
+	executor.corePoolSize = 100
+	executor.maxPoolSize = 100
+	executor.setQueueCapacity(100)
+	executor.setThreadNamePrefix("AsyncRecommendationCoreThread-")
+	executor.initialize()
+	return executor
+}
+
 
 fun main(args: Array<String>) {
 	runApplication<UaxctfApplication>(*args)
