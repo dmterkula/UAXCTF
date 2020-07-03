@@ -45,8 +45,7 @@ class MeetSummaryService (@field:Autowired
         val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startSeasonDate, targetMeet.date)
         val seasonBestResponse = SeasonBestResponse(seasonBests.size, seasonBests)
 
-        val prs = personalRecordService.getPRsAtLastMeet(startSeasonDate, targetMeet.date
-        )
+        val prs = personalRecordService.getPRsAtLastMeet(startSeasonDate, targetMeet.date)
         val prResponse = PRResponse(prs.size, prs)
 
 

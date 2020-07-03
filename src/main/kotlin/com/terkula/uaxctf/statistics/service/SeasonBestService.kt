@@ -90,7 +90,9 @@ class SeasonBestService(@field:Autowired
                         SeasonBestDTO(runners[it.first]!!, it.second.take(1), ImprovedUponDTO(it.second.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
                     }
 
-            runnersSeasonBests.add(seasonBests.first())
+            if (seasonBests.isNotEmpty()) {
+                runnersSeasonBests.add(seasonBests.first())
+            }
 
         }
 
@@ -100,7 +102,8 @@ class SeasonBestService(@field:Autowired
 
     fun getSeasonBestsAtLastMeet(startDate: Date, endDate: Date): List<SeasonBestDTO> {
 
-        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.first()
+        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.firstOrNull()
+                ?: return emptyList()
 
         return getAllSeasonBests(startDate, endDate)
                 .filter {
