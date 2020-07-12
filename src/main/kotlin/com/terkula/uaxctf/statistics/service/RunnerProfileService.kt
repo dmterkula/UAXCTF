@@ -9,8 +9,7 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.service.WorkoutResultService
-import com.terkula.uaxctf.util.getFirstDayOfYear
-import com.terkula.uaxctf.util.getLastDayOfYear
+import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -98,8 +97,6 @@ class RunnerProfileService (
             lastWorkout = workouts.sortedBy { it.workout.date }.first()
         }
 
-
-
         val workoutRank = workoutConsistency.get()!!
                 .filter { it.runner.id == runner.id }
                 .map {
@@ -176,14 +173,11 @@ class RunnerProfileService (
                 it.meetName.equals(upcomingMeet.name, ignoreCase = true)
             }
 
-
             upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
-
         }
 
         return RunnerProfileDTO(runner, goal, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
                 workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
-
     }
 
     fun getSplitsForMeetPerformances(meetPerformance: MeetPerformanceDTO?, runner: Runner): RunnerMeetSplitDTO? {
@@ -192,8 +186,8 @@ class RunnerProfileService (
 
         if (meetPerformance != null) {
 
-            val startDate = meetPerformance.meetDate.getFirstDayOfYear()
-            val endDate = meetPerformance.meetDate.getLastDayOfYear()
+            val startDate = TimeUtilities.getFirstDayOfYear()
+            val endDate = TimeUtilities.getLastDayOfYear()
 
             val meetSplits = meetMileSplitService.getAllMeetMileSplitsForRunner(runner.name, startDate, endDate).mileSplits
             splits = meetSplits.firstOrNull { it.meetPerformanceDTO.meetName == meetPerformance.meetName }
@@ -204,7 +198,5 @@ class RunnerProfileService (
         }
 
         return splits
-
     }
-
 }

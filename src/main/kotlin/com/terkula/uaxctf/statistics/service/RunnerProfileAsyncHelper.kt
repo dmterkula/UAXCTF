@@ -10,8 +10,7 @@ import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.service.WorkoutResultService
-import com.terkula.uaxctf.util.getFirstDayOfYear
-import com.terkula.uaxctf.util.getLastDayOfYear
+import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Async
@@ -192,8 +191,8 @@ open class RunnerProfileAsyncHelper (@field:Autowired
 
         if (meetPerformance != null) {
 
-            val startDate = meetPerformance.meetDate.getFirstDayOfYear()
-            val endDate = meetPerformance.meetDate.getLastDayOfYear()
+            val startDate = TimeUtilities.Companion.getFirstDayOfYear()
+            val endDate = TimeUtilities.Companion.getLastDayOfYear()
 
             val meetSplits = meetMileSplitService.getAllMeetMileSplitsForRunner(runner.name, startDate, endDate).mileSplits
             splits = meetSplits.firstOrNull { it.meetPerformanceDTO.meetName == meetPerformance.meetName }

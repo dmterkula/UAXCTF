@@ -3,6 +3,21 @@ package com.terkula.uaxctf.util
 import java.sql.Date
 import java.util.Calendar
 
+class TimeUtilities {
+
+    companion object {
+        fun getFirstDayOfYear(): Date {
+            return Date.valueOf(Date(System.currentTimeMillis()).getYearString() + "-01-01")
+
+        }
+
+        fun getLastDayOfYear(): Date {
+            return Date.valueOf(Date(System.currentTimeMillis()).getYearString() + "-12-31")
+        }
+    }
+}
+
+
 fun String.calculateSecondsFrom(): Double {
 
     val splitTime = this.split(":")
@@ -77,12 +92,21 @@ fun scaleTo5k(distance: Double, time: Double): Double {
 
 }
 
-fun Date.getFirstDayOfYear(): Date {
-    return Date.valueOf(this.getYearString() + "-01-01")
+fun String.toPlace(): Int {
+
+    return try {
+        this.toInt()
+    } catch (e: Exception) {
+         0
+    }
 
 }
 
-fun Date.getLastDayOfYear(): Date {
-    return Date.valueOf(this.getYearString() + "-12-31")
+fun String.isValidTime(): Boolean {
+    return this.matches(Regex("\\d\\d:\\d\\d.\\d+"))
+}
 
+fun String.appendDecimal(): String {
+    return if (this.contains(".")) this
+    else "$this.0"
 }

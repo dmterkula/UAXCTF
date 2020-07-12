@@ -1,13 +1,22 @@
 package com.terkula.uaxctf.statistics.controller
 
+import com.terkula.uaxctf.google.GoogleSheetsClient
+import com.terkula.uaxctf.statistics.response.MeetResultDataLoadResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
+import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 
 @RestController
-class XcDataLoader(@field:Autowired
-                   internal var meetPerformanceService: MeetPerformanceService) {
+class XcDataLoaderController(
+    @field:Autowired
+    internal var meetPerformanceService: MeetPerformanceService,
+    @field:Autowired
+    internal var xcDataLoaderService: XcDataLoaderService,
+    @field:Autowired
+    internal var googleSheetsClient: GoogleSheetsClient
+) {
 
     @ApiOperation("Loads meet data that has manually been entered in the load table.")
     @RequestMapping(value = ["xc/load/{meetId}"], method = [RequestMethod.GET])
@@ -39,6 +48,17 @@ class XcDataLoader(@field:Autowired
 
         meetPerformanceService.loadTimeTrial(season)
         return "loaded time trial"
+    }
+
+    @ApiOperation("Read Race Results From Google Sheet")
+    @RequestMapping(value = ["xc/readRaceResults/"], method = [RequestMethod.GET])
+    fun readSheet(
+            @RequestParam(value = "sheetName") sheetName: String
+    ): MeetResultDataLoadResponse {
+
+        // List<List<name, time, place>
+        val rawSheetData = googleSheetsClient.readSheet("1MNSyRdzS8O7KDpjitOKVoDnJoCr_npe8DrtfhJ2Sm-w", sheetName)
+        return xcDataLoaderService.processRaceResults(rawSheetData, sheetName)
     }
 
 }
