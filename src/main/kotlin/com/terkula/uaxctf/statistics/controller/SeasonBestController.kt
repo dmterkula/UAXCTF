@@ -19,7 +19,10 @@ class SeasonBestController(@field:Autowired
     @RequestMapping(value = ["/xc/seasonBests/all"], method = [RequestMethod.GET])
     fun getAllSeasonBestsByYear(
     @ApiParam("Filters results for meets with a date after 01-01 of the input year")
-    @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String) : SeasonBestResponse {
+    @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+    @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+    @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ) : SeasonBestResponse {
 
         var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
@@ -30,7 +33,7 @@ class SeasonBestController(@field:Autowired
             endDate = Date.valueOf("$season-12-31")
         }
 
-        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
+        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, adjustForDistance)
 
         return SeasonBestResponse(seasonBests.size, seasonBests)
 
@@ -42,7 +45,9 @@ class SeasonBestController(@field:Autowired
             @ApiParam("Limits results for the last number of years based on the input")
             @RequestParam(value = "limit.numYears", required = false, defaultValue = "1") numSeasons: Int,
             @ApiParam("Filters results athletes whose name matches/partially matches the input name")
-            @RequestParam(value = "filter.name") partialName: String) : SeasonBestResponse {
+            @RequestParam(value = "filter.name") partialName: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false) : SeasonBestResponse {
 
         val startEndPairs = IntStream.range(1, numSeasons + 1).toList().map {
             val startSeasonYear = MeetPerformanceController.CURRENT_YEAR.toInt() - (it - 1)
@@ -51,33 +56,37 @@ class SeasonBestController(@field:Autowired
             startDate to endDate
         }
 
-        val seasonBests = seasonBestService.getSeasonBestsByName(partialName, startEndPairs)
+        val seasonBests = seasonBestService.getSeasonBestsByName(partialName, startEndPairs, adjustForDistance)
 
         return SeasonBestResponse(seasonBests.size, seasonBests)
 
     }
 
     @RequestMapping(value = ["xc/seasonBests/lastMeet"], method = [RequestMethod.GET])
-    fun getSeasonBestsAtLastMeet(): SeasonBestResponse {
-
+    fun getSeasonBestsAtLastMeet(
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ): SeasonBestResponse {
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startDate, endDate)
+        val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startDate, endDate, adjustForDistance)
 
         return SeasonBestResponse(seasonBests.size, seasonBests)
-
     }
 
     @ApiOperation("Returns runner's season best if their current season best is still the first meet")
     @RequestMapping(value = ["xc/seasonBests/isAtFirstMeet"], method = [RequestMethod.GET])
-    fun findWhoseSeasonBestIsFirstMeet(): SeasonBestResponse {
+    fun findWhoseSeasonBestIsFirstMeet(
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ): SeasonBestResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
 
-        val seasonBests = seasonBestService.findWhoseSeasonBestIsFirstMeet(startDate, endDate)
+        val seasonBests = seasonBestService.findWhoseSeasonBestIsFirstMeet(startDate, endDate, adjustForDistance)
 
         return SeasonBestResponse(seasonBests.size, seasonBests)
 

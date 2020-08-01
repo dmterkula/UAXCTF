@@ -31,7 +31,9 @@ class MeetPerformanceController(@field:Autowired
                     "If one these values is not provided, no sort is used ")
             @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String,
             @ApiParam("Limits the number of total results returned to the input")
-            @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int): RunnerMeetPerformanceResponse {
+            @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): RunnerMeetPerformanceResponse {
 
         var startDate = Date.valueOf("$CURRENT_YEAR-01-01")
         var endDate = Date.valueOf("$CURRENT_YEAR-12-31")
@@ -46,7 +48,8 @@ class MeetPerformanceController(@field:Autowired
 
         val sortingMethodContainer = getSortingMethod(sortMethod)
 
-        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(partialName, startDate, endDate,  sortingMethodContainer, count))
+        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(partialName,
+                startDate, endDate, sortingMethodContainer, count, adjustForDistance))
     }
 
     @ApiOperation("Returns the meet results for the given runner in the given season")
@@ -62,7 +65,9 @@ class MeetPerformanceController(@field:Autowired
                     "If one these values is not provided, no sort is used ")
             @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String,
             @ApiParam("Limits the number of total results returned to the input")
-            @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int): RunnerMeetPerformanceResponse {
+            @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): RunnerMeetPerformanceResponse {
 
         var startDate = Date.valueOf("$CURRENT_YEAR-01-01")
         var endDate = Date.valueOf("$CURRENT_YEAR-12-31")
@@ -77,7 +82,8 @@ class MeetPerformanceController(@field:Autowired
 
         val sortingMethodContainer = getSortingMethod(sortMethod)
 
-        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesAtMeetName(partialName, startDate, endDate,  sortingMethodContainer, count))
+        return RunnerMeetPerformanceResponse(meetPerformanceService.getMeetPerformancesAtMeetName(partialName, startDate,
+                endDate, sortingMethodContainer, count, adjustForDistance))
     }
 
 

@@ -22,12 +22,24 @@ class MeetSummaryController(@field:Autowired
             @ApiParam("Filters results for just a meet matching the given meet name/partial name")
             @RequestParam(value = "filter.meet", required = true) meetName: String,
             @ApiParam("Limits number of results for improvement rates and fastest lastMile")
-            @RequestParam(value = "page.size", required = false, defaultValue = "7") limit: Int): MeetSummaryResponse {
+            @RequestParam(value = "page.size", required = false, defaultValue = "7") limit: Int,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false")
+            adjustForDistance: Boolean = false,
+            @ApiParam("Specifies the season for the summary. defaults to current year")
+            @RequestParam(value = "season", required = false, defaultValue = "")
+            season: String = ""): MeetSummaryResponse {
 
-        val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        return meetSummaryService.getLastMeetSummary(startDate, endDate, meetName, limit)
+        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+
+        if (season.isNotEmpty()) {
+            startDate = Date.valueOf("$season-01-01")
+            endDate = Date.valueOf("$season-12-31")
+        }
+
+        return meetSummaryService.getLastMeetSummary(startDate, endDate, meetName, limit, adjustForDistance)
 
     }
 

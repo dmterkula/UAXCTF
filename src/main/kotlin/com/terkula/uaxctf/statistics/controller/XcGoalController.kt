@@ -39,7 +39,8 @@ class XcGoalController(@field:Autowired
     @RequestMapping(value = ["xc/goals/forSeason"], method = [RequestMethod.GET])
     fun getRunnerGoals(
             @ApiParam("Filters results for the season in the given year.")
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): RunnerGoalResponse {
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String
+            ): RunnerGoalResponse {
 
         var filterSeason = season
 
@@ -56,34 +57,40 @@ class XcGoalController(@field:Autowired
     @RequestMapping(value = ["xc/goals/newlyMetAtMeet"], method = [RequestMethod.GET])
     fun getRunnerNewlyMetGoalsAtMeet(
             @ApiParam("Specify the name of the last meet")
-            @RequestParam(value = "filter.meet", required = false, defaultValue = "") meetName: String): MetGoalResponse {
+            @RequestParam(value = "filter.meet", required = false, defaultValue = "") meetName: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): MetGoalResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        return MetGoalResponse(xcGoalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startDate, endDate))
+        return MetGoalResponse(xcGoalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startDate, endDate, adjustForDistance))
 
     }
 
     @ApiOperation("Returns runners who have met their goal this season")
     @RequestMapping(value = ["xc/goals/metThisSeason"], method = [RequestMethod.GET])
-    fun getRunnerGoalsThisSeason(): MetGoalResponse {
+    fun getRunnerGoalsThisSeason(
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ): MetGoalResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        return MetGoalResponse(xcGoalService.getRunnersWhoHaveMetGoal(startDate, endDate))
+        return MetGoalResponse(xcGoalService.getRunnersWhoHaveMetGoal(startDate, endDate, adjustForDistance))
 
     }
 
     @ApiOperation("Returns runners who have not met their goal this season")
     @RequestMapping(value = ["xc/goals/notMetThisSeason"], method = [RequestMethod.GET])
-    fun getNotMetRunnerGoalsThisSeason(): UnMetGoalResponse {
+    fun getNotMetRunnerGoalsThisSeason(@ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+                                       @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): UnMetGoalResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        return UnMetGoalResponse(xcGoalService.getRunnersWhoHaveNotMetGoal(startDate, endDate))
+        return UnMetGoalResponse(xcGoalService.getRunnersWhoHaveNotMetGoal(startDate, endDate, adjustForDistance))
 
     }
 

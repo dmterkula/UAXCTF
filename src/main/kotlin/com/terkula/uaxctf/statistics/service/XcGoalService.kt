@@ -65,7 +65,12 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun getRunnerWhoNewlyMetGoalAtMeet(meetName: String, startSeasonDate: Date, endSeasonDate: Date): List<MetGoalDTO> {
+    fun getRunnerWhoNewlyMetGoalAtMeet(
+        meetName: String, 
+        startSeasonDate: Date, 
+        endSeasonDate: Date, 
+        adjustForDistance: Boolean
+    ): List<MetGoalDTO> {
 
         //get target meet and all other meets this season
         val targetMeet: Meet
@@ -84,7 +89,7 @@ class XcGoalService (@field:Autowired
 
         // get map runnerId to last meet performances
         val lastMeetPerformances = meetPerformanceService.getMeetPerformancesAtMeetName(meetName,
-                startSeasonDate, endSeasonDate, SortingMethodContainer.TIME, 99).map { it.runner.id to it }.toMap()
+                startSeasonDate, endSeasonDate, SortingMethodContainer.TIME, 99, adjustForDistance).map { it.runner.id to it }.toMap()
 
         // get goals for those who ran
         val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR).map { it.runnerId to it }.toMap()
@@ -92,7 +97,8 @@ class XcGoalService (@field:Autowired
 
         // get the seasonBests before the last meet for each runner
         val justBeforeLastMeetDate = substractDays(targetMeet.date, 1)
-        val seasonBestsBeforeLastMeet = seasonBestService.getAllSeasonBests(startSeasonDate, justBeforeLastMeetDate).map { it.runner.id to it }.toMap()
+        val seasonBestsBeforeLastMeet = seasonBestService.getAllSeasonBests(startSeasonDate, justBeforeLastMeetDate, adjustForDistance)
+                .map { it.runner.id to it }.toMap()
 
         // get goals which have been previously un-met before the last meet
         val unmetGoalsBeforeLastMeet = goals.filter { it.key in seasonBestsBeforeLastMeet.keys }
@@ -106,9 +112,9 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun getRunnersWhoHaveMetGoal(startSeasonDate: Date, endSeasonDate: Date): List<MetGoalDTO> {
+    fun getRunnersWhoHaveMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<MetGoalDTO> {
 
-        val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate)
+        val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate, adjustForDistance)
                 .map { it.runner.id to it }.toMap()
         val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
                 .filter { it.runnerId in seasonBests.keys }
@@ -122,9 +128,9 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun getRunnersWhoHaveNotMetGoal(startSeasonDate: Date, endSeasonDate: Date): List<UnMetGoalDTO> {
+    fun getRunnersWhoHaveNotMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<UnMetGoalDTO> {
 
-        val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate)
+        val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate, adjustForDistance)
                 .map { it.runner.id to it }.toMap()
         val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
                 .filter { it.runnerId in seasonBests.keys }

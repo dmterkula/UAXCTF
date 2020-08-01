@@ -7,7 +7,6 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
-import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.util.TimeUtilities
@@ -57,7 +56,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
         val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
         val endDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-12-31")
 
-        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate))
+        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate), false)
         var seasonBest: RunnerMeetSplitDTO? = null
         if (seasonBests.isNotEmpty()) {
             if (seasonBests.first().seasonBest.isNotEmpty()) {
@@ -72,7 +71,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
 
         val seasonBestSplits = getSplitsForMeetPerformances(seasonBest?.meetPerformanceDTO, runner)
 
-        val prs = personalRecordService.getPRsByName(name)
+        val prs = personalRecordService.getPRsByName(name, false)
         var pr: MeetPerformanceDTO? = null
 
         if (prs.isNotEmpty()) {
@@ -125,7 +124,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
 
         ////////// build season best rank //////////
 
-        val allSeasonBests = seasonBestService.getAllSeasonBests(startDate, endDate).map { it.runner to it.seasonBest }
+        val allSeasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false).map { it.runner to it.seasonBest }
                 .filter {
                     it.second.isNotEmpty()
                 }
@@ -166,7 +165,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
         if (upcomingMeet != null) {
             val lastYearStart = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-01-01")
             val lastYearEnd = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-12-31")
-            val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20)
+            val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20, false)
                     .map {
                         it.performance
                     }.flatten()
@@ -231,12 +230,12 @@ open class RunnerProfileAsyncHelper (@field:Autowired
     open fun getMeetPerformancesLastYear(name: String, startDate: Date, endDate: Date,
                                            sortingMethodContainer: SortingMethodContainer, count: Int): Future<List<RunnerPerformanceDTO>> {
         return AsyncResult(meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, startDate, endDate,
-                sortingMethodContainer, count))
+                sortingMethodContainer, count, false))
     }
 
     @Async
     open fun getAllSeasonBests(startDate: Date, endDate: Date): Future<List<SeasonBestDTO>> {
-        return AsyncResult(seasonBestService.getAllSeasonBests(startDate, endDate))
+        return AsyncResult(seasonBestService.getAllSeasonBests(startDate, endDate, false))
     }
 
     @Async

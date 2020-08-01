@@ -33,7 +33,9 @@ class PRController(@field:Autowired
             @Pattern(
                     regexp = "latest|oldest|time",
                     message = "The value provided for sort.method. Valid values are 'latest', 'oldest' or 'time' ")
-            @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String): PRResponse {
+            @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): PRResponse {
 
         if (sinceGradClass.isNotEmpty() && filterClass.isNotEmpty()) {
             throw UnsupportedAPIOperationException("Only use one of the filter parameters on this endpoint at a time")
@@ -45,7 +47,7 @@ class PRController(@field:Autowired
             after = MeetPerformanceController.CURRENT_YEAR
         }
 
-        val prs = personalRecordService.getAllPRs(after, filterClass, getSortingMethod(sortMethod))
+        val prs = personalRecordService.getAllPRs(after, filterClass, getSortingMethod(sortMethod), adjustForDistance)
 
         return PRResponse(prs.size, prs)
 
@@ -55,9 +57,11 @@ class PRController(@field:Autowired
     @RequestMapping(value = ["xc/PRs/forRunner"], method = [RequestMethod.GET])
     fun getRunnerPRsByName(
             @ApiParam("Filters results for athletes whose name matches or partially matches the input name")
-            @RequestParam(value = "filter.name") partialName: String): PRResponse {
+            @RequestParam(value = "filter.name") partialName: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): PRResponse {
 
-        val prs = personalRecordService.getPRsByName(partialName)
+        val prs = personalRecordService.getPRsByName(partialName, adjustForDistance)
 
         return PRResponse(prs.size, prs)
 
@@ -65,12 +69,15 @@ class PRController(@field:Autowired
 
     @ApiOperation("Returns PRs for all runners in the last meet")
     @RequestMapping(value = ["xc/PRs/lastMeet"], method = [RequestMethod.GET])
-    fun getSeasonBestsAtLastMeet(): PRResponse {
+    fun getPRsAtLastMeet(
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ): PRResponse {
 
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        val prs = personalRecordService.getPRsAtLastMeet(startDate, endDate)
+        val prs = personalRecordService.getPRsAtLastMeet(startDate, endDate, false)
         return PRResponse(prs.count(), prs)
 
     }

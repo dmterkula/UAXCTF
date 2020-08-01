@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statisitcs.model
 
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
+import com.terkula.uaxctf.statistics.dto.adjustForDistance
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -25,5 +26,5 @@ data class XCMeetPerformance(
 }
 
 fun List<XCMeetPerformance>.toMeetPerformanceDTO(meetMap: Map<Int, Meet>): List<MeetPerformanceDTO> {
-    return this.map { MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date, it.time, it.place) }
+    return this.map { MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date, it.time, it.place, null) }
 }

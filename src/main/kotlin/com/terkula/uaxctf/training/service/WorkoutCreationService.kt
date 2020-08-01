@@ -55,7 +55,7 @@ class WorkoutCreationService (@field:Autowired
                     }
                     "seasonBest" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
+                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
                         val workoutPlanDTOs = seasonBests.map {
                             RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("split",
@@ -68,7 +68,7 @@ class WorkoutCreationService (@field:Autowired
                     "pr" -> {
                         val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
 
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME)
+                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
 
                         val workoutPlanDTOs = prs.map {
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("split",
@@ -109,7 +109,7 @@ class WorkoutCreationService (@field:Autowired
                     }
                     "seasonBest" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
+                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
 
                         val workoutPlanDTOs = seasonBests.map {
@@ -123,7 +123,7 @@ class WorkoutCreationService (@field:Autowired
                     "pr" -> {
                         val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
 
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME)
+                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
                         val workoutPlanDTOs = prs.map {
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
                         }.toList()
@@ -163,7 +163,7 @@ class WorkoutCreationService (@field:Autowired
                     }
                     "seasonBest" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
+                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
 
                         val workoutPlanDTOs = seasonBests.map {
@@ -177,7 +177,7 @@ class WorkoutCreationService (@field:Autowired
                     "pr" -> {
                         val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
 
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME)
+                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
                         val workoutPlanDTOs = prs.map {
                             val baseTimePerMile = it.pr.first().time.calculateSecondsFrom() * distanceRatio
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))

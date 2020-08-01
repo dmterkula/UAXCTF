@@ -24,9 +24,12 @@ class MeetProgressionController(@field:Autowired
     @RequestMapping(value = ["xc/meetProgression/interSeason"], method = [RequestMethod.GET])
     fun getMeetProgressionForRunner(
             @RequestParam(value = "filter.meet", required = true) meetName: String,
-            @RequestParam(value = "filter.runner") runnerName: String) : MeetProgressionResponse {
+            @RequestParam(value = "filter.runner") runnerName: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ) : MeetProgressionResponse {
 
-        val progessions = meetProgressionService.getSingleMeetSingleRunnerProgression(meetName, runnerName)
+        val progessions = meetProgressionService.getSingleMeetSingleRunnerProgression(meetName, runnerName, adjustForDistance)
         return MeetProgressionResponse(progessions.size, progessions)
 
     }
@@ -44,7 +47,9 @@ class MeetProgressionController(@field:Autowired
             @Pattern(
                     regexp = "faster|slower",
                     message = "The value provided for filter.time is invalid. Valid values are 'faster' or 'slower' or no value")
-            @RequestParam(value = "filter.time", defaultValue = "") filterBy: String): MeetProgressionResponse {
+            @RequestParam(value = "filter.time", defaultValue = "") filterBy: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): MeetProgressionResponse {
 
         var startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
         var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
@@ -54,11 +59,10 @@ class MeetProgressionController(@field:Autowired
             endDate = Date.valueOf("$endYear-12-31")
         }
 
-        val progressions = meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, filterBy)
+        val progressions = meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate,
+                endDate, filterBy, adjustForDistance)
         return MeetProgressionResponse(progressions.size, progressions)
-
     }
-
 
     @ApiOperation("Returns how much time every runner has taken off between meets this season")
     @RequestMapping(value = ["xc/meetProgression/intraSeason"], method = [RequestMethod.GET])
@@ -68,12 +72,16 @@ class MeetProgressionController(@field:Autowired
                     regexp = "faster|slower|",
                     message = "The value provided for filter.time is invalid. Valid values are 'faster' or 'slower' or no value")
             @RequestParam(value = "filter.time", defaultValue = "") filterBy: String,
-            @RequestParam(value = "filter.excludeMeet", defaultValue = "") excludedMeet: String): MeetProgressionResponse {
+            @RequestParam(value = "filter.excludeMeet", defaultValue = "") excludedMeet: String,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+    ): MeetProgressionResponse {
 
         val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-        val progressions = meetProgressionService.getMeetProgressionsFromLastNMeets(numMeets, MeetPerformanceController.CURRENT_YEAR, startDate, endDate, filterBy, excludedMeet)
+        val progressions = meetProgressionService.getMeetProgressionsFromLastNMeets(numMeets, MeetPerformanceController.CURRENT_YEAR,
+                startDate, endDate, filterBy, excludedMeet, adjustForDistance)
 
         return MeetProgressionResponse(progressions.size, progressions)
 

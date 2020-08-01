@@ -1,12 +1,12 @@
 package com.terkula.uaxctf.statistics.dto
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
-import com.terkula.uaxctf.util.toPaddedString
 import java.sql.Date
 
-class MeetPerformanceDTO(var meetName: String, var meetDate: Date, var time: String, var place: Int)
+@JsonInclude(JsonInclude.Include.NON_NULL)
+class MeetPerformanceDTO(var meetName: String, var meetDate: Date, var time: String, var place: Int, var adjustedTimeAmount: Double?)
 
 fun List<MeetPerformanceDTO>.getTimeDifferencesAsStrings(): MutableList<String> {
     val timeDifferences: MutableList<String> = mutableListOf()
@@ -55,6 +55,21 @@ fun List<MeetPerformanceDTO>.getTimeDifferencesAsDoubles(): MutableList<Double> 
 
     }
     return timeDifferences
+
 }
+fun MeetPerformanceDTO.adjustForDistance(distance: Int): MeetPerformanceDTO {
+    return if (distance != 5000) {
+        val ratio = distance / 5000.0
+
+        val newTime = (this.time.calculateSecondsFrom() / ratio)
+        val newTimeString = newTime.toMinuteSecondString()
+        val timeDifference = newTime - this.time.calculateSecondsFrom()
+
+        MeetPerformanceDTO(this.meetName, this.meetDate, newTimeString, this.place, timeDifference)
+    } else {
+        this
+    }
+}
+
 
 
