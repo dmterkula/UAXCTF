@@ -19,7 +19,7 @@ data class MeetInfo (
         @Column(name = "is_snowy")
         val isSnowy: Boolean) {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
 }

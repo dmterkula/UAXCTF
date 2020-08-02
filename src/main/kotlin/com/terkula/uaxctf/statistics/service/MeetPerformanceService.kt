@@ -152,7 +152,7 @@ class MeetPerformanceService(@field:Autowired
                           windSpeed: Int,
                           cloudCoverRatio: Double) {
 
-        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
+        val meets = meetRepository.findByNameContainsAndDateBetween(meetName, startDate, endDate)
 
         if (meets.isEmpty()) {
             throw MultipleMeetsFoundException("multiple meets found in the requested season, please specify unique meet name in the season")
@@ -161,9 +161,6 @@ class MeetPerformanceService(@field:Autowired
         val meetInfo = MeetInfo(meets.first().id, distance, elevationChange, temperature, humidity, windSpeed, cloudCoverRatio, isRainy, isSnowy)
 
         meetInfoRepository.save(meetInfo)
-
-
-
     }
 
 
@@ -197,10 +194,10 @@ class MeetPerformanceService(@field:Autowired
         // map runnerId to a MeetDTO constructed from performances and meet info map
         val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
-                    runners[it.key]!! to performanceAdjusterService.adjustMeetPerformances(sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
                         MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
-                    }.toMutableList()).take(count), adjustForDistance)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
                 }
@@ -236,10 +233,10 @@ class MeetPerformanceService(@field:Autowired
         // map runnerId to a MeetDTO constructed from performances and meet info map
         val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
-                    runners[it.key]!! to performanceAdjusterService.adjustMeetPerformances(sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetMap[meetPerformance.meetId]!!
                         MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
-                    }.toMutableList()).take(count), adjustForDistance)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
                 }

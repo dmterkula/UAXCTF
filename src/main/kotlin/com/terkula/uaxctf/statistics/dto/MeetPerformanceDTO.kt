@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.util.calculateSecondsFrom
+import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
 import java.sql.Date
 
@@ -65,7 +66,7 @@ fun MeetPerformanceDTO.adjustForDistance(distance: Int): MeetPerformanceDTO {
         val newTimeString = newTime.toMinuteSecondString()
         val timeDifference = newTime - this.time.calculateSecondsFrom()
 
-        MeetPerformanceDTO(this.meetName, this.meetDate, newTimeString, this.place, timeDifference)
+        MeetPerformanceDTO(this.meetName, this.meetDate, newTimeString, this.place, timeDifference.round(2))
     } else {
         this
     }
