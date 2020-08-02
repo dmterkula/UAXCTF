@@ -1,7 +1,6 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
-import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
@@ -21,9 +20,11 @@ class PersonalRecordService(@field:Autowired
                             private val meetRepository: MeetRepository, @field:Autowired
                             private val meetPerformanceRepository: MeetPerformanceRepository,
                             @field:Autowired
-                            private val runnerRepository: RunnerRepository) {
+                            private val runnerRepository: RunnerRepository,
+                            @field: Autowired
+                            private val performanceAdjusterService: PerformanceAdjusterService) {
 
-    fun getAllPRs(startingGradClass: String, filterClass: String, sortingMethodContainer: SortingMethodContainer): List<PRDTO> {
+    fun getAllPRs(startingGradClass: String, filterClass: String, sortingMethodContainer: SortingMethodContainer, adjustForDistance: Boolean): List<PRDTO> {
 
         //todo this will make a query for every eligible runner... consider sorting in the db in performances based on
         // todo time if pulling back all performances (per runner) is too expensive (this way you only pull back first 2)
@@ -48,7 +49,7 @@ class PersonalRecordService(@field:Autowired
                             .toMutableList()
                             .sortedBy { perf -> perf.time }.take(2)
                 }.toMap()
-                .map { it.key to it.value.toMeetPerformanceDTO(meetMap) }
+                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
                 .filter { it.second.isNotEmpty() }
                 .toMutableList()
                 .sortedBy {
@@ -71,7 +72,7 @@ class PersonalRecordService(@field:Autowired
         return prDTOs
     }
 
-    fun getPRsByName(partialName: String): List<PRDTO> {
+    fun getPRsByName(partialName: String, adjustForDistance: Boolean): List<PRDTO> {
 
         val eligibleRunners = runnerRepository.findByNameContaining(partialName)
                 .map { it.id to it }.toMap()
@@ -89,7 +90,7 @@ class PersonalRecordService(@field:Autowired
                             .toMutableList()
                             .sortedBy { perf -> perf.time }.take(2)
                 }.toMap()
-                .map { it.key to it.value.toMeetPerformanceDTO(meetMap) }
+                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
                 .filter { it.second.isNotEmpty() }
                 .toMutableList()
                 .sortedBy { it.second.first().time }
@@ -105,11 +106,11 @@ class PersonalRecordService(@field:Autowired
 
     }
 
-    fun getPRsAtLastMeet(startDate: Date, endDate: Date): List<PRDTO> {
+    fun getPRsAtLastMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<PRDTO> {
 
         val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.first()
 
-        return getAllPRs(MeetPerformanceController.CURRENT_YEAR, "", SortingMethodContainer.TIME)
+        return getAllPRs(MeetPerformanceController.CURRENT_YEAR, "", SortingMethodContainer.TIME, adjustForDistance)
                 .filter {
                     it.pr.first().meetDate == latestMeet.date
                 }

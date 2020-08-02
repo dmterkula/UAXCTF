@@ -17,23 +17,30 @@ import org.springframework.stereotype.Component
 import java.sql.Date
 
 @Component
-class MeetSummaryService (@field:Autowired
-                          internal var seasonBestService: SeasonBestService,
-                          @field:Autowired
-                          internal var personalRecordService: PersonalRecordService,
-                          @field: Autowired
-                          internal var improvementRateService: ImprovementRateService,
-                          @field: Autowired
-                          internal var meetProgressionService: MeetProgressionService,
-                          @field: Autowired
-                          internal var meetRepository: MeetRepository,
-                          @field: Autowired
-                          internal var goalService: XcGoalService,
-                          @field: Autowired
-                          internal var meetMileSplitService: MeetMileSplitService) {
+class MeetSummaryService (
+    @field:Autowired
+    internal var seasonBestService: SeasonBestService,
+    @field:Autowired
+    internal var personalRecordService: PersonalRecordService,
+    @field: Autowired
+    internal var improvementRateService: ImprovementRateService,
+    @field: Autowired
+    internal var meetProgressionService: MeetProgressionService,
+    @field: Autowired
+    internal var meetRepository: MeetRepository,
+    @field: Autowired
+    internal var goalService: XcGoalService,
+    @field: Autowired
+    internal var meetMileSplitService: MeetMileSplitService
+) {
 
-
-    fun getLastMeetSummary(startSeasonDate: Date, endSeasonDate: Date, meetName: String, limit: Int): MeetSummaryResponse {
+    fun getLastMeetSummary(
+        startSeasonDate: Date,
+        endSeasonDate: Date,
+        meetName: String,
+        limit: Int,
+        adjustForDistance: Boolean
+    ): MeetSummaryResponse {
 
         val targetMeet: Meet
         try {
@@ -42,19 +49,21 @@ class MeetSummaryService (@field:Autowired
             throw MeetNotFoundException("unable to find meet by name: $meetName")
         }
 
-        val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startSeasonDate, targetMeet.date)
+        val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startSeasonDate, targetMeet.date, adjustForDistance)
         val seasonBestResponse = SeasonBestResponse(seasonBests.size, seasonBests)
 
-        val prs = personalRecordService.getPRsAtLastMeet(startSeasonDate, targetMeet.date)
+        val prs = personalRecordService.getPRsAtLastMeet(startSeasonDate, targetMeet.date, adjustForDistance)
         val prResponse = PRResponse(prs.size, prs)
 
 
-        val metGoalsResponse = MetGoalResponse(goalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startSeasonDate, endSeasonDate))
+        val metGoalsResponse = MetGoalResponse(goalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startSeasonDate, endSeasonDate, adjustForDistance))
 
-        val meetSplitStatisticResponse =  MeetSplitsStatisticsSummaryResponse(meetMileSplitService.getStatisticsForMeet(meetName, startSeasonDate, endSeasonDate))
+        val meetSplitStatisticResponse =
+                MeetSplitsStatisticsSummaryResponse(meetMileSplitService.getStatisticsForMeet(meetName, startSeasonDate, endSeasonDate))
 
 
-        val improvementRateDTOs = improvementRateService.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
+        val improvementRateDTOs =
+                improvementRateService.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
 
         val faster = improvementRateDTOs.filter { it.improvementRate <= 0 }.toMutableList().sortedBy { it.improvementRate }
         val slower = improvementRateDTOs.filter { it.improvementRate > 0 }.toMutableList().sortedBy { it.improvementRate }
@@ -63,8 +72,9 @@ class MeetSummaryService (@field:Autowired
         val medianImprovementRate = improvementRateDTOs.map { it.improvementRate }.sorted()[(improvementRateDTOs.size / 2)]
 
 
-        val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate.toMinuteSecondString(), medianImprovementRate.toMinuteSecondString(),
-                ImprovementRatePair(faster.size, faster.take(limit)), ImprovementRatePair(slower.size, slower.take(limit)))
+        val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate.toMinuteSecondString(),
+                medianImprovementRate.toMinuteSecondString(), ImprovementRatePair(faster.size, faster.take(limit)),
+                ImprovementRatePair(slower.size, slower.take(limit)))
 
         val fastestLastMileResponse = RunnerAvgSplitDifferenceResponse(meetMileSplitService.getMeetSplitInfo(
                 meetName, MeetSplitsOption.SecondToThirdMile, startSeasonDate, endSeasonDate, "lowest", limit))
@@ -72,15 +82,16 @@ class MeetSummaryService (@field:Autowired
         val startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
         val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
-
-        val fasterThanLastYear =  meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster")
-        val slowerThanLastYear = meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower")
+        val fasterThanLastYear =
+                meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster", adjustForDistance)
+        val slowerThanLastYear =
+                meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower", adjustForDistance)
 
         val fasterResponse = MeetProgressionResponse(fasterThanLastYear.size, fasterThanLastYear.take(limit))
         val slowerResponse = MeetProgressionResponse(slowerThanLastYear.size, slowerThanLastYear.take(limit))
 
-        return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, meetSplitStatisticResponse, fastestLastMileResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
+        return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, meetSplitStatisticResponse,
+                fastestLastMileResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
 
     }
-
 }

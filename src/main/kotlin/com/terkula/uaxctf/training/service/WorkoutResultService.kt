@@ -101,7 +101,7 @@ class WorkoutResultService (
 
                 val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
 
-                val seasonBests = seasonBestService.getAllSeasonBests(startDate, date)
+                val seasonBests = seasonBestService.getAllSeasonBests(startDate, date, false)
                         .map {
                             it.runner.id to it.seasonBest.first().time
                         }.toMap().filter { it.key in workoutSplits.map { split -> split.runnerId } }
@@ -229,7 +229,7 @@ class WorkoutResultService (
                 val startDate = Date.valueOf("$season-01-01")
                 val endDate = Date.valueOf("$season-12-31")
 
-                val seasonBests = seasonBestService.getSeasonBestsByName(runner.name, listOf(startDate to endDate))
+                val seasonBests = seasonBestService.getSeasonBestsByName(runner.name, listOf(startDate to endDate), false)
 
                 val targetPace = if (seasonBests.isEmpty() || seasonBests.first().seasonBest.isEmpty()) {
                     val timeTrialResultsForRunner = timeTrialRepository.findByRunnerIdAndSeason(runner.id, season)

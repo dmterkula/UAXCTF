@@ -30,7 +30,7 @@ class TimeTrialProgressionService (@field: Autowired
                 .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
                 .toMap()
 
-        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate)
+        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
                 .filter { it.runner.id in runners.keys }
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()

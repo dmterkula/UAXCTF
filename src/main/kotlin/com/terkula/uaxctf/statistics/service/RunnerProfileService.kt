@@ -46,7 +46,7 @@ class RunnerProfileService (
         val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
         val endDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-12-31")
 
-        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate))
+        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate), false)
         var seasonBest: RunnerMeetSplitDTO? = null
         if (seasonBests.isNotEmpty()) {
             if (seasonBests.first().seasonBest.isNotEmpty()) {
@@ -75,7 +75,7 @@ class RunnerProfileService (
 
         val seasonBestSplits = getSplitsForMeetPerformances(seasonBest?.meetPerformanceDTO, runner)
 
-        val prs = personalRecordService.getPRsByName(name)
+        val prs = personalRecordService.getPRsByName(name, false)
         var pr: MeetPerformanceDTO? = null
 
         if (prs.isNotEmpty()) {

@@ -19,9 +19,11 @@ class SeasonBestService(@field:Autowired
                         private val meetRepository: MeetRepository, @field:Autowired
                         private val meetPerformanceRepository: MeetPerformanceRepository,
                         @field:Autowired
-                        private val runnerRepository: RunnerRepository) {
+                        private val runnerRepository: RunnerRepository,
+                        @field: Autowired
+                        private val performanceAdjusterService: PerformanceAdjusterService) {
 
-    fun getAllSeasonBests(startDate: Date, endDate: Date): List<SeasonBestDTO> {
+    fun getAllSeasonBests(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         // get all meets in season/date range
         val meets =  meetRepository.findByDateBetween(startDate, endDate)
@@ -39,7 +41,7 @@ class SeasonBestService(@field:Autowired
 
         val seasonBestDTOs = performances.groupBy { it.runnerId }
                 .map { runners[it.key]!! to (it.value.toMutableList().sortedBy { performance -> performance.time }.take(2)) }.toMutableList()
-                .map { it.first to it.second.toMeetPerformanceDTO(meetMap) }.toMutableList()
+                .map { it.first to performanceAdjusterService.adjustMeetPerformances(it.second.toMeetPerformanceDTO(meetMap), adjustForDistance) }.toMutableList()
                 .sortedBy { it.second.first().time }
                 .map {
                     val improvedUponMeetDTO = getImprovedUpon(it.second)
@@ -50,7 +52,7 @@ class SeasonBestService(@field:Autowired
 
     }
 
-    fun getSeasonBestsByName(partialName: String, startEndDates: List<Pair<Date, Date>>): List<SeasonBestDTO> {
+    fun getSeasonBestsByName(partialName: String, startEndDates: List<Pair<Date, Date>>, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         val runnersSeasonBests: MutableList<SeasonBestDTO> = mutableListOf()
 
@@ -81,7 +83,7 @@ class SeasonBestService(@field:Autowired
                         it.key to it.value.toMutableList().sortedBy { performance -> performance.time }.take(2)
                     }.toMap()
                     .map {
-                        it.key to it.value.toMeetPerformanceDTO(meetMap)
+                        it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance)
                     }
                     .sortedBy { it.second.first().time }
 
@@ -100,12 +102,12 @@ class SeasonBestService(@field:Autowired
 
     }
 
-    fun getSeasonBestsAtLastMeet(startDate: Date, endDate: Date): List<SeasonBestDTO> {
+    fun getSeasonBestsAtLastMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.firstOrNull()
                 ?: return emptyList()
 
-        return getAllSeasonBests(startDate, endDate)
+        return getAllSeasonBests(startDate, endDate, false)
                 .filter {
                     it.seasonBest.first().meetDate == latestMeet.date
                 }
@@ -113,12 +115,12 @@ class SeasonBestService(@field:Autowired
                 .sortedByDescending { it.improvedUpon.timeDifference }
     }
 
-    fun findWhoseSeasonBestIsFirstMeet(startDate: Date, endDate: Date): List<SeasonBestDTO> {
+    fun findWhoseSeasonBestIsFirstMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         // get all meets in season/date range
-        val meets =  meetRepository.findByDateBetween(startDate, endDate).sortedBy { it.date }
+        val meets = meetRepository.findByDateBetween(startDate, endDate).sortedBy { it.date }
 
-        return getAllSeasonBests(startDate, endDate).filter {
+        return getAllSeasonBests(startDate, endDate, false).filter {
             it.seasonBest.first().meetDate == meets.first().date }.toMutableList().sortedByDescending { it.improvedUpon.timeDifference }
     }
 

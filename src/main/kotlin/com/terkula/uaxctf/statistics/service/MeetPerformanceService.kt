@@ -1,12 +1,10 @@
 package com.terkula.uaxctf.statistics.service
 
-import com.terkula.uaxctf.statisitcs.model.MeetMileSplit
+import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
-import com.terkula.uaxctf.statisitcs.model.Runner
-import com.terkula.uaxctf.statisitcs.model.TimeTrial
-import com.terkula.uaxctf.statisitcs.model.XCMeetPerformance
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.RunnerPerformanceDTO
+import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
@@ -17,11 +15,15 @@ import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
 import com.terkula.uaxctf.util.convertHourMileSplitToMinuteSecond
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.geo.Distance
 import org.springframework.stereotype.Component
 
 @Component
 class MeetPerformanceService(@field:Autowired
-                             private val meetRepository: MeetRepository, @field:Autowired
+                             private val meetRepository: MeetRepository,
+                             @field:Autowired
+                             private val meetInfoRepository: MeetInfoRepository,
+                             @field:Autowired
                              private val meetPerformanceRepository: MeetPerformanceRepository,
                              @field:Autowired
                              private val runnerRepository: RunnerRepository, @field:Autowired
@@ -39,7 +41,9 @@ class MeetPerformanceService(@field:Autowired
                              @field:Autowired
                              private val rawTimeTrialRepository: RawTimeTrialRepository,
                              @field:Autowired
-                             private val timeTrialRepository: TimeTrialRepository) {
+                             private val timeTrialRepository: TimeTrialRepository,
+                             @field: Autowired
+                             private val performanceAdjusterService: PerformanceAdjusterService) {
 
     fun loadMeetPerformance(meetId: Int) {
         val runners = runnerRepository.findAll().asSequence().toList()
@@ -136,8 +140,37 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
+    fun postMeetInfoEntry(meetName: String,
+                          startDate: Date,
+                          endDate: Date,
+                          distance: Int,
+                          elevationChange: Int,
+                          humidity: Double,
+                          isRainy: Boolean,
+                          isSnowy: Boolean,
+                          temperature: Int,
+                          windSpeed: Int,
+                          cloudCoverRatio: Double) {
 
-    fun getMeetPerformancesForRunnerWithNameContaining(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): List<RunnerPerformanceDTO> {
+        val meets = meetRepository.findByNameContainsAndDateBetween(meetName, startDate, endDate)
+
+        if (meets.isEmpty()) {
+            throw MultipleMeetsFoundException("multiple meets found in the requested season, please specify unique meet name in the season")
+        }
+
+        val meetInfo = MeetInfo(meets.first().id, distance, elevationChange, temperature, humidity, windSpeed, cloudCoverRatio, isRainy, isSnowy)
+
+        meetInfoRepository.save(meetInfo)
+    }
+
+
+    fun getMeetPerformancesForRunnerWithNameContaining(
+            partialName: String,
+            startDate: Date,
+            endDate: Date,
+            sortingMethodContainer: SortingMethodContainer,
+            count: Int,
+            adjustForDistance: Boolean): List<RunnerPerformanceDTO> {
         // find runners matching partial name
         val runnerIds = runnerRepository.findByNameContaining(partialName).map{ it.id }
 
@@ -161,10 +194,10 @@ class MeetPerformanceService(@field:Autowired
         // map runnerId to a MeetDTO constructed from performances and meet info map
         val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
-                    runners[it.key]!! to sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
-                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place)
-                    }.toMutableList()).take(count)
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
                 }
@@ -173,7 +206,12 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
-    fun getMeetPerformancesAtMeetName(partialName: String, startDate: Date, endDate: Date, sortingMethodContainer: SortingMethodContainer, count: Int): List<RunnerPerformanceDTO> {
+    fun getMeetPerformancesAtMeetName(partialName: String,
+                                      startDate: Date,
+                                      endDate: Date,
+                                      sortingMethodContainer: SortingMethodContainer,
+                                      count: Int,
+                                      adjustForDistance: Boolean): List<RunnerPerformanceDTO> {
         // find runners matching partial name
 
         val meets =  meetRepository.findByNameAndDateBetween(partialName, startDate, endDate)
@@ -195,10 +233,10 @@ class MeetPerformanceService(@field:Autowired
         // map runnerId to a MeetDTO constructed from performances and meet info map
         val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
                 .map {
-                    runners[it.key]!! to sortingMethodContainer.sortingFunction(it.value.map { meetPerformance ->
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetMap[meetPerformance.meetId]!!
-                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place)
-                    }.toMutableList()).take(count)
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
                 }

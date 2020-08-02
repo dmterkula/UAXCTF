@@ -19,11 +19,17 @@ class MeetProgressionService(@field:Autowired
                              private val meetRepository: MeetRepository, @field:Autowired
                              private val meetPerformanceRepository: MeetPerformanceRepository,
                              @field:Autowired
-                             private val runnerRepository: RunnerRepository) {
+                             private val runnerRepository: RunnerRepository,
+                             @field: Autowired
+                             private val performanceAdjusterService: PerformanceAdjusterService) {
 
 
 
-    fun getSingleMeetSingleRunnerProgression(meetName: String, runnerName: String): List<MeetProgressionDTO> {
+    fun getSingleMeetSingleRunnerProgression(
+            meetName: String,
+            runnerName: String,
+            adjustForDistance: Boolean
+    ): List<MeetProgressionDTO> {
 
         val meets = meetRepository.findByNameContains(meetName)
 
@@ -39,16 +45,22 @@ class MeetProgressionService(@field:Autowired
 
         performancePairs.second.toMutableList().sortBy {meetMap[it.meetId]!!.date }
 
-        val performanceMap = listOf(runner to performancePairs.second.map {
+        val performanceMap = listOf(runner to performanceAdjusterService.adjustMeetPerformances(performancePairs.second.map {
             MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date,
-                    it.time, it.place)
-        })
+                    it.time, it.place, null)
+        }, adjustForDistance))
                 .map { MeetProgressionDTO(it.first, it.second, it.second.getTimeDifferencesAsStrings()) }
         return performanceMap
 
     }
 
-    fun getProgressionFromMeetForAllRunnersBetweenDates(meetName: String, startDate: Date, endDate: Date, filterBy: String): List<MeetProgressionDTO> {
+    fun getProgressionFromMeetForAllRunnersBetweenDates(
+            meetName: String,
+            startDate: Date,
+            endDate: Date,
+            filterBy: String,
+            adjustForDistance: Boolean
+    ): List<MeetProgressionDTO> {
 
         val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
 
@@ -60,7 +72,12 @@ class MeetProgressionService(@field:Autowired
                 .flatten()
                 .groupBy { it.runnerId }
                 .filter { it.value.size > 1}
-                .map { runnerMap[it.key]!! to it.value.toMeetPerformanceDTO(meetMap) }.toMap()
+                .map { runnerMap[it.key]!! to it.value.toMeetPerformanceDTO(meetMap) }
+                .map {
+                    it.first to performanceAdjusterService.adjustMeetPerformances(it.second, adjustForDistance)
+                }
+                .toMap()
+
 
 
         val runnerToTimeDifference = performances
@@ -81,8 +98,15 @@ class MeetProgressionService(@field:Autowired
 
     }
 
-    fun getMeetProgressionsFromLastNMeets(numMeets: Int, currentYear: String, startDate: Date, endDate: Date, filterBy: String,
-                                          excludedMeet: String): List<MeetProgressionDTO> {
+    fun getMeetProgressionsFromLastNMeets(
+            numMeets: Int,
+            currentYear: String,
+            startDate: Date,
+            endDate: Date,
+            filterBy: String,
+            excludedMeet: String,
+            adjustForDistance: Boolean
+    ): List<MeetProgressionDTO> {
 
         // find all runners whose graduating class is > current year
         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(currentYear).map { it.id to it }.toMap()
@@ -109,6 +133,7 @@ class MeetProgressionService(@field:Autowired
                             .sortedByDescending { perf -> meetMap[perf.meetId]!!.date }.take(numMeets)
                 }.toMap()
                 .map { it.key to it.value.toMeetPerformanceDTO(meetMap) }
+                .map {it.first to performanceAdjusterService.adjustMeetPerformances(it.second, adjustForDistance)}
                 .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
 
 

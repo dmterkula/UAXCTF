@@ -40,7 +40,7 @@ class MeetMileSplitService(@field:Autowired
         }
 
         val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name,
-                startDate, endDate, SortingMethodContainer.TIME, 20).map { it.performance }
+                startDate, endDate, SortingMethodContainer.TIME, 20, false).map { it.performance }
                 .flatten()
                 .filter {
                     it.meetName in meets.map { meet -> meet.name }
