@@ -45,7 +45,7 @@ class XcDataLoaderController(
 
     @ApiOperation("Load Time Trial Data")
     @RequestMapping(value = ["xc/load/TimeTrialResult"], method = [RequestMethod.GET])
-    fun loadWorkoutData(@RequestParam(value = "season") season: String): String {
+    fun loadTimeTrialData(@RequestParam(value = "season") season: String): String {
 
         meetPerformanceService.loadTimeTrial(season)
         return "loaded time trial"

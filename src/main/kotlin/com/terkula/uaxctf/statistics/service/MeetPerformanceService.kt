@@ -111,7 +111,7 @@ class MeetPerformanceService(@field:Autowired
             val runnerList = runners.filter { runner: Runner -> runner.name.equals(record.name, ignoreCase = true) }
             if (runnerList.isEmpty()) {
                 println("runner name in raw workout split table does not matcher roster: " + record.name)
-                throw RunnerNotFoundByPartialNameException("runner name in raw workout split table does not matcher roster:" + record.name)
+                throw RunnerNotFoundByPartialNameException("runner name in raw time trial table does not matcher roster:" + record.name)
             }
             return@map TimeTrial(runnerList[0].id, record.time, record.place, season)
         }
