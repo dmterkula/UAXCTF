@@ -26,7 +26,12 @@ fun String.calculateSecondsFrom(): Double {
     return if (this.contains('-')) {
         splitTime[0].toDouble() * 60 + splitTime[1].toDouble() *-1
     } else {
-        splitTime[0].toDouble() * 60 + splitTime[1].toDouble()
+        try {
+            splitTime[0].toDouble() * 60 + splitTime[1].toDouble()
+        } catch (e: Exception) {
+            return 0.0;
+        }
+
     }
 }
 
@@ -103,7 +108,11 @@ fun String.toPlace(): Int {
 }
 
 fun String.isValidTime(): Boolean {
-    return this.matches(Regex("\\d\\d:\\d\\d.\\d+"))
+    return this.appendDecimal().matches(Regex("\\d\\d:\\d\\d.\\d+"))
+}
+
+fun String.isValidMileSplit(): Boolean {
+    return this.appendDecimal().matches(Regex("\\d:\\d\\d.\\d+")) || this.isValidTime()
 }
 
 fun String.appendDecimal(): String {

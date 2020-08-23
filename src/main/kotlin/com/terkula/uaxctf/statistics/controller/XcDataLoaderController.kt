@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.google.GoogleSheetsClient
 import com.terkula.uaxctf.statistics.response.MeetResultDataLoadResponse
+import com.terkula.uaxctf.statistics.response.MileSplitDataLoadResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
@@ -58,8 +59,19 @@ class XcDataLoaderController(
     ): MeetResultDataLoadResponse {
 
         // List<List<name, time, place>
-        val rawSheetData = googleSheetsClient.readSheet("1MNSyRdzS8O7KDpjitOKVoDnJoCr_npe8DrtfhJ2Sm-w", sheetName)
+        val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
         return xcDataLoaderService.processRaceResults(rawSheetData, sheetName)
+    }
+
+    @ApiOperation("Read Race Mile Splits From Google Sheet")
+    @RequestMapping(value = ["xc/readRaceMileSplits/"], method = [RequestMethod.GET])
+    fun readMileSplits(
+            @RequestParam(value = "sheetName") sheetName: String
+    ): MileSplitDataLoadResponse {
+
+        // List<List<name, time, place>
+        val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
+        return xcDataLoaderService.loadMileSplits(rawSheetData, sheetName)
     }
 
     @ApiOperation("Create Meet Info")
@@ -88,6 +100,15 @@ class XcDataLoaderController(
         meetPerformanceService.postMeetInfoEntry(meetName, startDate, endDate, distance, elevationChange,
                 humidity, isRainy, isSnowy, temperature, windSpeed, cloudCoverRatio)
 
+    }
+
+    @ApiOperation("Read Workout Results From raw result table and post the results")
+    @RequestMapping(value = ["xc/readWorkoutResults/"], method = [RequestMethod.GET])
+    fun loadWorkoutResults(
+            @RequestParam(value = "workoutId") workoutId: Int
+    ): String {
+        meetPerformanceService.loadWorkout(workoutId)
+        return "loaded"
     }
 
 }

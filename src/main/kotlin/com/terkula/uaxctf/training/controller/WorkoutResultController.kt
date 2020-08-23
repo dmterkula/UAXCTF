@@ -26,8 +26,8 @@ class WorkoutResultController (@field:Autowired
                     regexp = "interval|tempo|progression",
                     message = "The value provided for type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
             @RequestParam(value = "type", required = true) workoutType: String,
-            @ApiParam("The date of the workout")
-            @RequestParam(value = "filter.date", required = true) date: Date,
+            @ApiParam("The date of the workout: yyyy-mm-dd")
+            @RequestParam(value = "filter.date", required = true) date: String,
             @ApiParam("The distance of the workout in meters. Mile workouts distance is 1609 meters")
             @RequestParam(value = "filter.distance", required = false) distance: Int,
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'Goal' or 'Race Pace'")
@@ -42,9 +42,8 @@ class WorkoutResultController (@field:Autowired
                     " Accepted values are 'spread', 'target', or 'differential'")
             @RequestParam(value = "sort.method", required = false, defaultValue = "target") sortMethod: String = "target"): WorkoutResultResponse {
 
-        return WorkoutResultResponse(workoutResultService.getWorkoutResults(date, workoutType, distance, pace, sortMethod))
+        return WorkoutResultResponse(workoutResultService.getWorkoutResults(Date.valueOf(date), workoutType, distance, pace, sortMethod))
     }
-
 
     @ApiOperation("Returns the workout results for a given runner")
     @RequestMapping(value = ["/workoutResults/forRunner"], method = [RequestMethod.GET])
@@ -66,7 +65,6 @@ class WorkoutResultController (@field:Autowired
                     " Accepted values are 'spread', 'target', or 'differential'")
             @RequestParam(value = "sort.method", required = false, defaultValue = "target") sortMethod: String = "target"): RunnerWorkoutResultsResponse {
 
-
         var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         var endDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-12-31")
 
@@ -75,10 +73,6 @@ class WorkoutResultController (@field:Autowired
             endDate = Date.valueOf("$season-12-31")
         }
 
-
         return workoutResultService.getWorkoutsForRunner(startDate, endDate, name, distance, workoutType, sortMethod)
     }
-
-
-
 }

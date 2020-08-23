@@ -25,6 +25,15 @@ class MeetMileSplit (
     val id: Int = 0
 }
 
+fun MeetMileSplit.matches(splits: List<MeetMileSplit>): Boolean {
+   splits.forEach {
+       if (this.meetId == it.meetId && this.runnerId == it.runnerId) {
+           return true
+       }
+   }
+    return false
+}
+
 fun MeetMileSplit.calculateFirstToSecondMileDifference(): Double {
     return mileTwo.calculateSecondsFrom() - mileOne.calculateSecondsFrom()
 }
