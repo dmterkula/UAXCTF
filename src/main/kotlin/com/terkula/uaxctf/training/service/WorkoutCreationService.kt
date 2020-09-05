@@ -46,8 +46,8 @@ class WorkoutCreationService (@field:Autowired
                     "goal" -> {
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.time, listOf(TargetedPace("split",
-                                (it.time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
+                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
                         return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
 
@@ -101,8 +101,8 @@ class WorkoutCreationService (@field:Autowired
                     "goal" -> {
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.time, listOf(TargetedPace("split",
-                                (it.time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
+                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
                         return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
 
@@ -153,8 +153,8 @@ class WorkoutCreationService (@field:Autowired
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
                         val workoutPlanDTOs = seasonGoals.map {
-                            val baseTimePerMile = it.time.calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.time, constructProgressionTargetedPaces(baseTimePerMile))
+                            val baseTimePerMile = it.times.first().calculateSecondsFrom() * distanceRatio
+                            RunnerWorkoutPlanDTO(it.runner, it.times.first(), constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
 

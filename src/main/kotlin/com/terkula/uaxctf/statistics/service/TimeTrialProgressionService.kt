@@ -21,7 +21,7 @@ class TimeTrialProgressionService (@field: Autowired
                                    internal val seasonBestService: SeasonBestService) {
 
 
-    fun getRankedProgressionSinceTimeTrial(startDate: Date, endDate: Date): List<TimeTrialImprovementDTO> {
+    fun getRankedProgressionSinceTimeTrial(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<TimeTrialImprovementDTO> {
 
 
         val adjustedTimeTrialResults = getAllAdjustedTimeTrials(startDate, endDate)
@@ -30,7 +30,7 @@ class TimeTrialProgressionService (@field: Autowired
                 .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
                 .toMap()
 
-        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, adjustForMeetDistance)
                 .filter { it.runner.id in runners.keys }
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()

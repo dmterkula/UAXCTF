@@ -86,11 +86,11 @@ class WorkoutResultService (
 
                 val runnerGoals = xcGoalService.getGoalsForSeason(date.toString().substring(0,4))
                         .map {
-                            it.runner.id to it.time
+                            it.runner.id to it.times
                         }.toMap()
 
                 val workoutResult = runnerToSplits.map {
-                    val targetPace = (runnerGoals.getValue(it.key!!.id).calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
+                    val targetPace = (runnerGoals.getValue(it.key!!.id).first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
                     WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, targetPace, "Goal"))
                 }
 
@@ -246,7 +246,7 @@ class WorkoutResultService (
             }
 
             "goal" -> {
-                (xcGoalService.getRunnersGoalForSeason(runner.name, season).first().time.calculateSecondsFrom() * distanceRatio)
+                (xcGoalService.getRunnersGoalForSeason(runner.name, season).first().times.first().calculateSecondsFrom() * distanceRatio)
                         .toMinuteSecondString() to "Goal"
 
             } else -> {

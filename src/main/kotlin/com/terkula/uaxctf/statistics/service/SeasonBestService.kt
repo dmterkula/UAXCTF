@@ -26,7 +26,7 @@ class SeasonBestService(@field:Autowired
     fun getAllSeasonBests(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         // get all meets in season/date range
-        val meets =  meetRepository.findByDateBetween(startDate, endDate)
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
 
         // look up map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()

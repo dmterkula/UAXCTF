@@ -7,8 +7,13 @@ import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
+import org.springframework.web.bind.annotation.ResponseBody
+import org.springframework.web.bind.annotation.GetMapping
+
+
 
 @RestController
 class XcDataLoaderController(
@@ -109,6 +114,12 @@ class XcDataLoaderController(
     ): String {
         meetPerformanceService.loadWorkout(workoutId)
         return "loaded"
+    }
+
+    @GetMapping(value = "/googlee20cbc8c8bda882b.html", produces = [MediaType.TEXT_HTML_VALUE])
+    @ResponseBody
+    fun welcomeAsHTML(): String {
+        return "google-site-verification: googlee20cbc8c8bda882b.html"
     }
 
 }

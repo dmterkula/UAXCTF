@@ -15,7 +15,7 @@ import javax.validation.constraints.Pattern
 
 @RestController
 @Validated
-class TimeTrialImprovementController (@field:Autowired
+class xTimeTrialImprovementController (@field:Autowired
                                       internal val timeTrialProgressionService: TimeTrialProgressionService) {
     @ApiOperation("Returns information on who improved the most on their 5k adjusted time trial times")
     @RequestMapping(value = ["xc/timeTrial/progression"], method = [RequestMethod.GET])
@@ -27,7 +27,8 @@ class TimeTrialImprovementController (@field:Autowired
                                            regexp = "least|most|",
                                            message = "Valid values are 'least' to return" +
                                                    " runners with the smallest progression,  or 'most' to return those with the largest progression")
-                                   @RequestParam(value = "sort.method", required = false, defaultValue = "most") sort: String = "most"): TimeTrialProgressionResponse {
+                                   @RequestParam(value = "sort.method", required = false, defaultValue = "most") sort: String = "most",
+                                   @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false): TimeTrialProgressionResponse {
 
 
         var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
@@ -39,11 +40,7 @@ class TimeTrialImprovementController (@field:Autowired
             endDate = Date.valueOf("$season-12-31")
         }
 
-        return TimeTrialProgressionResponse(timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate))
-
-
-
-
+        return TimeTrialProgressionResponse(timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate, adjustForMeetDistance))
     }
 
 

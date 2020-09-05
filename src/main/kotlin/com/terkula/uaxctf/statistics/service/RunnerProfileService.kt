@@ -89,7 +89,7 @@ class RunnerProfileService (
             prSplits = getSplitsForMeetPerformances(pr, runner)
         }
 
-        val goal: String? = goalAsync.get().first().time
+        val goals: List<String?> = goalAsync.get().first().times
 
         val workouts = workoutResultService.getWorkoutsForRunner(startDate, endDate, name, 0, "", "").workouts
         var lastWorkout: RunnerWorkoutResultsDTO? = null
@@ -176,7 +176,7 @@ class RunnerProfileService (
             upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
         }
 
-        return RunnerProfileDTO(runner, goal, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
+        return RunnerProfileDTO(runner, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
                 workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
     }
 

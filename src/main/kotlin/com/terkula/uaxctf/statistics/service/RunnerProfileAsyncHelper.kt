@@ -85,7 +85,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
             prSplits = getSplitsForMeetPerformances(pr, runner)
         }
 
-        val goal: String? = goalService.getRunnersGoalForSeason(name, MeetPerformanceController.CURRENT_YEAR).first().time
+        val goals: List<String?> = goalService.getRunnersGoalForSeason(name, MeetPerformanceController.CURRENT_YEAR).first().times
 
         val workouts = workoutResultService.getWorkoutsForRunner(startDate, endDate, name, 0, "", "").workouts
         var lastWorkout: RunnerWorkoutResultsDTO? = null
@@ -116,7 +116,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
                 .map { ValuedRank("Workout And Race Consistency Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString()) }
                 .firstOrNull()
 
-        val progressionRank = timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate)
+        val progressionRank = timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate, false)
                 .filter { it.runner.id == runner.id }
                 .map { ValuedRank("Progression Rank", it.rank, it.improvement) }
                 .firstOrNull()
@@ -179,7 +179,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
 
         }
 
-        return RunnerProfileDTO(runner, goal, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
+        return RunnerProfileDTO(runner, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
                 workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
 
     }
@@ -223,7 +223,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
 
     @Async
     open fun getTimeTrialProgression(startDate: Date, endDate: Date): Future<List<TimeTrialImprovementDTO>> {
-        return AsyncResult(timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate))
+        return AsyncResult(timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate, true))
     }
 
     @Async

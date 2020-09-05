@@ -8,7 +8,7 @@ import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class RunnerProfileDTO(val runner: Runner,
-                       val goalTime: String?,
+                       val goalTimes: List<String?>,
                        val seasonBest: RunnerMeetSplitDTO?,
                        val PR: RunnerMeetSplitDTO?,
                        val mostConsistentRace: RunnerMeetSplitDTO?,

@@ -42,12 +42,19 @@ class XcGoalService (@field:Autowired
             runner.get().id to runner
         }.toMap()
 
-        val runnerGoalDTOs = goals.map { RunnerGoalDTO(runnerMap[it.runnerId]!!.get(), it.time) }
-                .toMutableList()
-                .sortedBy { it.time }
-
-        return runnerGoalDTOs
-
+        return goals.map { runnerMap[it.runnerId]!!.get() to it.time }
+                .groupBy { it.first }
+                .map {
+                    it.key to it.value.map { pair -> pair.second }
+                }
+                .map {
+                    RunnerGoalDTO(it.first, it.second.map{time ->
+                        time.calculateSecondsFrom()
+                    }
+                            .toMutableList()
+                            .sorted()
+                            .map {time-> time.toMinuteSecondString()})
+                }
     }
 
     fun getRunnersGoalForSeason(name: String, season: String): List<RunnerGoalDTO> {
@@ -55,12 +62,17 @@ class XcGoalService (@field:Autowired
         val runner = runnerRepository.findByNameContaining(name).firstOrNull()
                 ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
 
-        val goal = xcGoalRepository.findByRunnerId(runner.id).firstOrNull()
+        val goals = xcGoalRepository.findByRunnerId(runner.id)
+                .filter { it.season == season }
 
-        if (goal == null) {
+        if (goals == null) {
             throw GoalNotFoundException("No goal found for $name")
         } else {
-            return listOf(RunnerGoalDTO(runner, goal.time))
+            return listOf(RunnerGoalDTO(runner, goals
+                    .map { it.time.calculateSecondsFrom() }
+                    .toMutableList()
+                    .sorted()
+                    .map { it.toMinuteSecondString()}))
         }
 
     }
@@ -120,11 +132,13 @@ class XcGoalService (@field:Autowired
                 .filter { it.runnerId in seasonBests.keys }
                 .map { it.runnerId to it }.toMap()
 
-        return seasonBests.filter {
+        return seasonBests
+                .filter { goals[it.key] != null }
+                .filter {
             truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) <= truncate(goals[it.key]!!.time.calculateSecondsFrom())
         }.map {
             MetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first())
-        }.toMutableList().sortedBy { it.time }
+        }.toMutableList()
 
     }
 
@@ -136,7 +150,9 @@ class XcGoalService (@field:Autowired
                 .filter { it.runnerId in seasonBests.keys }
                 .map { it.runnerId to it }.toMap()
 
-        return seasonBests.filter {
+        return seasonBests
+                .filter { goals[it.key] != null }
+                .filter {
             truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) > truncate(goals[it.key]!!.time.calculateSecondsFrom())
         }.map {
             UnMetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first(),

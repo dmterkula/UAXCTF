@@ -1,10 +1,8 @@
 package com.terkula.uaxctf.google
 
-import com.fasterxml.jackson.core.JsonFactory
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.services.sheets.v4.SheetsScopes
 import java.util.*
-import java.util.Collections.singletonList
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.util.store.FileDataStoreFactory
