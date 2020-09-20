@@ -12,10 +12,10 @@ import com.terkula.uaxctf.training.model.WorkoutSplit
 import com.terkula.uaxctf.training.repository.RawWorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
+import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.convertHourMileSplitToMinuteSecond
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.geo.Distance
 import org.springframework.stereotype.Component
 
 @Component
@@ -206,6 +206,15 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
+    fun getMeetPerformancesForRunner(runnerId: Int,
+                                     startDate: Date,
+                                     endDate: Date): List<XCMeetPerformance> {
+
+        return meetRepository.findByDateBetween(startDate, endDate).mapNotNull {
+            meetPerformanceRepository.findByMeetIdAndRunnerId(it.id, runnerId)
+        }
+    }
+
     fun getMeetPerformancesAtMeetName(partialName: String,
                                       startDate: Date,
                                       endDate: Date,
@@ -214,12 +223,10 @@ class MeetPerformanceService(@field:Autowired
                                       adjustForDistance: Boolean): List<RunnerPerformanceDTO> {
         // find runners matching partial name
 
-        val meets =  meetRepository.findByNameAndDateBetween(partialName, startDate, endDate)
+        val meets = meetRepository.findByNameAndDateBetween(partialName, startDate, endDate)
 
         // construct map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()
-
-        // get meets within date range
 
         // construct all performances for the meets only for meets in date range, and containing an id of a matching runner
         val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id)}.flatten()
@@ -239,7 +246,7 @@ class MeetPerformanceService(@field:Autowired
                     }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
-                }
+                }.sortedBy { it.performance.first().time.calculateSecondsFrom() }
 
         return runnerPerformanceDTOs
 

@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.util
 
+import com.terkula.uaxctf.statisitcs.model.Runner
 import java.sql.Date
 import java.util.Calendar
 
@@ -118,4 +119,22 @@ fun String.isValidMileSplit(): Boolean {
 fun String.appendDecimal(): String {
     return if (this.contains(".")) this
     else "$this.0"
+}
+
+fun MutableList<Pair<Runner, Double>>.calculateSpreadWith(otherRunner: Pair<Runner, Double>): Double {
+
+    if (this.isEmpty()) {
+        return 0.0
+    }
+
+    this.add(otherRunner)
+    val times = this.map {
+        it.second
+    }
+
+    val spread = times.max()!! - times.min()!!
+
+    this.remove(otherRunner)
+
+    return spread
 }

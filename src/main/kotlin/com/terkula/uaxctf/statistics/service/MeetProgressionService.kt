@@ -43,10 +43,10 @@ class MeetProgressionService(@field:Autowired
             throw MeetProgressionException("according to our records, $runnerName did not run at a meet matching: $meetName for multiple years")
         }
 
-        performancePairs.second.toMutableList().sortBy {meetMap[it.meetId]!!.date }
+        performancePairs.second.toMutableList().sortBy {meetMap[it!!.meetId]!!.date }
 
         val performanceMap = listOf(runner to performanceAdjusterService.adjustMeetPerformances(performancePairs.second.map {
-            MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date,
+            MeetPerformanceDTO(meetMap[it!!.meetId]!!.name, meetMap[it.meetId]!!.date,
                     it.time, it.place, null)
         }, adjustForDistance))
                 .map { MeetProgressionDTO(it.first, it.second, it.second.getTimeDifferencesAsStrings()) }

@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.request
 
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
+import com.terkula.uaxctf.util.calculateSecondsFrom
 import kotlin.reflect.KFunction1
 
 
@@ -12,7 +13,7 @@ enum class SortingMethodContainer(val value: String, val sortingFunction: KFunct
 }
 
 fun MutableList<MeetPerformanceDTO>.sortedByTime(): MutableList<MeetPerformanceDTO> {
-    return this.sortedBy{ it.time }.toMutableList()
+    return this.sortedBy{ it.time.calculateSecondsFrom() }.toMutableList()
 }
 
 fun MutableList<MeetPerformanceDTO>.sortedByOlderDate(): MutableList<MeetPerformanceDTO> {

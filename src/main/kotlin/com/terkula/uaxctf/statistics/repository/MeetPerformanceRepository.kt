@@ -9,6 +9,7 @@ interface MeetPerformanceRepository : CrudRepository<XCMeetPerformance, Int> {
 
     fun findByMeetId(meetId: Int): MutableList<XCMeetPerformance>
 
-    fun findByMeetIdAndRunnerId(meetId: Int, runnerId: Int): XCMeetPerformance
+    fun findByMeetIdAndRunnerId(meetId: Int, runnerId: Int): XCMeetPerformance?
+
 
 }

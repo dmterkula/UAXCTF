@@ -1,10 +1,9 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
-import com.terkula.uaxctf.statistics.dto.MetGoalDTO
-import com.terkula.uaxctf.statistics.dto.RunnerGoalDTO
-import com.terkula.uaxctf.statistics.dto.UnMetGoalDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.exception.GoalNotFoundException
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
@@ -78,11 +77,11 @@ class XcGoalService (@field:Autowired
     }
 
     fun getRunnerWhoNewlyMetGoalAtMeet(
-        meetName: String, 
-        startSeasonDate: Date, 
-        endSeasonDate: Date, 
-        adjustForDistance: Boolean
-    ): List<MetGoalDTO> {
+            meetName: String,
+            startSeasonDate: Date,
+            endSeasonDate: Date,
+            adjustForDistance: Boolean
+    ): List<RunnersMetGoals> {
 
         //get target meet and all other meets this season
         val targetMeet: Meet
@@ -120,25 +119,61 @@ class XcGoalService (@field:Autowired
         return unmetGoalsBeforeLastMeet.filter {
             truncate(lastMeetPerformances[it.key]!!.performance.first().time.calculateSecondsFrom()) <= truncate(it.value.time.calculateSecondsFrom())
         }
-                .map { MetGoalDTO(lastMeetPerformances[it.key]!!.runner, it.value.time, lastMeetPerformances[it.key]!!.performance.first()) }
+                .map {
+                    RunnersMetGoals(lastMeetPerformances[it.key]!!.runner, listOf(MetGoalPerformanceDTO(it.value.time, lastMeetPerformances[it.key]!!.performance.first())))
+                }
 
     }
 
-    fun getRunnersWhoHaveMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<MetGoalDTO> {
+    fun getRunnersWhoHaveMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<RunnersMetGoals> {
 
         val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate, adjustForDistance)
                 .map { it.runner.id to it }.toMap()
-        val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
-                .filter { it.runnerId in seasonBests.keys }
-                .map { it.runnerId to it }.toMap()
 
-        return seasonBests
-                .filter { goals[it.key] != null }
-                .filter {
-            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) <= truncate(goals[it.key]!!.time.calculateSecondsFrom())
-        }.map {
-            MetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first())
-        }.toMutableList()
+        val goalsMap = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
+                .filter { it.runnerId in seasonBests.keys }
+                .groupBy { it.runnerId }.toMap()
+
+        val meets = meetRepository.findByDateBetween(startSeasonDate, endSeasonDate).map { it.id to it }.toMap()
+
+        val meetPerformances = goalsMap.map {
+            meetPerformanceService.getMeetPerformancesForRunner(it.key, startSeasonDate, endSeasonDate)
+        }.flatten().groupBy { it.runnerId }.toMap().map {
+            it.key to it.value.toMutableList().sortedBy { meet-> meets[meet.meetId]!!.date }
+        }.toMap()
+
+
+        // map of runner id to list of met goals
+        val runnerToMetGoals = goalsMap.filter { it.key in seasonBests.keys }
+                .map {
+                    it.key to
+                    it.value.filter {
+                        // filter for runner who has met goals
+                        goal -> seasonBests[goal.runnerId]!!.seasonBest.first().time.calculateSecondsFrom() <= goal.time.calculateSecondsFrom()
+                    }
+                }.toMap()
+                .filter { it.value.isNotEmpty() }
+
+       // map each met goal to the first race at which the goal was met
+
+        return runnerToMetGoals.map {
+            it.key to it.value.map {
+                goal -> goal to meetPerformances[goal.runnerId]!!.first { meetResult -> meetResult.time.calculateSecondsFrom() <= goal.time.calculateSecondsFrom()}
+            } .toMap()
+        }.toMap().map {
+            RunnersMetGoals(seasonBests[it.key]!!.runner,  it.value.map { pair -> MetGoalPerformanceDTO(pair.key.time, listOf(pair.value).toMeetPerformanceDTO(meets).first()) })
+        }
+
+
+
+
+//        return seasonBests
+//                .filter { goals[it.key] != null }
+//                .filter {
+//            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) <= truncate(goals[it.key]!!.time.calculateSecondsFrom())
+//        }.map {
+//            MetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first())
+//        }.toMutableList()
 
     }
 
