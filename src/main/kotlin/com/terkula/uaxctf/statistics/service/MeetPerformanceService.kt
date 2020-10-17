@@ -4,6 +4,7 @@ import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.RunnerPerformanceDTO
+import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.*
@@ -256,13 +257,19 @@ class MeetPerformanceService(@field:Autowired
             startDate: Date,
             endDate: Date,
             excludeSeasons: List<String>,
+            includeSeasons: List<String>,
             adjustForDistance: Boolean): String {
 
         var meets = meetRepository.findByDateBetween(startDate, endDate)
                 .filter { it.name.equals(meetName1, true) || it.name.equals(meetName2, true) }
+                .filter { it.date.getYearString() !in excludeSeasons }
+
+        if (includeSeasons.isNotEmpty()) {
+            meets =  meets.filter { it.date.getYearString() in includeSeasons }
+        }
 
         if (meets.groupBy { it.name }.size != 2) {
-            // throw exception, couldn't find two meets by those names
+            throw MeetNotFoundException ("at least one of the provided meet names was not found with the included year range")
         }
 
         if (meets[0].name != meetName1) {
