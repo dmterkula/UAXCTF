@@ -28,3 +28,7 @@ data class XCMeetPerformance(
 fun List<XCMeetPerformance>.toMeetPerformanceDTO(meetMap: Map<Int, Meet>): List<MeetPerformanceDTO> {
     return this.map { MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date, it.time, it.place, null) }
 }
+
+fun XCMeetPerformance.toMeetPerformanceDTO(meet: Meet): MeetPerformanceDTO {
+    return MeetPerformanceDTO(meet.name, meet.date, this.time, this.place, null)
+}

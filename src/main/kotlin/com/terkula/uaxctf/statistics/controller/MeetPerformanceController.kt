@@ -86,6 +86,25 @@ class MeetPerformanceController(@field:Autowired
                 endDate, sortingMethodContainer, count, adjustForDistance))
     }
 
+    @ApiOperation("Returns the meet results for the given runner in the given season")
+    @RequestMapping(value = ["xc/historicallyCompareMeets"], method = [RequestMethod.GET])
+    fun historicallyCompareMeets(
+            @ApiParam("name of the first meet you wish to look at")
+            @RequestParam(value = "baseMeetName") baseMeetName: String,
+            @ApiParam("name of meet you wish to compare performances too")
+            @RequestParam(value = "compareMeetName") compareToMeetName: String,
+            @ApiParam("excludes certain seasons from consideration")
+            @RequestParam(value = "excludeSeasons", required = false, defaultValue = "") excludeSeasons: List<String>,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): String {
+
+        var startDate = Date.valueOf("$FIRST_YEAR_ON_RECORD-01-01")
+        var endDate = Date.valueOf("$CURRENT_YEAR-12-31")
+
+
+        return meetPerformanceService.compareTwoMeetsHistorically(baseMeetName, compareToMeetName, startDate, endDate, excludeSeasons, adjustForDistance)
+    }
+
 
     private fun getSortingMethod(sortMethod: String) =
             when (sortMethod) {
@@ -97,6 +116,7 @@ class MeetPerformanceController(@field:Autowired
     companion object {
 
         val CURRENT_YEAR = Year.now().toString()
+        val FIRST_YEAR_ON_RECORD = Year.of(2017).toString()
     }
 
 

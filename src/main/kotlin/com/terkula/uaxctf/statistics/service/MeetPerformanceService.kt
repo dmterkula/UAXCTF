@@ -12,8 +12,7 @@ import com.terkula.uaxctf.training.model.WorkoutSplit
 import com.terkula.uaxctf.training.repository.RawWorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
-import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.convertHourMileSplitToMinuteSecond
+import com.terkula.uaxctf.util.*
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -249,7 +248,71 @@ class MeetPerformanceService(@field:Autowired
                 }.sortedBy { it.performance.first().time.calculateSecondsFrom() }
 
         return runnerPerformanceDTOs
+    }
 
+    fun compareTwoMeetsHistorically(
+            meetName1: String,
+            meetName2: String,
+            startDate: Date,
+            endDate: Date,
+            excludeSeasons: List<String>,
+            adjustForDistance: Boolean): String {
+
+        var meets = meetRepository.findByDateBetween(startDate, endDate)
+                .filter { it.name.equals(meetName1, true) || it.name.equals(meetName2, true) }
+
+        if (meets.groupBy { it.name }.size != 2) {
+            // throw exception, couldn't find two meets by those names
+        }
+
+        if (meets[0].name != meetName1) {
+            meets = meets.reversed()
+        }
+
+        val runners = runnerRepository.findAll()
+
+        val pairedMeets = meets.groupBy { it.date.getYearString() }
+                .filter { it.value.size == 2 } // make sure both meets were ran each year
+                .map {
+                    it.value[0] to it.value[1]
+                }
+
+        val averageDifferenceBetweenTimes = runners.map {
+            pairedMeets.map { meetPair-> transformMeetPairToPerformancePair(it, meetPair, adjustForDistance) }
+        }.map {
+            it.filter { pair-> pair.first != null && pair.second != null }
+        }.filter {
+            it.isNotEmpty()
+        }.map {
+            it.map { meetPair -> meetPair.second!! - meetPair.first!! }.average()
+        }.average().round(2)
+
+        return averageDifferenceBetweenTimes.toMinuteSecondString()
+
+    }
+
+    private fun transformMeetPairToPerformancePair(
+            runner: Runner,
+            meetPair: Pair<Meet, Meet>,
+            adjustForDistance: Boolean
+    ): Pair<Double?, Double?>  {
+
+        var meet1Performance = meetPerformanceRepository.findByMeetIdAndRunnerId(meetPair.first.id, runner.id)
+                ?.toMeetPerformanceDTO(meetPair.first)
+
+
+        var meet2Performance = meetPerformanceRepository.findByMeetIdAndRunnerId(meetPair.second.id, runner.id)
+                ?.toMeetPerformanceDTO(meetPair.second)
+
+        if (meet1Performance != null) {
+            meet1Performance = performanceAdjusterService.adjustMeetPerformances(listOf(meet1Performance), adjustForDistance).first()
+        }
+
+        if (meet2Performance != null) {
+            meet2Performance = performanceAdjusterService.adjustMeetPerformances(listOf(meet2Performance), adjustForDistance).first()
+        }
+
+        return meet1Performance?.time?.calculateSecondsFrom() to meet2Performance?.time?.calculateSecondsFrom()
     }
 
 }
