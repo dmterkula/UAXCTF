@@ -1,16 +1,17 @@
 package com.terkula.uaxctf.statistics.service
 
+import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
+import com.terkula.uaxctf.statisitcs.model.wasFreshmanDuringYear
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
-import com.terkula.uaxctf.statistics.dto.ImprovedUponDTO
-import com.terkula.uaxctf.statistics.dto.MeetProgressionDTO
-import com.terkula.uaxctf.statistics.dto.PRDTO
-import com.terkula.uaxctf.statistics.dto.getTimeDifferencesAsStrings
-import com.terkula.uaxctf.util.getImprovedUpon
+import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
+import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -118,6 +119,71 @@ class PersonalRecordService(@field:Autowired
                 .sortedByDescending { it.improvedUpon.timeDifference }
     }
 
+    fun getPRForRunnerAtPointInTime(pointInTime: Date, runnerName: String): MeetPerformanceDTO? {
 
+        val meets = meetRepository.findAll().map {
+            it.id to it
+        }.toMap()
+
+        val runner = runnerRepository.findByNameContaining(runnerName)
+
+        if (runnerName.isEmpty()) {
+            throw RunnerNotFoundByPartialNameException("No runner found matching $runnerName")
+        }
+
+        val performances = meetPerformanceRepository.findByRunnerId(runner.first().id)
+
+        return performances.filter {
+            meets[it.meetId]!!.date.before(pointInTime) || meets[it.meetId]!!.date == pointInTime
+        }.sortedBy { it.time.calculateSecondsFrom() }
+                .map {
+                    it.toMeetPerformanceDTO(meets[it.meetId]!!)
+                }.firstOrNull()
+    }
+
+
+    fun getPRDistributionByYear(startDate: Date, endDate: Date): Map<String, Map<Meet, PRCountDTO>> {
+
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+
+        val runners = runnerRepository.findByGraduatingClassGreaterThan(startDate.getYearString())
+
+        val distro = meets.map {
+            it to runners.map { r ->
+                r to getPRForRunnerAtPointInTime(it.date.addDay(), r.name)
+            }.toMap()
+                    .filter { map ->
+                        map.value != null
+                    }
+                    .filter { map ->
+                        map.value!!.meetDate.fuzzyEquals(it.date)
+                    }
+        }
+                .map {
+                    it.first to PRCountDTO(
+                            it.second.count(),
+                            it.second.filter { pair -> isFreshmanOrFirstYearRunner(pair.key, pair.value!!.meetDate) }.count(),
+                            it.second.filter { pair -> !isFreshmanOrFirstYearRunner(pair.key, pair.value!!.meetDate) }.count())
+
+                }
+                .groupBy { it.first.date.getYearString() }.map {
+                    it.key to it.value.toMutableList().sortedBy { it.first.date }.toMap()
+                }.toMap()
+
+        return distro
+
+    }
+
+    private fun isFreshmanOrFirstYearRunner(runner: Runner, dateInConsideration: Date): Boolean {
+
+        val year = if (dateInConsideration.getYearString() == MeetPerformanceController.CURRENT_YEAR) {
+          MeetPerformanceController.CURRENT_YEAR.toInt() - 1
+        } else {
+            dateInConsideration.getYearString().toInt()
+        }
+
+        return runner.wasFreshmanDuringYear(dateInConsideration.getYearString().toInt()) ||
+                getPRForRunnerAtPointInTime(TimeUtilities.getLastDayOfGivenYear(year.toString()), runner.name) == null
+    }
 
 }

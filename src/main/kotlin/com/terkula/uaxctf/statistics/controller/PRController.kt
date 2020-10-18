@@ -1,5 +1,8 @@
 package com.terkula.uaxctf.statistics.controller
 
+import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statistics.dto.PRCountDTO
+import com.terkula.uaxctf.statistics.dto.PRDTO
 import com.terkula.uaxctf.statistics.exception.UnsupportedAPIOperationException
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.PRResponse
@@ -81,6 +84,30 @@ class PRController(@field:Autowired
         return PRResponse(prs.count(), prs)
 
     }
+
+    @ApiOperation("Returns meets with PR counts. Useful for comparing when PRs occur across season(s)")
+    @RequestMapping(value = ["xc/PRs/distribution"], method = [RequestMethod.GET])
+    fun getPRDistributionByYear(
+            @ApiParam("The first season to include in the analysis")
+            @RequestParam(value = "startSeason", required = false, defaultValue = "2017") startSeason: String = "2017",
+            @ApiParam("The last season to include in the analysis")
+            @RequestParam(value = "lastSeason", required = false, defaultValue = "") lastSeason: String = ""
+    ): Map<String, Map<Meet, PRCountDTO>> {
+
+        val startDate = Date.valueOf("$startSeason-01-01")
+        var endDate =
+                if (lastSeason == "") {
+                    Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+                } else {
+                    Date.valueOf("$lastSeason-12-31")
+                }
+
+
+        val prs = personalRecordService.getPRDistributionByYear(startDate, endDate)
+        return prs
+
+    }
+
 
     private fun getSortingMethod(sortMethod: String) =
             when (sortMethod) {
