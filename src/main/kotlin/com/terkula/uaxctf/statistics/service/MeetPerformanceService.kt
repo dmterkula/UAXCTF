@@ -9,11 +9,13 @@ import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.response.HistoricalMeetComparisonResponse
 import com.terkula.uaxctf.training.model.WorkoutSplit
 import com.terkula.uaxctf.training.repository.RawWorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
 import com.terkula.uaxctf.util.*
+import org.nield.kotlinstatistics.percentile
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -258,7 +260,7 @@ class MeetPerformanceService(@field:Autowired
             endDate: Date,
             excludeSeasons: List<String>,
             includeSeasons: List<String>,
-            adjustForDistance: Boolean): String {
+            adjustForDistance: Boolean): HistoricalMeetComparisonResponse {
 
         var meets = meetRepository.findByDateBetween(startDate, endDate)
                 .filter { it.name.equals(meetName1, true) || it.name.equals(meetName2, true) }
@@ -284,7 +286,7 @@ class MeetPerformanceService(@field:Autowired
                     it.value[0] to it.value[1]
                 }
 
-        val averageDifferenceBetweenTimes = runners.map {
+        val averageDifferenceBetweenTimesForRunners = runners.map {
             pairedMeets.map { meetPair-> transformMeetPairToPerformancePair(it, meetPair, adjustForDistance) }
         }.map {
             it.filter { pair-> pair.first != null && pair.second != null }
@@ -292,10 +294,15 @@ class MeetPerformanceService(@field:Autowired
             it.isNotEmpty()
         }.map {
             it.map { meetPair -> meetPair.second!! - meetPair.first!! }.average()
-        }.average().round(2)
+        }
 
-        return averageDifferenceBetweenTimes.toMinuteSecondString()
-
+        return HistoricalMeetComparisonResponse(
+                averageDifferenceBetweenTimesForRunners.average().round(2).toMinuteSecondString(),
+                averageDifferenceBetweenTimesForRunners.percentile(10.0).round(2).toMinuteSecondString(),
+                averageDifferenceBetweenTimesForRunners.percentile(25.0).round(2).toMinuteSecondString(),
+                averageDifferenceBetweenTimesForRunners.percentile(75.0).round(2).toMinuteSecondString(),
+                averageDifferenceBetweenTimesForRunners.percentile(90.0).round(2).toMinuteSecondString()
+        )
     }
 
     private fun transformMeetPairToPerformancePair(

@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.response.HistoricalMeetComparisonResponse
 import com.terkula.uaxctf.statistics.response.RunnerMeetPerformanceResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import io.swagger.annotations.ApiOperation
@@ -98,7 +99,7 @@ class MeetPerformanceController(@field:Autowired
             @ApiParam("include only the given seasons when calculating the results")
             @RequestParam(value = "includeSeasons", required = false, defaultValue = "") includeSeasons: List<String>,
             @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
-            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): String {
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): HistoricalMeetComparisonResponse {
 
         val startDate = Date.valueOf("$FIRST_YEAR_ON_RECORD-01-01")
         val endDate = Date.valueOf("$CURRENT_YEAR-12-31")
