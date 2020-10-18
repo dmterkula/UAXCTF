@@ -87,7 +87,9 @@ class MeetPerformanceController(@field:Autowired
                 endDate, sortingMethodContainer, count, adjustForDistance))
     }
 
-    @ApiOperation("Returns the meet results for the given runner in the given season")
+    @ApiOperation("Returns statistical information about differences in times between two meets historically." +
+            " subtracts the baseMeetName from the compareMeetName's performances. Typical usage pattern is to use" +
+            " the earlier meet as base meet, and later meet as the compare meet")
     @RequestMapping(value = ["xc/historicallyCompareMeets"], method = [RequestMethod.GET])
     fun historicallyCompareMeets(
             @ApiParam("name of the first meet you wish to look at")

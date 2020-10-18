@@ -15,6 +15,10 @@ class TimeUtilities {
         fun getLastDayOfYear(): Date {
             return Date.valueOf(Date(System.currentTimeMillis()).getYearString() + "-12-31")
         }
+
+        fun getLastDayOfGivenYear(year: String): Date {
+            return Date.valueOf("$year-12-31")
+        }
     }
 }
 
@@ -119,6 +123,22 @@ fun String.isValidMileSplit(): Boolean {
 fun String.appendDecimal(): String {
     return if (this.contains(".")) this
     else "$this.0"
+}
+
+fun Date.addDay(): Date {
+    return Date.valueOf(this.toLocalDate().plusDays(1))
+}
+
+fun Date.subtractDay(): Date {
+    return Date.valueOf(this.toLocalDate().minusDays(1))
+}
+
+fun Date.subtractYear(sub: Long): Date {
+    return Date.valueOf(this.toLocalDate().minusYears(sub))
+}
+
+fun Date.fuzzyEquals(date: Date): Boolean {
+    return this == date || this.addDay() == date || this.subtractDay() == date
 }
 
 fun MutableList<Pair<Runner, Double>>.calculateSpreadWith(otherRunner: Pair<Runner, Double>): Double {

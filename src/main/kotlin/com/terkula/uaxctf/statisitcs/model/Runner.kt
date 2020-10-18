@@ -41,3 +41,8 @@ class Runner(
 
 
 }
+
+fun Runner.wasFreshmanDuringYear(atYear: Int): Boolean {
+    return this.graduatingClass.toInt() - atYear == 4
+
+}

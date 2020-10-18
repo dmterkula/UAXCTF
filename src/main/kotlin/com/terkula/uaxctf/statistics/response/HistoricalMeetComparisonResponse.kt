@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 class HistoricalMeetComparisonResponse (
         val averageDifference: String,
+        val standardDeviation: Double,
         @JsonProperty("10thPercentile")
         val percentile10: String,
         @JsonProperty("25thPercentile")

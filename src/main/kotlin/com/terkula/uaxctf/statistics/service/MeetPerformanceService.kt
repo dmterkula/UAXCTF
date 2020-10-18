@@ -16,6 +16,7 @@ import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
 import com.terkula.uaxctf.util.*
 import org.nield.kotlinstatistics.percentile
+import org.nield.kotlinstatistics.standardDeviation
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -298,6 +299,7 @@ class MeetPerformanceService(@field:Autowired
 
         return HistoricalMeetComparisonResponse(
                 averageDifferenceBetweenTimesForRunners.average().round(2).toMinuteSecondString(),
+                averageDifferenceBetweenTimesForRunners.standardDeviation().round(2),
                 averageDifferenceBetweenTimesForRunners.percentile(10.0).round(2).toMinuteSecondString(),
                 averageDifferenceBetweenTimesForRunners.percentile(25.0).round(2).toMinuteSecondString(),
                 averageDifferenceBetweenTimesForRunners.percentile(75.0).round(2).toMinuteSecondString(),
