@@ -2,8 +2,9 @@ package com.terkula.uaxctf.statistics.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
-class HistoricalMeetComparisonResponse (
-        val averageDifference: String,
+class StatisticalComparisonResponse(
+
+        val label: String,
         val standardDeviation: Double,
         @JsonProperty("10thPercentile")
         val percentile10: String,
@@ -12,6 +13,7 @@ class HistoricalMeetComparisonResponse (
         @JsonProperty("75thPercentile")
         val percentile75: String,
         @JsonProperty("90thPercentile")
-        val percentile90: String
+        val percentile90: String,
+        val meanDifference: String
 ) {
 }
