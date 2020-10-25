@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
+import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.statistics.response.TimeTrialProgressionResponse
 import com.terkula.uaxctf.statistics.service.TimeTrialProgressionService
 import io.swagger.annotations.ApiOperation
@@ -57,6 +58,24 @@ class TimeTrialImprovementController (@field:Autowired
             val endDate = Date.valueOf("$it-12-31")
             timeTrialProgressionService.getPreviousSBsToTimeTrialDifference(startDate, endDate, adjustForMeetDistance)
         }
+    }
+
+    @ApiOperation("Returns T Test between two difference in two given year's time trial, and last years SBs times. Intent is to use as indicator for relative summer conditioning levels. " +
+            "can be used to get data for multiple years, or just one")
+    @RequestMapping(value = ["xc/timeTrial/summerConditioningTTest"], method = [RequestMethod.GET])
+    fun runTTestBetweenPreviousSeasonBestsAndTimeTrialTimes( @ApiParam("use time trial data from this season and SBs from season prior")
+                                                            @RequestParam("filter.baseSeason") baseSeason: String,
+                                                            @RequestParam("filter.comparisonSeason") comparisonSeason: String,
+                                                            @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
+    ): TTestResponse {
+
+        val startDate1 = Date.valueOf("$baseSeason-01-01")
+        val endDate1 = Date.valueOf("$baseSeason-12-31")
+
+        val startDate2 = Date.valueOf("$comparisonSeason-01-01")
+        val endDate2 = Date.valueOf("$comparisonSeason-12-31")
+
+        return timeTrialProgressionService.runTTestBetweenPreviousSBsToTimeTrial(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
 }
