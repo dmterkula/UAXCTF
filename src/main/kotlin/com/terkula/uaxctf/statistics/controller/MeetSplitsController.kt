@@ -110,7 +110,7 @@ class MeetSplitsController(@field:Autowired
             @ApiParam("Filters results the given meet, averages for all meets there is data for if none provided")
             @RequestParam(value = "filter.meet", required = true) filterMeet: String = "",
             @ApiParam("Filters results the given meet, averages for all meets there is data for if none provided")
-            @RequestParam(value = "comparisonPace", required = false, defaultValue = "PR") comparisonPace: String = "PR"): TTestBetweenMileSplitsResponse {
+            @RequestParam(value = "comparisonPace", required = false, defaultValue = "PR") comparisonPace: String = "PR"): TTestResponse {
 
         val startDate1 = Date.valueOf("$baseSeason-01-01")
         val endDate1 = Date.valueOf("$baseSeason-12-31")

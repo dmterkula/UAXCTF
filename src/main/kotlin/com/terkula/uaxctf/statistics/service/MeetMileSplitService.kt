@@ -9,7 +9,7 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
-import com.terkula.uaxctf.statistics.response.TTestBetweenMileSplitsResponse
+import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
 import org.apache.commons.math3.stat.inference.TestUtils.tTest
 import org.springframework.beans.factory.annotation.Autowired
@@ -195,7 +195,7 @@ class MeetMileSplitService(@field:Autowired
             startDate2: Date,
             endDate2: Date,
             comparisonPace: String
-    ): TTestBetweenMileSplitsResponse {
+    ): TTestResponse {
 
         val dataYear1 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate1, endDate1)
         val dataYear2 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate2, endDate2)
@@ -222,7 +222,7 @@ class MeetMileSplitService(@field:Autowired
         val tStatDTOMile3 = TStatDTO("t test comparing mile3 splits", tTest(dataYear1.map{ it.third }.toDoubleArray(), dataYear2.map { it.third }.toDoubleArray()).round(4))
 
 
-        return TTestBetweenMileSplitsResponse(
+        return TTestResponse(
                 listOf(mile1DistributionYear1, mile2DistributionYear1, mile3DistributionYear1),
                 listOf(mile1DistributionYear2, mile2DistributionYear2, mile3DistributionYear2),
                 listOf(tStatDTOMile1, tStatDTOMile2, tStatDTOMile3)
