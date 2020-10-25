@@ -16,6 +16,10 @@ class TimeUtilities {
             return Date.valueOf(Date(System.currentTimeMillis()).getYearString() + "-12-31")
         }
 
+        fun getFirstDayOfGivenYear(year: String): Date {
+            return Date.valueOf("$year-01-01")
+        }
+
         fun getLastDayOfGivenYear(year: String): Date {
             return Date.valueOf("$year-12-31")
         }
@@ -63,6 +67,14 @@ fun Double.toMinuteSecondString(): String {
 
 }
 
+fun Double.formatedTo(format: String): String {
+    return if (format == "time") {
+        this.toMinuteSecondString()
+    } else {
+        this.toString()
+    }
+}
+
 fun substractDays(date: Date, days: Int): Date {
     val c = Calendar.getInstance()
     c.time = date
@@ -100,6 +112,10 @@ fun scaleTo5k(distance: Double, time: Double): Double {
 
     return (time / distance) * 5000
 
+}
+
+fun String.getPacePerMile(): Double {
+   return this.calculateSecondsFrom() / 3.10686
 }
 
 fun String.toPlace(): Int {

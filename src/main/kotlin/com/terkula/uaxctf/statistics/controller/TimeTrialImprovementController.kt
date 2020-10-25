@@ -1,6 +1,6 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.statistics.response.StatisticalComparisonResponse
+import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
 import com.terkula.uaxctf.statistics.response.TimeTrialProgressionResponse
 import com.terkula.uaxctf.statistics.service.TimeTrialProgressionService
 import io.swagger.annotations.ApiOperation
@@ -50,7 +50,7 @@ class TimeTrialImprovementController (@field:Autowired
     fun getDifferenceBetweenPreviousSeasonBestAndTimeTrial( @ApiParam("use time trial data from this season and SBs from season prior")
                                                             @RequestParam("filter.seasons") seasons: List<String>,
                                                             @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
-    ): List<StatisticalComparisonResponse> {
+    ): List<StatisticalComparisonDTO> {
 
         return seasons.map {
             val startDate = Date.valueOf("$it-01-01")

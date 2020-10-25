@@ -5,10 +5,8 @@ import com.terkula.uaxctf.statistics.dto.SeasonBestToTimeTrialDTO
 import com.terkula.uaxctf.statistics.dto.TimeTrialImprovementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
-import com.terkula.uaxctf.statistics.response.StatisticalComparisonResponse
+import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
 import com.terkula.uaxctf.util.*
-import org.nield.kotlinstatistics.percentile
-import org.nield.kotlinstatistics.standardDeviation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.sql.Date
@@ -50,7 +48,7 @@ class TimeTrialProgressionService (@field: Autowired
     }
 
 
-    fun getPreviousSBsToTimeTrialDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonResponse {
+    fun getPreviousSBsToTimeTrialDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonDTO {
 
         val adjustedTimeTrialResults = getAllAdjustedTimeTrials(startDate, endDate)
 
@@ -75,15 +73,7 @@ class TimeTrialProgressionService (@field: Autowired
                     it.getDifference()
                 }
 
-        return StatisticalComparisonResponse(
-                startDate.getYearString(),
-                previousSeasonBestToTimeTrialDTOs.standardDeviation().round(2),
-                previousSeasonBestToTimeTrialDTOs.percentile(10.0).round(2).toMinuteSecondString(),
-                previousSeasonBestToTimeTrialDTOs.percentile(25.0).round(2).toMinuteSecondString(),
-                previousSeasonBestToTimeTrialDTOs.percentile(75.0).round(2).toMinuteSecondString(),
-                previousSeasonBestToTimeTrialDTOs.percentile(90.0).round(2).toMinuteSecondString(),
-                previousSeasonBestToTimeTrialDTOs.average().round(2).toMinuteSecondString()
-        )
+        return StatisticalComparisonDTO.from(startDate.getYearString(), previousSeasonBestToTimeTrialDTOs, "time", 2)
     }
 
     fun getAllAdjustedTimeTrials(startDate: Date, endDate: Date): List<TimeTrial> {
