@@ -9,14 +9,12 @@ import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
-import com.terkula.uaxctf.statistics.response.StatisticalComparisonResponse
+import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
 import com.terkula.uaxctf.training.model.WorkoutSplit
 import com.terkula.uaxctf.training.repository.RawWorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
 import com.terkula.uaxctf.util.*
-import org.nield.kotlinstatistics.percentile
-import org.nield.kotlinstatistics.standardDeviation
 import java.sql.Date
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -261,7 +259,7 @@ class MeetPerformanceService(@field:Autowired
             endDate: Date,
             excludeSeasons: List<String>,
             includeSeasons: List<String>,
-            adjustForDistance: Boolean): StatisticalComparisonResponse {
+            adjustForDistance: Boolean): StatisticalComparisonDTO {
 
         var meets = meetRepository.findByDateBetween(startDate, endDate)
                 .filter { it.name.equals(meetName1, true) || it.name.equals(meetName2, true) }
@@ -297,14 +295,11 @@ class MeetPerformanceService(@field:Autowired
             it.map { meetPair -> meetPair.second!! - meetPair.first!! }.average()
         }
 
-        return StatisticalComparisonResponse(
+        return StatisticalComparisonDTO.from(
                 "comparing $meetName1 to $meetName2",
-                averageDifferenceBetweenTimesForRunners.standardDeviation().round(2),
-                averageDifferenceBetweenTimesForRunners.percentile(10.0).round(2).toMinuteSecondString(),
-                averageDifferenceBetweenTimesForRunners.percentile(25.0).round(2).toMinuteSecondString(),
-                averageDifferenceBetweenTimesForRunners.percentile(75.0).round(2).toMinuteSecondString(),
-                averageDifferenceBetweenTimesForRunners.percentile(90.0).round(2).toMinuteSecondString(),
-                averageDifferenceBetweenTimesForRunners.average().round(2).toMinuteSecondString()
+                averageDifferenceBetweenTimesForRunners,
+                "time",
+                2
         )
     }
 

@@ -1,10 +1,7 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
-import com.terkula.uaxctf.statistics.dto.MeetSplitStatisticDTO
-import com.terkula.uaxctf.statistics.dto.MeetSplitsDTO
-import com.terkula.uaxctf.statistics.dto.RunnerAvgMileSplitDifferenceDTO
-import com.terkula.uaxctf.statistics.dto.RunnerMeetSplitDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
@@ -12,8 +9,9 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
-import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.statistics.response.TTestBetweenMileSplitsResponse
+import com.terkula.uaxctf.util.*
+import org.apache.commons.math3.stat.inference.TestUtils.tTest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.Exception
@@ -27,7 +25,11 @@ class MeetMileSplitService(@field:Autowired
                            @field:Autowired
                            private val runnerRepository: RunnerRepository,
                            @field:Autowired
-                           private val meetPerformanceService: MeetPerformanceService) {
+                           private val meetPerformanceService: MeetPerformanceService,
+                           @field:Autowired
+                           private val seasonBestService: SeasonBestService,
+                           @field:Autowired
+                           private val personalRecordService: PersonalRecordService) {
 
 
     fun getAllMeetMileSplitsForRunner(name: String, startDate: Date, endDate: Date): RunnerMeetSplitResponse {
@@ -163,5 +165,123 @@ class MeetMileSplitService(@field:Autowired
                 NamedStatistic(MeetSplitsOption.Spread.value, calculateDesiredMeetStatistic(MeetSplitsOption.Spread, splits)))
 
     }
+
+    fun compareMileSplitTimesToComparisonPaceAtMeet(filterMeet: String, startDate: Date, endDate: Date, comparisonPace: String):
+    List<StatisticalComparisonDTO>{
+        // all meets in date range
+        val meets = meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
+
+        val ratiosOfMileSplitsToInputMetric = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate, endDate)
+
+        val labelPrefix = "${meets.first().name} ${startDate.getYearString()}:"
+
+        val label: String = if (comparisonPace.equals("SB", true)) {
+            "percent of previous season best pace "
+        } else {
+            "percent of PR pace"
+        }
+
+        val mile1Distribution = StatisticalComparisonDTO.from("$labelPrefix mile 1 $label", ratiosOfMileSplitsToInputMetric.map {it.first }, "decimal", 4)
+        val mile2Distribution = StatisticalComparisonDTO.from("$labelPrefix mile 2 $label", ratiosOfMileSplitsToInputMetric.map{ it.second }, "decimal", 4)
+        val mile3Distribution = StatisticalComparisonDTO.from("$labelPrefix mile 3 $label", ratiosOfMileSplitsToInputMetric.map{ it.third }, "decimal", 4)
+
+        return listOf(mile1Distribution, mile2Distribution, mile3Distribution)
+    }
+
+    fun runTwoSampleTTestForMileSplits(
+            filterMeet: String,
+            startDate1: Date,
+            endDate1: Date,
+            startDate2: Date,
+            endDate2: Date,
+            comparisonPace: String
+    ): TTestBetweenMileSplitsResponse {
+
+        val dataYear1 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate1, endDate1)
+        val dataYear2 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate2, endDate2)
+
+        var labelPrefixYear1 = "$filterMeet ${startDate1.getYearString()}:"
+        var labelPrefixYear2 = "$filterMeet ${startDate2.getYearString()}:"
+
+        var label: String = if (comparisonPace.equals("SB", true)) {
+            "percent of previous season best pace "
+        } else {
+            "percent of PR pace"
+        }
+
+        val mile1DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 1 $label", dataYear1.map {it.first }, "decimal", 4)
+        val mile2DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 2 $label", dataYear1.map{ it.second }, "decimal", 4)
+        val mile3DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 3 $label", dataYear1.map{ it.third }, "decimal", 4)
+
+        val mile1DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 1 $label", dataYear2.map {it.first }, "decimal", 4)
+        val mile2DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 2 $label", dataYear2.map{ it.second }, "decimal", 4)
+        val mile3DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 3 $label", dataYear2.map{ it.third }, "decimal", 4)
+
+        val tStatDTOMile1 = TStatDTO("t test comparing mile1 splits", tTest(dataYear1.map { it.first }.toDoubleArray(), dataYear2.map { it.first }.toDoubleArray()).round(4))
+        val tStatDTOMile2 = TStatDTO("t test comparing mile2 splits", tTest(dataYear1.map{ it.second }.toDoubleArray(), dataYear2.map { it.second }.toDoubleArray()).round(4))
+        val tStatDTOMile3 = TStatDTO("t test comparing mile3 splits", tTest(dataYear1.map{ it.third }.toDoubleArray(), dataYear2.map { it.third }.toDoubleArray()).round(4))
+
+
+        return TTestBetweenMileSplitsResponse(
+                listOf(mile1DistributionYear1, mile2DistributionYear1, mile3DistributionYear1),
+                listOf(mile1DistributionYear2, mile2DistributionYear2, mile3DistributionYear2),
+                listOf(tStatDTOMile1, tStatDTOMile2, tStatDTOMile3)
+        )
+    }
+
+
+    fun getMeetSplitsToComparision(filterMeet: String,
+                                   comparisonPace: String,
+                                   startDate: Date,
+                                   endDate: Date): List<Triple<Double, Double, Double>> {
+        val meets = meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
+
+        // all splits at meets in date range
+        val splits = meets.
+                map { meetMileSplitRepository.findByMeetId(it.id) }
+                .filter { it.isNotEmpty() }
+                .flatten()
+
+
+        return if (comparisonPace.equals("SB", true)) {
+            splits.map {
+                runnerRepository.findById(it.runnerId).get() to it
+            }.map {
+                seasonBestService.getSeasonBestsByName(it.first.name, listOf(
+                        TimeUtilities.getFirstDayOfGivenYear(startDate.subtractYear(1).getYearString()) to
+                                TimeUtilities.getLastDayOfGivenYear(endDate.subtractYear(1).getYearString())),
+                        false).firstOrNull() to it.second
+            }
+                    .filter { it.first != null }
+                    .map { it.first!!.seasonBest to it.second}
+                    .filter { it.first.isNotEmpty() }
+                    .map { it.first.first().time.getPacePerMile() to it.second}
+                    .map {
+                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first,
+                                it.second.mileTwo.calculateSecondsFrom() / it.first,
+                                it.second.mileThree.calculateSecondsFrom() / it.first)
+                    }
+
+        } else if (comparisonPace.equals("PR", true)) {
+            splits.map {
+                runnerRepository.findById(it.runnerId).get() to it
+            }.map {
+                personalRecordService.getPRsByName(it.first.name, false).firstOrNull() to it.second
+            }
+                    .filter { it.first != null }
+                    .map { it.first!!.pr to it.second}
+                    .filter { it.first.isNotEmpty() }
+                    .map { it.first.first().time.getPacePerMile() to it.second}
+                    .map {
+                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first,
+                                it.second.mileTwo.calculateSecondsFrom() / it.first,
+                                it.second.mileThree.calculateSecondsFrom() / it.first)
+                    }
+
+        } else {
+            listOf(Triple(0.0, 0.0, 0.0))
+        }
+    }
+
 
 }
