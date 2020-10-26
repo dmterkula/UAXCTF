@@ -70,10 +70,38 @@ class TimeTrialProgressionService (@field: Autowired
 
     }
 
+    fun runTTestBetweenTimeTrialAndSB(
+            startDate1: Date,
+            endDate1: Date,
+            startDate2: Date,
+            endDate2: Date,
+            adjustForMeetDistance: Boolean
+    ): TTestResponse {
+
+        val statistcalDistributionYear1 = getTimeTrialToSBDifference(startDate1, endDate1, adjustForMeetDistance)
+        val statistcalDistributionYear2 = getTimeTrialToSBDifference(startDate2, endDate2, adjustForMeetDistance)
+
+        val tStat = TStatDTO("2 sample T test for mean difference in Time Trial times to end of season best times",
+                TestUtils.tTest(getMeanDifferenceBetweenTimeTrialAndSB(startDate1, endDate1, adjustForMeetDistance).toDoubleArray(),
+                        getMeanDifferenceBetweenTimeTrialAndSB(startDate2, endDate2, adjustForMeetDistance).toDoubleArray())
+                        .round(4))
+
+        return TTestResponse(listOf(statistcalDistributionYear1), listOf(statistcalDistributionYear2), listOf(tStat))
+
+    }
+
     fun getPreviousSBsToTimeTrialDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonDTO {
 
         return StatisticalComparisonDTO.from(startDate.getYearString(),
                 getMeanDifferenceBetweenPreviousSBsAndTimeTrial(startDate, endDate, adjustForMeetDistance),
+                "time",
+                2)
+    }
+
+    fun getTimeTrialToSBDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonDTO {
+
+        return StatisticalComparisonDTO.from(startDate.getYearString(),
+                getMeanDifferenceBetweenTimeTrialAndSB(startDate, endDate, adjustForMeetDistance),
                 "time",
                 2)
     }
@@ -86,6 +114,31 @@ class TimeTrialProgressionService (@field: Autowired
                 .toMap()
 
         val seasonBests = seasonBestService.getAllSeasonBests(startDate.subtractYear(1), endDate.subtractYear(1), adjustForMeetDistance)
+                .filter { it.runner.id in runners.keys }
+                .map { runners[it.runner.id]!!.id to it }
+                .toMap()
+
+        return adjustedTimeTrialResults
+                .map { it to seasonBests[it.runnerId] }
+                .toMap()
+                .filter { it.value != null }
+                .map {
+                    // if seasonBestDTO is null, difference is 0, or filter them out and give no rank.
+                    SeasonBestToTimeTrialDTO(it.value!!, it.key.time)
+                }
+                .map {
+                    it.getDifference()
+                }
+    }
+
+    fun getMeanDifferenceBetweenTimeTrialAndSB(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<Double> {
+        val adjustedTimeTrialResults = getAllAdjustedTimeTrials(startDate, endDate)
+
+        val runners = adjustedTimeTrialResults
+                .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
+                .toMap()
+
+        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, adjustForMeetDistance)
                 .filter { it.runner.id in runners.keys }
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()

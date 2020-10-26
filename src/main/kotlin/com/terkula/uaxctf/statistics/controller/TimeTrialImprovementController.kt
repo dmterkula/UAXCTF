@@ -78,4 +78,21 @@ class TimeTrialImprovementController (@field:Autowired
         return timeTrialProgressionService.runTTestBetweenPreviousSBsToTimeTrial(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
+    @ApiOperation("Returns T Test between two difference in two given year's time trial and same year's SBs times. Intent is to use as indicator for relative improvement rate")
+    @RequestMapping(value = ["xc/timeTrial/seasonImprovementTTest"], method = [RequestMethod.GET])
+    fun runTTestBetweenTimeTrialAndEndOfSeasonBest( @ApiParam("use time trial and SB data from this season")
+                                                             @RequestParam("filter.baseSeason") baseSeason: String,
+                                                             @RequestParam("filter.comparisonSeason") comparisonSeason: String,
+                                                             @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
+    ): TTestResponse {
+
+        val startDate1 = Date.valueOf("$baseSeason-01-01")
+        val endDate1 = Date.valueOf("$baseSeason-12-31")
+
+        val startDate2 = Date.valueOf("$comparisonSeason-01-01")
+        val endDate2 = Date.valueOf("$comparisonSeason-12-31")
+
+        return timeTrialProgressionService.runTTestBetweenTimeTrialAndSB(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
+    }
+
 }
