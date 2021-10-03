@@ -12,6 +12,8 @@ interface MeetRepository : CrudRepository<Meet, Int> {
 
     fun findByDateBetween(start: Date, end: Date): MutableList<Meet>
 
+    fun findByDateLessThan(targetDate: Date): MutableList<Meet>
+
     fun findByNameContains(meetName: String): MutableList<Meet>
 
     fun findByNameAndDateBetween(meetName: String, start: Date, end: Date): MutableList<Meet>

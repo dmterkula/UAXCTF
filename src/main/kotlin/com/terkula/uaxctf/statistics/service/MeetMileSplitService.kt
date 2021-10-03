@@ -178,7 +178,7 @@ class MeetMileSplitService(@field:Autowired
         val label: String = if (comparisonPace.equals("SB", true)) {
             "percent of previous season best pace "
         } else {
-            "percent of PR pace"
+            "percent of PR pace prior to this meet"
         }
 
         val mile1Distribution = StatisticalComparisonDTO.from("$labelPrefix mile 1 $label", ratiosOfMileSplitsToInputMetric.map {it.first }, "decimal", 4)
@@ -186,6 +186,32 @@ class MeetMileSplitService(@field:Autowired
         val mile3Distribution = StatisticalComparisonDTO.from("$labelPrefix mile 3 $label", ratiosOfMileSplitsToInputMetric.map{ it.third }, "decimal", 4)
 
         return listOf(mile1Distribution, mile2Distribution, mile3Distribution)
+    }
+
+    fun buildRankedMileSplitComparisonsAcrossMeets(startDate: Date, endDate: Date, comparisonPace: String):
+            List<List<MeetSplitStatisticalComparisonDTO>>{
+        // all meets in date range
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+
+        val meetMileSplitStats = meets.map {
+            it.name to
+            compareMileSplitTimesToComparisonPaceAtMeet(it.name, startDate, endDate, comparisonPace)
+        }
+
+        val mileStatComparisons = listOf(1, 2, 3).map {
+            createRankedSplitByMile(meetMileSplitStats, it)
+        }
+
+        return mileStatComparisons
+
+    }
+
+    private fun createRankedSplitByMile(meetMileSplitStats: List<Pair<String, List<StatisticalComparisonDTO>>>, mileNumber: Int): List<MeetSplitStatisticalComparisonDTO> {
+       val rankedSplitStats = meetMileSplitStats.map {
+            it.first to it.second[mileNumber - 1]
+        }.sortedBy { it.second.meanDifference.toDouble() }
+                .mapIndexed { index, pair -> MeetSplitStatisticalComparisonDTO(pair.first, index + 1, pair.second)}
+        return rankedSplitStats
     }
 
     fun runTwoSampleTTestForMileSplits(
@@ -266,7 +292,7 @@ class MeetMileSplitService(@field:Autowired
             splits.map {
                 runnerRepository.findById(it.runnerId).get() to it
             }.map {
-                personalRecordService.getPRsByName(it.first.name, false).firstOrNull() to it.second
+                personalRecordService.getPRsByNameBeforeTargetDate(it.first.name, false, meets[0].date.subtractDay()).firstOrNull() to it.second
             }
                     .filter { it.first != null }
                     .map { it.first!!.pr to it.second}
@@ -282,6 +308,5 @@ class MeetMileSplitService(@field:Autowired
             listOf(Triple(0.0, 0.0, 0.0))
         }
     }
-
 
 }

@@ -40,3 +40,9 @@ class StatisticalComparisonDTO(
         }
 
 }
+
+class MeetSplitStatisticalComparisonDTO(
+        val meet: String,
+        val meanRank: Int,
+        val statisticalComparison: StatisticalComparisonDTO
+)

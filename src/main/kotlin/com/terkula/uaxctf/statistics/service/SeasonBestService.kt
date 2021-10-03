@@ -58,25 +58,25 @@ class SeasonBestService(@field:Autowired
 
 
         for (startEndDate: Pair<Date, Date> in startEndDates) {
-            val meets =  meetRepository.findByDateBetween(startEndDate.first, startEndDate.second)
+            val meets = meetRepository.findByDateBetween(startEndDate.first, startEndDate.second)
 
             // look up map for meet id to meet
             val meetMap = meets.map { it.id to it }.toMap()
 
             // give all performances for the meets
-            val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id)}.flatten()
+            val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id) }.flatten()
 
             // look up map for runner id to runner
 
             lateinit var runners: Map<Int, Runner>
 
             try {
-                runners = listOf(runnerRepository.findByNameContaining(partialName).first()).map{ it.id to it }.toMap()
+                runners = listOf(runnerRepository.findByNameContaining(partialName).first()).map { it.id to it }.toMap()
             } catch (e: Exception) {
                 throw RunnerNotFoundByPartialNameException("Unable to find results for runner by: $partialName")
             }
 
-            val seasonBests = runners.map { runner -> performances.filter { it.runnerId == runner.key}}
+            val seasonBests = runners.map { runner -> performances.filter { it.runnerId == runner.key } }
                     .flatten()
                     .groupBy { it.runnerId }
                     .map {
