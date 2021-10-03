@@ -107,6 +107,40 @@ class PersonalRecordService(@field:Autowired
 
     }
 
+    fun getPRsByNameBeforeTargetDate(partialName: String, adjustForDistance: Boolean, targetDate: Date): List<PRDTO> {
+
+        val eligibleRunners = runnerRepository.findByNameContaining(partialName)
+                .map { it.id to it }.toMap()
+
+        // find all performances for those runners this year
+
+        val meets = meetRepository.findByDateLessThan(targetDate).toMutableList()
+
+        val meetMap = meets.map { it.id to it }.toMap()
+
+        val prDTOs = eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
+                .flatten().groupBy { it.runnerId }
+                .map {
+                    it.key to it.value.filter { perf -> perf.meetId in meetMap }
+                            .toMutableList()
+                            .sortedBy { perf -> perf.time }.take(2)
+                }.toMap()
+                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
+                .filter { it.second.isNotEmpty() }
+                .toMutableList()
+                .sortedBy { it.second.first().time }
+                .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
+                .map {
+                    val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
+
+                    PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+                }
+
+
+        return prDTOs
+
+    }
+
     fun getPRsAtLastMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<PRDTO> {
 
         val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.first()
