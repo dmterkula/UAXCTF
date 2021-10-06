@@ -24,6 +24,6 @@ class WorkoutSplit (
 fun List<WorkoutSplit>.calculateSpread(): Double {
 
     val list = this.map { it.time.calculateSecondsFrom() }
-    return (list.max()!! - list.min()!!)
+    return (list.maxOrNull()!! - list.minOrNull()!!)
 
 }

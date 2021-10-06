@@ -116,10 +116,4 @@ class XcDataLoaderController(
         return "loaded"
     }
 
-    @GetMapping(value = "/googlee20cbc8c8bda882b.html", produces = [MediaType.TEXT_HTML_VALUE])
-    @ResponseBody
-    fun welcomeAsHTML(): String {
-        return "google-site-verification: googlee20cbc8c8bda882b.html"
-    }
-
 }

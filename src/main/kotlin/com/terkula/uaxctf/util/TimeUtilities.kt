@@ -9,7 +9,6 @@ class TimeUtilities {
     companion object {
         fun getFirstDayOfYear(): Date {
             return Date.valueOf(Date(System.currentTimeMillis()).getYearString() + "-01-01")
-
         }
 
         fun getLastDayOfYear(): Date {
@@ -99,7 +98,6 @@ fun String.convertHourMileSplitToMinuteSecond(): String {
     }
 
     return corrected
-
 }
 
 fun Date.getYearString(): String {
@@ -168,7 +166,7 @@ fun MutableList<Pair<Runner, Double>>.calculateSpreadWith(otherRunner: Pair<Runn
         it.second
     }
 
-    val spread = times.max()!! - times.min()!!
+    val spread = times.maxOrNull()!! - times.minOrNull()!!
 
     this.remove(otherRunner)
 
