@@ -62,7 +62,7 @@ class MeetSplitsController(@field:Autowired
     }
 
 
-    @ApiOperation("All runners meet splits info at input meet")
+    @ApiOperation("Gives the input runner's meet splits info at meets within the date range")
     @RequestMapping(value = ["/xc/meetMileSplits/comparisonToPaceAtMeetForRunner"], method = [RequestMethod.GET])
     fun getMeetSplitComparisonForRunner(
             @ApiParam("Filters results for runner matching the given name in the given season")
@@ -79,6 +79,25 @@ class MeetSplitsController(@field:Autowired
         }
 
         return meetMileSplitService.getMeetSplitComparisonsForRunner(runnerName, startDate, endDate, "pr")
+    }
+
+    @ApiOperation("All runners meet splits info at meets within the date range")
+    @RequestMapping(value = ["/xc/meetMileSplits/comparisonToPaceAtMeetsForAllRunners"], method = [RequestMethod.GET])
+    fun getMeetSplitComparisonsForAllRunner(
+            @ApiParam("Filters results for runner matching the given name in the given season")
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+            @ApiParam("Sorts the runners by their pace compared to PR for the input split number, 1,2, or 3")
+            @RequestParam(value = "sort.split", required = false, defaultValue = "1") sort: String): List<RunnerSplitComparisonAveragesDTO> {
+
+        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+
+        if (season.isNotEmpty()) {
+            startDate = Date.valueOf("$season-01-01")
+            endDate = Date.valueOf("$season-12-31")
+        }
+
+        return meetMileSplitService.getMeetSplitComparisonsAveragesForAllRunners(startDate, endDate, "pr", sort)
     }
 
     @ApiOperation("Returns runners who on average slowed down the most or sped up between certain miles in races")
