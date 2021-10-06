@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.dto
 
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statisitcs.model.MeetMileSplit
+import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
@@ -25,6 +26,8 @@ class RunnersMeetSplitsComparisonPaceDTO(val meet: Meet, val splits: List<MeetSp
 class RunnerMeetSplitsComparisonWithAveragesDTO(val meetSplits: List<RunnersMeetSplitsComparisonPaceDTO>, val splitAverages: List<SplitComparisonAverageDTO>)
 
 class SplitComparisonAverageDTO(val mileNumber: Int, val averageRank: Double, val averagePercentile: Double, val averageComparisonPace: Double)
+
+class RunnerSplitComparisonAveragesDTO(val runner: String, val splitAverages: List<SplitComparisonAverageDTO>)
 
 fun MeetSplitsDTO.toMeetSplit() : MeetMileSplit {
 

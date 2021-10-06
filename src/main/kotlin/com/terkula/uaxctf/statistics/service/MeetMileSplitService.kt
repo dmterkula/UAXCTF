@@ -190,6 +190,45 @@ class MeetMileSplitService(@field:Autowired
         )
     }
 
+    fun getMeetSplitComparisonsAveragesForAllRunners(startDate: Date, endDate: Date, targetPace: String, sortOnMile: String): List<RunnerSplitComparisonAveragesDTO> {
+
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+
+        val runnerMeetSplitsComparisonDTOs = meets.map { it to getMeetSplitsComparedToInputPace(it.name, startDate, endDate, targetPace) }
+                .map {
+                    RunnersMeetSplitsComparisonPaceDTO(it.first, it.second)
+                }.filter {
+                    it.splits.isNotEmpty()
+                }.map {
+                    it.splits
+                }.flatten().groupBy { it.runnerName }
+                .map {
+                    val firstMileAverages = calculateAverageForSplit(it.value.map { it.splits[0] })
+                    val secondMileAverages = calculateAverageForSplit(it.value.map { it.splits[1] })
+                    val thirdMileAverages = calculateAverageForSplit(it.value.map { it.splits[2] })
+
+                    RunnerSplitComparisonAveragesDTO(it.key, listOf(firstMileAverages, secondMileAverages, thirdMileAverages))
+                }
+
+        return when (sortOnMile) {
+            "1" -> {
+                runnerMeetSplitsComparisonDTOs.sortedBy { it.splitAverages[0].averageComparisonPace }
+            }
+            "2" -> {
+                runnerMeetSplitsComparisonDTOs.sortedBy { it.splitAverages[1].averageComparisonPace }
+            }
+            "3" -> {
+                runnerMeetSplitsComparisonDTOs.sortedBy { it.splitAverages[2].averageComparisonPace }
+            }
+            else -> {
+                /// no sort if unrecognized sort param
+                runnerMeetSplitsComparisonDTOs
+            }
+        }
+
+    }
+
+
     fun getMeetSplitInfo(filterMeet: String, splitType: MeetSplitsOption, startDate: Date, endDate: Date, sort: String,
                          limit: Int): List<RunnerAvgMileSplitDifferenceDTO> {
         // all meets in date range
