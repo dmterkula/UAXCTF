@@ -1,8 +1,7 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.statistics.dto.MeetSplitStatisticalComparisonDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
-import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
 import com.terkula.uaxctf.statistics.response.*
 import com.terkula.uaxctf.statistics.service.MeetMileSplitService
 import io.swagger.annotations.ApiOperation
@@ -41,6 +40,45 @@ class MeetSplitsController(@field:Autowired
 
         return mileSplitResponse
 
+    }
+
+    @ApiOperation("All runners meet splits info at input meet")
+    @RequestMapping(value = ["/xc/meetMileSplits/comparisonToPaceAtMeet"], method = [RequestMethod.GET])
+    fun getMeetSplitComparison(
+            @ApiParam("Filters results for the meet matching the given name in the given season")
+            @RequestParam(value = "filter.meet", required = true) meetName: String,
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): List<MeetSplitsToComparisonPaceDTO> {
+
+        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+
+
+        if (season.isNotEmpty()) {
+            startDate = Date.valueOf("$season-01-01")
+            endDate = Date.valueOf("$season-12-31")
+        }
+
+         return meetMileSplitService.getMeetSplitsComparedToInputPace(meetName, startDate, endDate, "pr")
+    }
+
+
+    @ApiOperation("All runners meet splits info at input meet")
+    @RequestMapping(value = ["/xc/meetMileSplits/comparisonToPaceAtMeetForRunner"], method = [RequestMethod.GET])
+    fun getMeetSplitComparisonForRunner(
+            @ApiParam("Filters results for runner matching the given name in the given season")
+            @RequestParam(value = "filter.runner", required = true) runnerName: String,
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): RunnerMeetSplitsComparisonWithAveragesDTO {
+
+        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+
+
+        if (season.isNotEmpty()) {
+            startDate = Date.valueOf("$season-01-01")
+            endDate = Date.valueOf("$season-12-31")
+        }
+
+        return meetMileSplitService.getMeetSplitComparisonsForRunner(runnerName, startDate, endDate, "pr")
     }
 
     @ApiOperation("Returns runners who on average slowed down the most or sped up between certain miles in races")
@@ -140,7 +178,7 @@ class MeetSplitsController(@field:Autowired
 
     @ApiOperation("Returns a ranked statistical distribution of each mile split to runners SB or PR pace across meets in the same year")
     @RequestMapping(value = ["/xc/meetSplit/rankedStatDistribution"], method = [RequestMethod.GET])
-    fun getStatisticalComparisionBySplitNumberTo(
+    fun getStatisticalComparisonBySplitNumberTo(
             @ApiParam("First year of meet you want to compare")
             @RequestParam(value = "filter.season") season: String,
             @ApiParam("Filters results the given meet, averages for all meets there is data for if none provided")
@@ -153,9 +191,7 @@ class MeetSplitsController(@field:Autowired
     }
 
     fun getSplitOption(option: String): MeetSplitsOption {
-
         return MeetSplitsOption.fromString(option)!!
-
     }
 
 }

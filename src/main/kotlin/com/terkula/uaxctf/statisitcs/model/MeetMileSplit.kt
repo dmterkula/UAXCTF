@@ -50,7 +50,7 @@ fun MeetMileSplit.calculateSpread(): Double {
 
     val list = listOf(this.mileOne.calculateSecondsFrom(), this.mileTwo.calculateSecondsFrom(), this.mileThree.calculateSecondsFrom())
 
-    return list.max()!! - list.min()!!
+    return list.maxOrNull()!! - list.minOrNull()!!
 
 }
 

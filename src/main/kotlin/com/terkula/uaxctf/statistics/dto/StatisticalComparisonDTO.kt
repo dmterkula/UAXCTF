@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.terkula.uaxctf.util.formatedTo
 import com.terkula.uaxctf.util.round
 import org.nield.kotlinstatistics.percentile
+import org.nield.kotlinstatistics.percentileBy
 import org.nield.kotlinstatistics.standardDeviation
 
 class StatisticalComparisonDTO(
