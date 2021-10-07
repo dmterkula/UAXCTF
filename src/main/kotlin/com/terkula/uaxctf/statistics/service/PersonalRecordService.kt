@@ -101,6 +101,10 @@ class PersonalRecordService(@field:Autowired
                 }
                 .filter { it.second.isNotEmpty() }
 
+        if (prDTOs.isEmpty())  {
+            return emptyList()
+        }
+
         val pr = prDTOs[0].second[0]
         val prMeet = meetMap[pr.meetId]!!
 
@@ -139,7 +143,11 @@ class PersonalRecordService(@field:Autowired
                     it.key to it.value.filter { perf -> perf.meetId in meetMap }
                             .toMutableList()
                             .sortedBy { perf -> perf.time.calculateSecondsFrom() }
-                }
+                }.filter { it.second.isNotEmpty() }
+
+        if (prDTOs.isEmpty())  {
+            return emptyList()
+        }
 
         val pr = prDTOs[0].second[0]
         val prMeet = meetMap[pr.meetId]!!
