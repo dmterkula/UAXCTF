@@ -64,7 +64,7 @@ class MeetMileSplitService(@field:Autowired
                 })
     }
 
-    fun getMeetSplitsComparedToInputPace(meetName: String, startDate: Date, endDate: Date, targetPace: String): List<MeetSplitsToComparisonPaceDTO> {
+    fun getMeetSplitsComparedToInputPace(meetName: String, startDate: Date, endDate: Date, targetPace: String, sortOnMile: String): List<MeetSplitsToComparisonPaceDTO> {
         val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
 
         val meetMap = meets.map { it.id to it }.toMap()
@@ -123,21 +123,21 @@ class MeetMileSplitService(@field:Autowired
                 run {
                     when (index) {
                         0 -> {
-                            splitComparison.rankOnTeam = runnersToFirstMileSplitComparisons.indexOfFirst { it.first == runnerToSplits.first } + 1
+                            splitComparison.rankOnTeam = runnersToFirstMileSplitComparisons.sortedBy { it.second.percentOfComparison }.indexOfFirst { it.first == runnerToSplits.first } + 1
                             splitComparison.percentileOfTeam = (splitComparison.rankOnTeam.toDouble() / runnersToFirstMileSplitComparisons.size).round(2) * 100
                             val standardDev = runnersToFirstMileSplitComparisons.map { it.second.percentOfComparison }.standardDeviation()
                             val mean = runnersToFirstMileSplitComparisons.map { it.second.percentOfComparison }.average()
                             splitComparison.standardDeviationsFromMean = ((splitComparison.percentOfComparison - mean) / standardDev).round(2).absoluteValue
                         }
                         1 -> {
-                            splitComparison.rankOnTeam = runnersToSecondMileSplitComparisons.indexOfFirst { it.first == runnerToSplits.first } + 1
+                            splitComparison.rankOnTeam = runnersToSecondMileSplitComparisons.sortedBy { it.second.percentOfComparison }.indexOfFirst { it.first == runnerToSplits.first } + 1
                             splitComparison.percentileOfTeam = (splitComparison.rankOnTeam.toDouble() / runnersToSecondMileSplitComparisons.size).round(2) * 100
                             val standardDev = runnersToSecondMileSplitComparisons.map { it.second.percentOfComparison }.standardDeviation()
                             val mean = runnersToSecondMileSplitComparisons.map { it.second.percentOfComparison }.average()
                             splitComparison.standardDeviationsFromMean = ((splitComparison.percentOfComparison - mean) / standardDev).round(2).absoluteValue
                         }
                         else -> {
-                            splitComparison.rankOnTeam = runnersToThirdMileSplitComparisons.indexOfFirst { it.first == runnerToSplits.first } + 1
+                            splitComparison.rankOnTeam = runnersToThirdMileSplitComparisons.sortedBy { it.second.percentOfComparison }.indexOfFirst { it.first == runnerToSplits.first } + 1
                             splitComparison.percentileOfTeam = (splitComparison.rankOnTeam.toDouble() / runnersToThirdMileSplitComparisons.size).round(2) * 100
                             val standardDev = runnersToThirdMileSplitComparisons.map { it.second.percentOfComparison }.standardDeviation()
                             val mean = runnersToThirdMileSplitComparisons.map { it.second.percentOfComparison }.average()
@@ -148,14 +148,23 @@ class MeetMileSplitService(@field:Autowired
             }
         }
 
-        return runnerIdToSplitComparisons.map {
+        var response =  runnerIdToSplitComparisons.map {
             runnerRepository.findById(it.first).get().name to it.second
         }.filter {
             it.second.all { splitComp -> splitComp.percentOfComparison < 2 }
-        }.map {
-            MeetSplitsToComparisonPaceDTO(it.first, it.second)
         }
 
+        response = if (sortOnMile == "1") {
+            response.sortedBy { it.second[0].percentOfComparison }
+        } else if (sortOnMile === "2") {
+            response.sortedBy { it.second[1].percentOfComparison }
+        } else if (sortOnMile == "3") {
+            response.sortedBy { it.second[2].percentOfComparison }
+        } else {
+            response
+        }
+
+        return response.map { MeetSplitsToComparisonPaceDTO(it.first, it.second) }
     }
 
     fun getMeetSplitComparisonsForRunner(runnerName: String, startDate: Date, endDate: Date, targetPace: String): RunnerMeetSplitsComparisonWithAveragesDTO {
@@ -167,7 +176,7 @@ class MeetMileSplitService(@field:Autowired
         }
         val meets = meetRepository.findByDateBetween(startDate, endDate)
 
-        val runnerMeetSplitsComparisonDTOs = meets.map { it to getMeetSplitsComparedToInputPace(it.name, startDate, endDate, targetPace).filter { split -> split.runnerName == runner.name } }
+        val runnerMeetSplitsComparisonDTOs = meets.map { it to getMeetSplitsComparedToInputPace(it.name, startDate, endDate, targetPace, "").filter { split -> split.runnerName == runner.name } }
                 .map {
            RunnersMeetSplitsComparisonPaceDTO(it.first, it.second)
         }.filter {
@@ -194,7 +203,7 @@ class MeetMileSplitService(@field:Autowired
 
         val meets = meetRepository.findByDateBetween(startDate, endDate)
 
-        val runnerMeetSplitsComparisonDTOs = meets.map { it to getMeetSplitsComparedToInputPace(it.name, startDate, endDate, targetPace) }
+        val runnerMeetSplitsComparisonDTOs = meets.map { it to getMeetSplitsComparedToInputPace(it.name, startDate, endDate, targetPace, "") }
                 .map {
                     RunnersMeetSplitsComparisonPaceDTO(it.first, it.second)
                 }.filter {
