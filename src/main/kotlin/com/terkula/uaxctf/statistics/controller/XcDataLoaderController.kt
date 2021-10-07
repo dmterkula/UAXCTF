@@ -1,18 +1,16 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.google.GoogleSheetsClient
+import com.terkula.uaxctf.statistics.exception.UnauthenticatedException
 import com.terkula.uaxctf.statistics.response.MeetResultDataLoadResponse
 import com.terkula.uaxctf.statistics.response.MileSplitDataLoadResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.MediaType
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
-import org.springframework.web.bind.annotation.ResponseBody
-import org.springframework.web.bind.annotation.GetMapping
-
 
 
 @RestController
@@ -27,56 +25,94 @@ class XcDataLoaderController(
 
     @ApiOperation("Loads meet data that has manually been entered in the load table.")
     @RequestMapping(value = ["xc/load/{meetId}"], method = [RequestMethod.GET])
-    fun loadPerformances(@PathVariable("meetId") meetId: Int): String {
+    fun loadPerformances(
+            @PathVariable("meetId") meetId: Int,
+            @RequestParam(value = "password") password: String
+    ): String {
 
-        meetPerformanceService.loadMeetPerformance(meetId)
-        return "loaded"
+        if (authenticated(password)) {
+            meetPerformanceService.loadMeetPerformance(meetId)
+            return "loaded"
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Loads milesplit data for meet that has been entered in the mile split table.")
     @RequestMapping(value = ["xc/load/mileSplit/{meetId}"], method = [RequestMethod.GET])
-    fun loadMileSplits(@PathVariable("meetId") meetId: Int): String {
+    fun loadMileSplits(
+        @PathVariable("meetId") meetId: Int,
+        @RequestParam(value = "password") password: String
+    ): String {
 
-        meetPerformanceService.loadMileSplits(meetId)
-        return "loaded mile splits"
+        if (authenticated(password)) {
+            meetPerformanceService.loadMileSplits(meetId)
+            return "loaded mile splits"
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Clean milesplit time formats")
     @RequestMapping(value = ["xc/load/cleanMileSplitData"], method = [RequestMethod.GET])
-    fun cleanMileSplits(@RequestParam(value = "meetId", defaultValue = "0") meetId: Int = 0): String {
+    fun cleanMileSplits(
+        @RequestParam(value = "meetId", defaultValue = "0") meetId: Int = 0,
+        @RequestParam(value = "password") password: String
+    ): String {
 
-        meetPerformanceService.cleanSplits(meetId)
-        return "cleanedMileSplits"
+        if (authenticated(password)) {
+            meetPerformanceService.cleanSplits(meetId)
+            return "cleanedMileSplits"
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Load Time Trial Data")
     @RequestMapping(value = ["xc/load/TimeTrialResult"], method = [RequestMethod.GET])
-    fun loadTimeTrialData(@RequestParam(value = "season") season: String): String {
+    fun loadTimeTrialData(
+        @RequestParam(value = "season") season: String,
+        @RequestParam(value = "password") password: String
+    ): String {
 
-        meetPerformanceService.loadTimeTrial(season)
-        return "loaded time trial"
+        if (authenticated(password)) {
+            meetPerformanceService.loadTimeTrial(season)
+            return "loaded time trial"
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Read Race Results From Google Sheet")
     @RequestMapping(value = ["xc/readRaceResults/"], method = [RequestMethod.GET])
     fun readSheet(
-            @RequestParam(value = "sheetName") sheetName: String
+            @RequestParam(value = "sheetName") sheetName: String,
+            @RequestParam(value = "password") password: String
     ): MeetResultDataLoadResponse {
 
-        // List<List<name, time, place>
-        val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
-        return xcDataLoaderService.processRaceResults(rawSheetData, sheetName)
+        if (authenticated(password)) {
+            // List<List<name, time, place>
+            val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
+            return xcDataLoaderService.processRaceResults(rawSheetData, sheetName)
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Read Race Mile Splits From Google Sheet")
     @RequestMapping(value = ["xc/readRaceMileSplits/"], method = [RequestMethod.GET])
     fun readMileSplits(
-            @RequestParam(value = "sheetName") sheetName: String
+            @RequestParam(value = "sheetName") sheetName: String,
+            @RequestParam(value = "password") password: String
     ): MileSplitDataLoadResponse {
 
-        // List<List<name, time, place>
-        val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
-        return xcDataLoaderService.loadMileSplits(rawSheetData, sheetName)
+        if (authenticated(password)) {
+            // List<List<name, time, place>
+            val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
+            return xcDataLoaderService.loadMileSplits(rawSheetData, sheetName)
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
     }
 
     @ApiOperation("Create Meet Info")
@@ -91,29 +127,42 @@ class XcDataLoaderController(
             @RequestParam(value = "isSnowy", required = false, defaultValue = "false") isSnowy: Boolean = false,
             @RequestParam(value = "temperature") temperature: Int,
             @RequestParam(value = "windSpeed") windSpeed: Int,
-            @RequestParam(value = "cloudCoverRatio") cloudCoverRatio: Double
+            @RequestParam(value = "cloudCoverRatio") cloudCoverRatio: Double,
+            @RequestParam(value = "password") password: String
     ) {
-        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+        if (authenticated(password)) {
+            var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+            var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
 
+            if (season.isNotEmpty()) {
+                startDate = Date.valueOf("$season-01-01")
+                endDate = Date.valueOf("$season-12-31")
+            }
 
-        if (season.isNotEmpty()) {
-            startDate = Date.valueOf("$season-01-01")
-            endDate = Date.valueOf("$season-12-31")
+            meetPerformanceService.postMeetInfoEntry(meetName, startDate, endDate, distance, elevationChange,
+                    humidity, isRainy, isSnowy, temperature, windSpeed, cloudCoverRatio)
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
         }
-
-        meetPerformanceService.postMeetInfoEntry(meetName, startDate, endDate, distance, elevationChange,
-                humidity, isRainy, isSnowy, temperature, windSpeed, cloudCoverRatio)
-
     }
 
     @ApiOperation("Read Workout Results From raw result table and post the results")
     @RequestMapping(value = ["xc/readWorkoutResults/"], method = [RequestMethod.GET])
     fun loadWorkoutResults(
-            @RequestParam(value = "workoutId") workoutId: Int
+            @RequestParam(value = "workoutId") workoutId: Int,
+            @RequestParam(value = "password") password: String
     ): String {
-        meetPerformanceService.loadWorkout(workoutId)
-        return "loaded"
+
+        if (authenticated(password)) {
+            meetPerformanceService.loadWorkout(workoutId)
+            return "loaded"
+        } else {
+            throw UnauthenticatedException("The provided password is not valid")
+        }
+    }
+
+    private fun authenticated(password: String): Boolean {
+        return password == System.getenv("api.auth.password")
     }
 
 }
