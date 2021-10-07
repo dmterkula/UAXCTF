@@ -47,7 +47,9 @@ class MeetSplitsController(@field:Autowired
     fun getMeetSplitComparison(
             @ApiParam("Filters results for the meet matching the given name in the given season")
             @RequestParam(value = "filter.meet", required = true) meetName: String,
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): List<MeetSplitsToComparisonPaceDTO> {
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+            @ApiParam("Sorts the runners by their pace compared to PR for the input split number, 1,2, or 3")
+            @RequestParam(value = "sort.split", required = false, defaultValue = "1") sort: String): List<MeetSplitsToComparisonPaceDTO> {
 
         var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
         var endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
@@ -58,7 +60,7 @@ class MeetSplitsController(@field:Autowired
             endDate = Date.valueOf("$season-12-31")
         }
 
-         return meetMileSplitService.getMeetSplitsComparedToInputPace(meetName, startDate, endDate, "pr")
+         return meetMileSplitService.getMeetSplitsComparedToInputPace(meetName, startDate, endDate, "pr", sort)
     }
 
 
