@@ -48,29 +48,37 @@ class PersonalRecordService(@field:Autowired
                 .map {
                     it.key to it.value.filter { perf -> perf.meetId in meetMap }
                             .toMutableList()
-                            .sortedBy { perf -> perf.time }.take(2)
-                }.toMap()
-                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
-                .filter { it.second.isNotEmpty() }
-                .toMutableList()
-                .sortedBy {
-                    it.second.first().time
-                }
-                .map {
-                    MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings())
-                }
-                .map {
-                    val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
-                    PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
-                }
+                            .sortedBy { perf -> perf.time.calculateSecondsFrom() }
 
-        if (sortingMethodContainer.value == SortingMethodContainer.OLDER_DATE.value) {
-            prDTOs = prDTOs.sortedBy { it.pr.first().meetDate }
-        } else if (sortingMethodContainer.value == SortingMethodContainer.RECENT_DATE.value) {
-            prDTOs = prDTOs.sortedByDescending { it.pr.first().meetDate }
+                } .filter { it.second.isNotEmpty() }
+
+
+        prDTOs = prDTOs.mapIndexed { index, it ->
+            it.first to it.second.filter { perf -> meetMap[perf.meetId]!!.date.before(meetMap[prDTOs[index].second[0].meetId]!!.date.addDay())}.take(2)
         }
 
-        return prDTOs
+       var response = prDTOs.toMap()
+        .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
+        .filter { it.second.isNotEmpty() }
+        .toMutableList()
+        .sortedBy {
+            it.second.first().time.calculateSecondsFrom()
+        }
+        .map {
+            MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings())
+        }
+        .map {
+            val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
+            PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+        }
+
+        if (sortingMethodContainer.value == SortingMethodContainer.OLDER_DATE.value) {
+            response = response.sortedBy { it.pr.first().meetDate }
+        } else if (sortingMethodContainer.value == SortingMethodContainer.RECENT_DATE.value) {
+            response = response.sortedByDescending { it.pr.first().meetDate }
+        }
+
+        return response
     }
 
     fun getPRsByName(partialName: String, adjustForDistance: Boolean): List<PRDTO> {
@@ -84,26 +92,33 @@ class PersonalRecordService(@field:Autowired
 
         val meetMap = meets.map { it.id to it }.toMap()
 
-        val prDTOs = eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
+        var prDTOs = eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
                 .flatten().groupBy { it.runnerId }
                 .map {
                     it.key to it.value.filter { perf -> perf.meetId in meetMap }
                             .toMutableList()
-                            .sortedBy { perf -> perf.time }.take(2)
-                }.toMap()
-                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
-                .filter { it.second.isNotEmpty() }
-                .toMutableList()
-                .sortedBy { it.second.first().time }
-                .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
-                .map {
-                    val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
-
-                    PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+                            .sortedBy { perf -> perf.time.calculateSecondsFrom() }
                 }
+                .filter { it.second.isNotEmpty() }
 
+        val pr = prDTOs[0].second[0]
+        val prMeet = meetMap[pr.meetId]!!
 
-        return prDTOs
+        prDTOs = prDTOs.map {
+            it.first to it.second.filter { perf -> meetMap[perf.meetId]!!.date.before(prMeet.date.addDay())}.take(2)
+        }
+
+        return prDTOs.toMap()
+        .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
+        .filter { it.second.isNotEmpty() }
+        .toMutableList()
+        .sortedBy { it.second.first().time }
+        .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
+        .map {
+            val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
+
+            PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+        }
 
     }
 
@@ -118,26 +133,32 @@ class PersonalRecordService(@field:Autowired
 
         val meetMap = meets.map { it.id to it }.toMap()
 
-        val prDTOs = eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
+        var prDTOs = eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
                 .flatten().groupBy { it.runnerId }
                 .map {
                     it.key to it.value.filter { perf -> perf.meetId in meetMap }
                             .toMutableList()
-                            .sortedBy { perf -> perf.time }.take(2)
-                }.toMap()
-                .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
-                .filter { it.second.isNotEmpty() }
-                .toMutableList()
-                .sortedBy { it.second.first().time }
-                .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
-                .map {
-                    val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
-
-                    PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+                            .sortedBy { perf -> perf.time.calculateSecondsFrom() }
                 }
 
+        val pr = prDTOs[0].second[0]
+        val prMeet = meetMap[pr.meetId]!!
 
-        return prDTOs
+        prDTOs = prDTOs.map {
+            it.first to it.second.filter { perf -> meetMap[perf.meetId]!!.date.before(prMeet.date.addDay())}.take(2)
+        }
+
+       return prDTOs.toMap()
+        .map { it.key to performanceAdjusterService.adjustMeetPerformances(it.value.toMeetPerformanceDTO(meetMap), adjustForDistance) }
+        .filter { it.second.isNotEmpty() }
+        .toMutableList()
+        .sortedBy { it.second.first().time }
+        .map { MeetProgressionDTO(eligibleRunners[it.first]!!, it.second, it.second.getTimeDifferencesAsStrings()) }
+        .map {
+            val improvedUponMeetDTO = getImprovedUpon(it.meetPerformanceDTOs)
+
+            PRDTO(it.runner, it.meetPerformanceDTOs.take(1), ImprovedUponDTO(it.meetPerformanceDTOs.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+        }
 
     }
 
