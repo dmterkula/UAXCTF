@@ -9,6 +9,8 @@ import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.env.Environment
+import org.springframework.core.env.get
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
 
@@ -20,7 +22,9 @@ class XcDataLoaderController(
     @field:Autowired
     internal var xcDataLoaderService: XcDataLoaderService,
     @field:Autowired
-    internal var googleSheetsClient: GoogleSheetsClient
+    internal var googleSheetsClient: GoogleSheetsClient,
+    @field:Autowired
+    internal var env: Environment
 ) {
 
     @ApiOperation("Loads meet data that has manually been entered in the load table.")
@@ -162,7 +166,7 @@ class XcDataLoaderController(
     }
 
     private fun authenticated(password: String): Boolean {
-        return password == System.getenv("api.auth.password")
+        return password == env["api.auth.password"]
     }
 
 }
