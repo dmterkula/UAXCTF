@@ -156,7 +156,7 @@ class MeetMileSplitService(@field:Autowired
 
         response = if (sortOnMile == "1") {
             response.sortedBy { it.second[0].percentOfComparison }
-        } else if (sortOnMile === "2") {
+        } else if (sortOnMile == "2") {
             response.sortedBy { it.second[1].percentOfComparison }
         } else if (sortOnMile == "3") {
             response.sortedBy { it.second[2].percentOfComparison }
