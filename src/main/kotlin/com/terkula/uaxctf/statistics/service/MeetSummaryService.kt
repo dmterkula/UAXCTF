@@ -10,7 +10,9 @@ import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.response.*
+import com.terkula.uaxctf.util.getYearString
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.subtractYear
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -79,8 +81,8 @@ class MeetSummaryService (
         val fastestLastMileResponse = RunnerAvgSplitDifferenceResponse(meetMileSplitService.getMeetSplitInfo(
                 meetName, MeetSplitsOption.SecondToThirdMile, startSeasonDate, endSeasonDate, "lowest", limit))
 
-        val startDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt()-1).toString() + "-01-01")
-        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+        val startDate = Date.valueOf(startSeasonDate.subtractYear(1).getYearString() + "-01-01")
+        val endDate = Date.valueOf(startSeasonDate.getYearString() + "-12-31")
 
         val fasterThanLastYear =
                 meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster", adjustForDistance)

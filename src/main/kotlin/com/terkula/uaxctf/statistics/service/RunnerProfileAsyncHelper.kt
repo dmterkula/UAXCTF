@@ -22,23 +22,23 @@ import java.util.concurrent.Future
 @Component
 open class RunnerProfileAsyncHelper (@field:Autowired
                                 internal var runnerRepository: RunnerRepository,
-                                @field:Autowired
+                                     @field:Autowired
                                 internal var seasonBestService: SeasonBestService,
-                                @field:Autowired
+                                     @field:Autowired
                                 internal var personalRecordService: PersonalRecordService,
-                                @field: Autowired
+                                     @field: Autowired
                                 internal var meetRepository: MeetRepository,
-                                @field: Autowired
+                                     @field: Autowired
                                 internal var goalService: XcGoalService,
-                                @field: Autowired
+                                     @field: Autowired
                                 internal var meetMileSplitService: MeetMileSplitService,
-                                @field: Autowired
+                                     @field: Autowired
                                 internal val runnerConsistencyRankService: ConsistencyRankService,
-                                @field: Autowired
-                                internal val timeTrialProgressionService: TimeTrialProgressionService,
-                                @field: Autowired
+                                     @field: Autowired
+                                internal val timeTrialProgressionService: TimeTrialService,
+                                     @field: Autowired
                                 internal val workoutResultService: WorkoutResultService,
-                                @field: Autowired
+                                     @field: Autowired
                                 internal val meetPerformanceService: MeetPerformanceService) {
 
 

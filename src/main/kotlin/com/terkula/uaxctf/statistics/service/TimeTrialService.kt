@@ -1,12 +1,9 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.TimeTrial
-import com.terkula.uaxctf.statistics.dto.SeasonBestToTimeTrialDTO
-import com.terkula.uaxctf.statistics.dto.TimeTrialImprovementDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
-import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
-import com.terkula.uaxctf.statistics.dto.TStatDTO
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
 import org.apache.commons.math3.stat.inference.TestUtils
@@ -15,13 +12,52 @@ import org.springframework.stereotype.Service
 import java.sql.Date
 
 @Service
-class TimeTrialProgressionService (@field: Autowired
+class TimeTrialService (@field: Autowired
                                    internal val runnerRepository: RunnerRepository,
-                                   @field:Autowired
+                        @field:Autowired
                                    internal val timeTrialRepository: TimeTrialRepository,
-                                   @field: Autowired
+                        @field: Autowired
                                    internal val seasonBestService: SeasonBestService) {
 
+
+    fun getTimeTrialResults(startDate: Date, endDate: Date, scaleTo5k: Boolean): List<TimeTrialDTO> {
+
+        var season = startDate.getYearString();
+
+        val timeTrialResults = timeTrialRepository.findBySeason(season)
+
+        val runners = timeTrialResults
+                .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
+                .toMap()
+
+
+        return timeTrialResults.map {
+            var time = if (scaleTo5k) {
+                it.time.calculateSecondsFrom().scaleTimeTo5k(4827.0).toMinuteSecondString()
+            } else {
+                it.time
+            }
+            TimeTrialDTO(runners[it.runnerId]!!, time, it.place, season)}.sortedBy { it.place }
+
+    }
+
+    fun getTimeTrialComparisonsBetweenYearsForSameRunners(startDate: Date, endDate: Date): List<TimeTrialDifferenceDTO> {
+        val timeTrialResultsInputYear = timeTrialRepository.findBySeason(startDate.getYearString())
+
+        val timeTrialResultsPreviousYear = timeTrialRepository.findBySeason(startDate.subtractYear(1).getYearString())
+                .map {it.runnerId to it}.toMap()
+
+        val runners = timeTrialResultsInputYear
+                .map { it.runnerId to runnerRepository.findById(it.runnerId).get() }
+                .toMap()
+
+        return timeTrialResultsInputYear.filter { timeTrialResultsPreviousYear[it.runnerId] != null }
+                .map { TimeTrialDifferenceDTO(runners[it.runnerId]!!, (timeTrialResultsPreviousYear[it.runnerId]!!.time.calculateSecondsFrom() - it.time.calculateSecondsFrom()).toMinuteSecondString(),
+                    listOf(TimeTrialDTO(runners[it.runnerId]!!, it.time, it.place, startDate.getYearString()),
+                            TimeTrialDTO(runners[it.runnerId]!!, timeTrialResultsPreviousYear[it.runnerId]!!.time, timeTrialResultsPreviousYear[it.runnerId]!!.place, startDate.subtractYear(1).getYearString())))
+                }.sortedBy { it.timeDifference.calculateSecondsFrom() }
+
+    }
 
     fun getRankedProgressionSinceTimeTrial(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<TimeTrialImprovementDTO> {
 
@@ -64,6 +100,30 @@ class TimeTrialProgressionService (@field: Autowired
         val tStat = TStatDTO("2 sample T test for mean difference in previous SB times to following year's Time Trial",
                 TestUtils.tTest(getMeanDifferenceBetweenPreviousSBsAndTimeTrial(startDate1, endDate1, adjustForMeetDistance).toDoubleArray(),
                 getMeanDifferenceBetweenPreviousSBsAndTimeTrial(startDate2, endDate2, adjustForMeetDistance).toDoubleArray())
+                        .round(4))
+
+        return TTestResponse(listOf(statistcalDistributionYear1), listOf(statistcalDistributionYear2), listOf(tStat))
+
+    }
+
+    fun runTTestBetweenTimeTrialDifferencesForReturningRunners(
+            startDate1: Date,
+            endDate1: Date,
+            startDate2: Date,
+            endDate2: Date,
+            adjustForMeetDistance: Boolean
+    ): TTestResponse {
+
+
+        val timeTrialDataYear1 = getTimeTrialComparisonsBetweenYearsForSameRunners(startDate1, endDate1)
+        val timeTrialDataYear2 = getTimeTrialComparisonsBetweenYearsForSameRunners(startDate2, endDate2)
+
+        val statistcalDistributionYear1 = StatisticalComparisonDTO.from("${startDate1.getYearString()} - ${startDate1.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear1.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
+        val statistcalDistributionYear2 = StatisticalComparisonDTO.from("${startDate2.getYearString()} - ${startDate2.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear2.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
+
+        val tStat = TStatDTO("2 sample T test for mean difference in previous SB times to following year's Time Trial",
+                TestUtils.tTest(timeTrialDataYear1.map{ it.timeDifference.calculateSecondsFrom()}.toDoubleArray(),
+                        timeTrialDataYear2.map{ it.timeDifference.calculateSecondsFrom()}.toDoubleArray())
                         .round(4))
 
         return TTestResponse(listOf(statistcalDistributionYear1), listOf(statistcalDistributionYear2), listOf(tStat))

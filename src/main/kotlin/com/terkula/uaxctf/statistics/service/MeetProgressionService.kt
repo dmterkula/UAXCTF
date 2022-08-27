@@ -78,8 +78,6 @@ class MeetProgressionService(@field:Autowired
                 }
                 .toMap()
 
-
-
         val runnerToTimeDifference = performances
                 .map { it.key to it.value.getTimeDifferencesAsStrings() }
                 .toMap()
@@ -87,8 +85,8 @@ class MeetProgressionService(@field:Autowired
 
         val progressionDTOs = performances.map { MeetProgressionDTO(it.key, it.value, runnerToTimeDifference[it.key]!!) }
 
-        val fasterDTOs =  progressionDTOs.filter { it.progression.first().contains("-") }.sortedByDescending { it.progression.first() }
-        val slowerDTOs =  progressionDTOs.filter { !it.progression.first().contains("-") }.sortedBy { it.progression.first() }
+        val fasterDTOs = progressionDTOs.filter { !it.progression.first().contains("-") }.sortedByDescending { it.progression.first() }
+        val slowerDTOs = progressionDTOs.filter { it.progression.first().contains("-") }.sortedBy { it.progression.first() }
 
         return when {
             filterBy.isEmpty() -> fasterDTOs.plus(slowerDTOs)

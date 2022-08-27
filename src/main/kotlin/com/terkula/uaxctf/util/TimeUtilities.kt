@@ -112,6 +112,14 @@ fun scaleTo5k(distance: Double, time: Double): Double {
 
 }
 
+fun Double.scaleTimeTo5k(distance: Double): Double {
+
+    // time1/dist1 = time2/dist2
+
+    return (this / distance) * 5000
+
+}
+
 fun String.getPacePerMile(): Double {
    return this.calculateSecondsFrom() / 3.10686
 }

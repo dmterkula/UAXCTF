@@ -154,14 +154,19 @@ class MeetMileSplitService(@field:Autowired
             it.second.all { splitComp -> splitComp.percentOfComparison < 2 }
         }
 
-        response = if (sortOnMile == "1") {
-            response.sortedBy { it.second[0].percentOfComparison }
-        } else if (sortOnMile == "2") {
-            response.sortedBy { it.second[1].percentOfComparison }
-        } else if (sortOnMile == "3") {
-            response.sortedBy { it.second[2].percentOfComparison }
-        } else {
-            response
+        response = when (sortOnMile) {
+            "1" -> {
+                response.sortedBy { it.second[0].percentOfComparison }
+            }
+            "2" -> {
+                response.sortedBy { it.second[1].percentOfComparison }
+            }
+            "3" -> {
+                response.sortedBy { it.second[2].percentOfComparison }
+            }
+            else -> {
+                response
+            }
         }
 
         return response.map { MeetSplitsToComparisonPaceDTO(it.first, it.second) }
