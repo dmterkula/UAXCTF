@@ -31,7 +31,9 @@ class MeetSummaryService (
     @field: Autowired
     internal var goalService: XcGoalService,
     @field: Autowired
-    internal var meetMileSplitService: MeetMileSplitService
+    internal var meetMileSplitService: MeetMileSplitService,
+    @field: Autowired
+    internal var meetSummaryAsyncHelper: MeetSummaryAsyncHelper
 ) {
 
     fun getLastMeetSummary(
@@ -49,21 +51,52 @@ class MeetSummaryService (
             throw MeetNotFoundException("unable to find meet by name: $meetName")
         }
 
-        val seasonBests = seasonBestService.getSeasonBestsAtLastMeet(startSeasonDate, targetMeet.date, adjustForDistance)
+        // async ops
+
+        val seasonBestsAsync = meetSummaryAsyncHelper.getSBs(startSeasonDate, targetMeet.date, adjustForDistance)
+
+        val prsAsync = meetSummaryAsyncHelper.getPRs(startSeasonDate, targetMeet.date, adjustForDistance)
+
+        val metGoals = meetSummaryAsyncHelper.getNewlyMetGoals(meetName, startSeasonDate, endSeasonDate, adjustForDistance)
+
+        val meetSplitsStats = meetSummaryAsyncHelper.getStatisticsForMeet(meetName, startSeasonDate, endSeasonDate)
+
+        val improvementRateDTOsFuture = meetSummaryAsyncHelper.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
+
+        val fastestLastMileData = meetSummaryAsyncHelper.getMeetSplitInfo(meetName, MeetSplitsOption.SecondToThirdMile, startSeasonDate, endSeasonDate, "lowest", limit)
+
+        val startDate = Date.valueOf(startSeasonDate.subtractYear(1).getYearString() + "-01-01")
+        val endDate = Date.valueOf(startSeasonDate.getYearString() + "-12-31")
+
+        val fasterThanLastYearFuture =
+                meetSummaryAsyncHelper.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster", adjustForDistance)
+        val slowerThanLastYearFuture =
+                meetSummaryAsyncHelper.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower", adjustForDistance)
+
+
+        // blocking calls to force complete async
+
+
+        var seasonBests = seasonBestsAsync.get()
         val seasonBestResponse = SeasonBestResponse(seasonBests.size, seasonBests)
 
-        val prs = personalRecordService.getPRsAtLastMeet(startSeasonDate, targetMeet.date, adjustForDistance)
+        var prs = prsAsync.get()
         val prResponse = PRResponse(prs.size, prs)
 
-
-        val metGoalsResponse = MetGoalResponse(goalService.getRunnerWhoNewlyMetGoalAtMeet(meetName, startSeasonDate, endSeasonDate, adjustForDistance))
+        val metGoalsResponse = MetGoalResponse(metGoals.get())
 
         val meetSplitStatisticResponse =
-                MeetSplitsStatisticsSummaryResponse(meetMileSplitService.getStatisticsForMeet(meetName, startSeasonDate, endSeasonDate))
+                MeetSplitsStatisticsSummaryResponse(meetSplitsStats.get())
 
+        val fastestLastMileResponse = RunnerAvgSplitDifferenceResponse(fastestLastMileData.get())
 
-        val improvementRateDTOs =
-                improvementRateService.getImprovementRatesAtGivenMeet(startSeasonDate, endSeasonDate, meetName)
+        val fasterThanLastYear = fasterThanLastYearFuture.get()
+        val slowerThanLastYear = slowerThanLastYearFuture.get()
+
+        val fasterResponse = MeetProgressionResponse(fasterThanLastYear.size, fasterThanLastYear.take(limit))
+        val slowerResponse = MeetProgressionResponse(slowerThanLastYear.size, slowerThanLastYear.take(limit))
+
+        val improvementRateDTOs = improvementRateDTOsFuture.get()
 
         val faster = improvementRateDTOs.filter { it.improvementRate <= 0 }.toMutableList().sortedBy { it.improvementRate }
         val slower = improvementRateDTOs.filter { it.improvementRate > 0 }.toMutableList().sortedBy { it.improvementRate }
@@ -76,19 +109,10 @@ class MeetSummaryService (
                 medianImprovementRate.toMinuteSecondString(), ImprovementRatePair(faster.size, faster.take(limit)),
                 ImprovementRatePair(slower.size, slower.take(limit)))
 
-        val fastestLastMileResponse = RunnerAvgSplitDifferenceResponse(meetMileSplitService.getMeetSplitInfo(
-                meetName, MeetSplitsOption.SecondToThirdMile, startSeasonDate, endSeasonDate, "lowest", limit))
+        ////
 
-        val startDate = Date.valueOf(startSeasonDate.subtractYear(1).getYearString() + "-01-01")
-        val endDate = Date.valueOf(startSeasonDate.getYearString() + "-12-31")
 
-        val fasterThanLastYear =
-                meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "faster", adjustForDistance)
-        val slowerThanLastYear =
-                meetProgressionService.getProgressionFromMeetForAllRunnersBetweenDates(meetName, startDate, endDate, "slower", adjustForDistance)
-
-        val fasterResponse = MeetProgressionResponse(fasterThanLastYear.size, fasterThanLastYear.take(limit))
-        val slowerResponse = MeetProgressionResponse(slowerThanLastYear.size, slowerThanLastYear.take(limit))
+        // finally construct response
 
         return MeetSummaryResponse(seasonBestResponse, prResponse, metGoalsResponse, meetSplitStatisticResponse,
                 fastestLastMileResponse, summaryImprovementRateDTO, FasterAndSlowerProgressions(fasterResponse, slowerResponse))
