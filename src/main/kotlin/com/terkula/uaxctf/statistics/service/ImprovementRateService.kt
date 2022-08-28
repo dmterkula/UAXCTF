@@ -9,6 +9,7 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.dto.ImprovementRateDTO
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -53,7 +54,7 @@ class ImprovementRateService (@field:Autowired
         }.flatten().calculateAverageRateOfImprovement()
 
 
-        return listOf(ImprovementRateDTO(runner, rateOfImprovement.first, rateOfImprovement.second))
+        return listOf(ImprovementRateDTO(runner, rateOfImprovement.first.toMinuteSecondString(), rateOfImprovement.second))
     }
 
 
@@ -83,8 +84,8 @@ class ImprovementRateService (@field:Autowired
                 }.map {
                     it.first to it.second.map { perf -> perf.time.calculateSecondsFrom() }.calculateAverageRateOfImprovement()
                 }.toMap().map {
-                    ImprovementRateDTO(it.key, it.value.first, it.value.second)
-                }.toMutableList().sortedBy { it.improvementRate }
+                    ImprovementRateDTO(it.key, it.value.first.toMinuteSecondString(), it.value.second)
+                }.toMutableList().sortedBy { it.improvementRate.calculateSecondsFrom() }
 
         return rateOfImprovements
     }
@@ -122,8 +123,8 @@ class ImprovementRateService (@field:Autowired
                 }.map {
                     it.first to it.second.map { perf -> perf.time.calculateSecondsFrom() }.calculateAverageRateOfImprovement()
                 }.toMap().map {
-                    ImprovementRateDTO(it.key, it.value.first, it.value.second)
-                }.toMutableList().sortedBy { it.improvementRate }
+                    ImprovementRateDTO(it.key, it.value.first.toMinuteSecondString(), it.value.second)
+                }.toMutableList().sortedBy { it.improvementRate.calculateSecondsFrom() }
 
         return rateOfImprovements
     }
