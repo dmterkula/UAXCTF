@@ -1,7 +1,5 @@
 package com.terkula.uaxctf.statistics.service
 
-
-import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.FasterAndSlowerProgressions
 import com.terkula.uaxctf.statistics.dto.ImprovementRatePair
 import com.terkula.uaxctf.statistics.dto.SummaryImprovementRateDTO

@@ -55,19 +55,35 @@ fun MeetMileSplit.calculateSpread(): Double {
 }
 
 fun List<MeetMileSplit>.calculateAverageFirstToSecondMileDifference(): Double {
-    return this.map { it.calculateFirstToSecondMileDifference() }.average().round(2)
+    return if (this.isEmpty()) {
+        0.0
+    } else {
+        this.map { it.calculateFirstToSecondMileDifference() }.average().round(2)
+    }
 }
 
 fun List<MeetMileSplit>.calculateAverageSecondToThirdMileDifference(): Double {
-    return this.map { it.calculateSecondToThirdMileDifference() }.average().round(2)
+    return if (this.isEmpty()) {
+        0.0
+    } else {
+        this.map { it.calculateSecondToThirdMileDifference() }.average().round(2)
+    }
 }
 
 fun List<MeetMileSplit>.calculateTotalAverageDifference(): Double {
-    return this.map { it.calculateTotalDifferenceBetween() }.average().round(2)
+    return if (this.isEmpty()) {
+        0.0
+    } else {
+        return this.map { it.calculateTotalDifferenceBetween() }.average().round(2)
+    }
+
 }
 
 fun List<MeetMileSplit>.calculateAverageSpread(): Double {
 
-    return this.map { it.calculateSpread() }.average().round(2)
-
+    return if (this.isEmpty()) {
+        0.0
+    } else {
+        this.map { it.calculateSpread() }.average().round(2)
+    }
 }
