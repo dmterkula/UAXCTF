@@ -1,6 +1,5 @@
 package com.terkula.uaxctf.statistics.service
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import com.terkula.uaxctf.statisitcs.model.NamedStatistic
 import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.repository.MeetRepository

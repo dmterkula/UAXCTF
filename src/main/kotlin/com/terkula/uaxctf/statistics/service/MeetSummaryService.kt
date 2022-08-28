@@ -8,10 +8,7 @@ import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.response.*
-import com.terkula.uaxctf.util.getYearString
-import com.terkula.uaxctf.util.round
-import com.terkula.uaxctf.util.subtractYear
-import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -98,11 +95,11 @@ class MeetSummaryService (
 
         val improvementRateDTOs = improvementRateDTOsFuture.get()
 
-        val faster = improvementRateDTOs.filter { it.improvementRate <= 0 }.toMutableList().sortedBy { it.improvementRate }
-        val slower = improvementRateDTOs.filter { it.improvementRate > 0 }.toMutableList().sortedBy { it.improvementRate }
+        val faster = improvementRateDTOs.filter { it.improvementRate.calculateSecondsFrom() <= 0 }.toMutableList().sortedBy { it.improvementRate }
+        val slower = improvementRateDTOs.filter { it.improvementRate.calculateSecondsFrom() > 0 }.toMutableList().sortedBy { it.improvementRate }
 
-        val averageImprovementRate = (improvementRateDTOs.map { it.improvementRate }.sum()/improvementRateDTOs.size).round(2)
-        val medianImprovementRate = improvementRateDTOs.map { it.improvementRate }.sorted()[(improvementRateDTOs.size / 2)]
+        val averageImprovementRate = (improvementRateDTOs.map { it.improvementRate.calculateSecondsFrom() }.sum()/improvementRateDTOs.size).round(2)
+        val medianImprovementRate = improvementRateDTOs.map { it.improvementRate.calculateSecondsFrom() }.sorted()[(improvementRateDTOs.size / 2)]
 
 
         val summaryImprovementRateDTO = SummaryImprovementRateDTO(averageImprovementRate.toMinuteSecondString(),
