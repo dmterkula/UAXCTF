@@ -42,7 +42,7 @@ class ConsistencyRankService (@field:Autowired
 
     fun getRunnersOrderedByMostConsistentRaces(startDate: Date, endDate: Date): List<RunnerConsistencyDTO> {
 
-        val races = meetRepository.findByDateBetween(startDate, endDate).filter { it.name == "Lebanon" }.map { it.name }
+        val races = meetRepository.findByDateBetween(startDate, endDate).map { it.name }
 
         val spreadsGroupedByRunner = races.map { meetMileSplitService.getMeetSplitInfo(it, MeetSplitsOption.Spread,
                 startDate, endDate, "lowest", 50) }.flatten().groupBy { it.runner }

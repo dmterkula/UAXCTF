@@ -117,6 +117,12 @@ class RunnerProfileService (
                 .map { ValuedRank("Workout And Race Consistency Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString()) }
                 .firstOrNull()
 
+
+        val timeTrialTime: String? = progressions.get()!!
+                .filter { it.runner.id == runner.id }
+                .firstOrNull()
+                ?.adjustedTimeTrial
+
         val progressionRank = progressions.get()!!
                 .filter { it.runner.id == runner.id }
                 .map { ValuedRank( "Progression Rank", it.rank, it.improvement ) }
@@ -176,7 +182,7 @@ class RunnerProfileService (
             upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
         }
 
-        return RunnerProfileDTO(runner, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
+        return RunnerProfileDTO(runner, timeTrialTime, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
                 workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
     }
 

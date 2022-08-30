@@ -42,147 +42,147 @@ open class RunnerProfileAsyncHelper (@field:Autowired
                                 internal val meetPerformanceService: MeetPerformanceService) {
 
 
-    fun buildRunnerProfile(name: String): RunnerProfileDTO {
-
-        // todo can you find a way to speed this up? takes about 15s... can make calls async? limit queries to DB where possible?
-
-        val runner =
-                try {
-                    runnerRepository.findByNameContaining(name).first()
-                } catch (e: Exception) {
-                    throw RunnerNotFoundByPartialNameException("No runner matching the given name: $name")
-                }
-
-        val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
-        val endDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-12-31")
-
-        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate), false)
-        var seasonBest: RunnerMeetSplitDTO? = null
-        if (seasonBests.isNotEmpty()) {
-            if (seasonBests.first().seasonBest.isNotEmpty()) {
-                seasonBest = RunnerMeetSplitDTO(seasonBests.first().seasonBest.first(), null)
-            }
-        }
-
-        val meetSplits = meetMileSplitService.getAllMeetMileSplitsForRunner(name, startDate, endDate).mileSplits
-
-        val mostConsistentRace = meetSplits.sortedBy { it.meetSplitsDTO!!.toMeetSplit().calculateSpread() }
-                .firstOrNull()
-
-        val seasonBestSplits = getSplitsForMeetPerformances(seasonBest?.meetPerformanceDTO, runner)
-
-        val prs = personalRecordService.getPRsByName(name, false)
-        var pr: MeetPerformanceDTO? = null
-
-        if (prs.isNotEmpty()) {
-            if (prs.first().pr.isNotEmpty())
-                pr = prs.first().pr.first()
-        }
-
-        var prSplits: RunnerMeetSplitDTO? = null
-
-        if (pr != null) {
-            prSplits = getSplitsForMeetPerformances(pr, runner)
-        }
-
-        val goals: List<String?> = goalService.getRunnersGoalForSeason(name, MeetPerformanceController.CURRENT_YEAR).first().times
-
-        val workouts = workoutResultService.getWorkoutsForRunner(startDate, endDate, name, 0, "", "").workouts
-        var lastWorkout: RunnerWorkoutResultsDTO? = null
-        if (workouts.isNotEmpty()) {
-            lastWorkout = workouts.sortedBy { it.workout.date }.first()
-        }
-
-        val workoutConsistency =
-                runnerConsistencyRankService.getRunnersOrderedByMostConsistentWorkouts(startDate, endDate)
-        val workoutRank = workoutConsistency
-                .filter { it.runner.id == runner.id }
-                .map {
-                    ValuedRank("Workout Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
-                }
-                .firstOrNull()
-
-        val raceConsistency = runnerConsistencyRankService.getRunnersOrderedByMostConsistentRaces(startDate, endDate)
-        val raceRank = raceConsistency
-                .filter { it.runner.id == runner.id }
-                .map {
-                    ValuedRank("Race Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
-                }
-                .firstOrNull()
-
-        val totalConsistency = runnerConsistencyRankService.getRunnersOrderedMostConsistent(startDate, endDate, 1.0)
-        val combinedRank = totalConsistency
-                .filter { it.runner.id == runner.id }
-                .map { ValuedRank("Workout And Race Consistency Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString()) }
-                .firstOrNull()
-
-        val progressionRank = timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate, false)
-                .filter { it.runner.id == runner.id }
-                .map { ValuedRank("Progression Rank", it.rank, it.improvement) }
-                .firstOrNull()
-
-
-        ////////// build season best rank //////////
-
-        val allSeasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false).map { it.runner to it.seasonBest }
-                .filter {
-                    it.second.isNotEmpty()
-                }
-                .map {
-                    it.first.id to it.second.first().time
-                }.toMutableList()
-
-        // get time trial results as fall backs for runners with no season best yet
-
-        val allAdjustedTimeTrials = timeTrialProgressionService.getAllAdjustedTimeTrials(startDate, endDate)
-                .map { it.runnerId to it.time }
-                .filter {
-                    !allSeasonBests.map { sb -> sb.first }.contains(it.first)
-                }
-
-        allSeasonBests.addAll(allAdjustedTimeTrials)
-
-        val timeRank = allSeasonBests.mapIndexed { index, it ->
-            Triple(index + 1, it.first, it.second)
-        }.sortedBy { it.third }.filter { it.second == runner.id }
-                .map { NamedRank("Season Best", it.first) }.firstOrNull()
-
-
-        /////// meet info for runner from last year //////
-
-        val upcomingMeets = meetRepository.findByDateBetween(startDate, endDate).filter {
-            it.date.after(Date.from(Instant.now()))
-        }.sortedByDescending { it.date }
-
-        var upcomingMeet: Meet? = null
-        if (upcomingMeets.isNotEmpty()) {
-            upcomingMeet = upcomingMeets.first()
-        }
-
-        var lastYearPerformanceAtUpcomingMeet: MeetPerformanceDTO?
-        var upComingMeetSplitsLastYear: RunnerMeetSplitDTO? = null
-
-        if (upcomingMeet != null) {
-            val lastYearStart = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-01-01")
-            val lastYearEnd = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-12-31")
-            val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20, false)
-                    .map {
-                        it.performance
-                    }.flatten()
-
-            lastYearPerformanceAtUpcomingMeet = performances.filter {
-                it.meetName.equals(upcomingMeet.name, ignoreCase = true)
-            }.firstOrNull()
-
-
-            upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
-
-        }
-
-        return RunnerProfileDTO(runner, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
-                workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
-
-    }
+//    fun buildRunnerProfile(name: String): RunnerProfileDTO {
+//
+//        // todo can you find a way to speed this up? takes about 15s... can make calls async? limit queries to DB where possible?
+//
+//        val runner =
+//                try {
+//                    runnerRepository.findByNameContaining(name).first()
+//                } catch (e: Exception) {
+//                    throw RunnerNotFoundByPartialNameException("No runner matching the given name: $name")
+//                }
+//
+//        val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
+//        val endDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-12-31")
+//
+//        val seasonBests = seasonBestService.getSeasonBestsByName(name, listOf(startDate to endDate), false)
+//        var seasonBest: RunnerMeetSplitDTO? = null
+//        if (seasonBests.isNotEmpty()) {
+//            if (seasonBests.first().seasonBest.isNotEmpty()) {
+//                seasonBest = RunnerMeetSplitDTO(seasonBests.first().seasonBest.first(), null)
+//            }
+//        }
+//
+//        val meetSplits = meetMileSplitService.getAllMeetMileSplitsForRunner(name, startDate, endDate).mileSplits
+//
+//        val mostConsistentRace = meetSplits.sortedBy { it.meetSplitsDTO!!.toMeetSplit().calculateSpread() }
+//                .firstOrNull()
+//
+//        val seasonBestSplits = getSplitsForMeetPerformances(seasonBest?.meetPerformanceDTO, runner)
+//
+//        val prs = personalRecordService.getPRsByName(name, false)
+//        var pr: MeetPerformanceDTO? = null
+//
+//        if (prs.isNotEmpty()) {
+//            if (prs.first().pr.isNotEmpty())
+//                pr = prs.first().pr.first()
+//        }
+//
+//        var prSplits: RunnerMeetSplitDTO? = null
+//
+//        if (pr != null) {
+//            prSplits = getSplitsForMeetPerformances(pr, runner)
+//        }
+//
+//        val goals: List<String?> = goalService.getRunnersGoalForSeason(name, MeetPerformanceController.CURRENT_YEAR).first().times
+//
+//        val workouts = workoutResultService.getWorkoutsForRunner(startDate, endDate, name, 0, "", "").workouts
+//        var lastWorkout: RunnerWorkoutResultsDTO? = null
+//        if (workouts.isNotEmpty()) {
+//            lastWorkout = workouts.sortedBy { it.workout.date }.first()
+//        }
+//
+//        val workoutConsistency =
+//                runnerConsistencyRankService.getRunnersOrderedByMostConsistentWorkouts(startDate, endDate)
+//        val workoutRank = workoutConsistency
+//                .filter { it.runner.id == runner.id }
+//                .map {
+//                    ValuedRank("Workout Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
+//                }
+//                .firstOrNull()
+//
+//        val raceConsistency = runnerConsistencyRankService.getRunnersOrderedByMostConsistentRaces(startDate, endDate)
+//        val raceRank = raceConsistency
+//                .filter { it.runner.id == runner.id }
+//                .map {
+//                    ValuedRank("Race Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString())
+//                }
+//                .firstOrNull()
+//
+//        val totalConsistency = runnerConsistencyRankService.getRunnersOrderedMostConsistent(startDate, endDate, 1.0)
+//        val combinedRank = totalConsistency
+//                .filter { it.runner.id == runner.id }
+//                .map { ValuedRank("Workout And Race Consistency Rank", it.consistencyRank.rank, it.consistencyRank.consistencyValue.toMinuteSecondString()) }
+//                .firstOrNull()
+//
+//        val progressionRank = timeTrialProgressionService.getRankedProgressionSinceTimeTrial(startDate, endDate, false)
+//                .filter { it.runner.id == runner.id }
+//                .map { ValuedRank("Progression Rank", it.rank, it.improvement) }
+//                .firstOrNull()
+//
+//
+//        ////////// build season best rank //////////
+//
+//        val allSeasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false).map { it.runner to it.seasonBest }
+//                .filter {
+//                    it.second.isNotEmpty()
+//                }
+//                .map {
+//                    it.first.id to it.second.first().time
+//                }.toMutableList()
+//
+//        // get time trial results as fall backs for runners with no season best yet
+//
+//        val allAdjustedTimeTrials = timeTrialProgressionService.getAllAdjustedTimeTrials(startDate, endDate)
+//                .map { it.runnerId to it.time }
+//                .filter {
+//                    !allSeasonBests.map { sb -> sb.first }.contains(it.first)
+//                }
+//
+//        allSeasonBests.addAll(allAdjustedTimeTrials)
+//
+//        val timeRank = allSeasonBests.mapIndexed { index, it ->
+//            Triple(index + 1, it.first, it.second)
+//        }.sortedBy { it.third }.filter { it.second == runner.id }
+//                .map { NamedRank("Season Best", it.first) }.firstOrNull()
+//
+//
+//        /////// meet info for runner from last year //////
+//
+//        val upcomingMeets = meetRepository.findByDateBetween(startDate, endDate).filter {
+//            it.date.after(Date.from(Instant.now()))
+//        }.sortedByDescending { it.date }
+//
+//        var upcomingMeet: Meet? = null
+//        if (upcomingMeets.isNotEmpty()) {
+//            upcomingMeet = upcomingMeets.first()
+//        }
+//
+//        var lastYearPerformanceAtUpcomingMeet: MeetPerformanceDTO?
+//        var upComingMeetSplitsLastYear: RunnerMeetSplitDTO? = null
+//
+//        if (upcomingMeet != null) {
+//            val lastYearStart = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-01-01")
+//            val lastYearEnd = Date.valueOf((MeetPerformanceController.CURRENT_YEAR.toInt() - 1).toString() + "-12-31")
+//            val performances = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name, lastYearStart, lastYearEnd, SortingMethodContainer.RECENT_DATE, 20, false)
+//                    .map {
+//                        it.performance
+//                    }.flatten()
+//
+//            lastYearPerformanceAtUpcomingMeet = performances.filter {
+//                it.meetName.equals(upcomingMeet.name, ignoreCase = true)
+//            }.firstOrNull()
+//
+//
+//            upComingMeetSplitsLastYear = getSplitsForMeetPerformances(lastYearPerformanceAtUpcomingMeet, runner)
+//
+//        }
+//
+//        return RunnerProfileDTO(runner, goals, seasonBestSplits, prSplits, mostConsistentRace, lastWorkout,
+//                workoutRank, raceRank, combinedRank, progressionRank, timeRank, upComingMeetSplitsLastYear)
+//
+//    }
 
     fun getSplitsForMeetPerformances(meetPerformance: MeetPerformanceDTO?, runner: Runner): RunnerMeetSplitDTO? {
 
