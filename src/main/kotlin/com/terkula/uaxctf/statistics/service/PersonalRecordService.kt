@@ -15,6 +15,7 @@ import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
+import kotlin.math.roundToInt
 
 @Component
 class PersonalRecordService(@field:Autowired
@@ -247,6 +248,40 @@ class PersonalRecordService(@field:Autowired
 
         return runner.wasFreshmanDuringYear(dateInConsideration.getYearString().toInt()) ||
                 getPRForRunnerAtPointInTime(TimeUtilities.getLastDayOfGivenYear(year.toString()), runner.name) == null
+    }
+
+    fun getAggregatePRStats(): AggregatePRStatsDTO {
+
+        val runners = runnerRepository.findAll()
+
+        val meetsById = meetRepository.findAll().map { it.id to it }.toMap()
+
+        var prCount = 0;
+        var totalTimeTakenOff = 0.0
+
+        runners.forEach {
+            val raceResults = meetPerformanceRepository.findByRunnerId(it.id).sortedBy { result -> meetsById[result.meetId]!!.date }
+            if (raceResults.isNotEmpty()) {
+                var fastestTime = raceResults[0].time.calculateSecondsFrom()
+
+                raceResults.forEach { meetPerf->
+                    if (meetPerf.time.calculateSecondsFrom() < fastestTime) {
+                        totalTimeTakenOff += fastestTime - meetPerf.time.calculateSecondsFrom()
+                        fastestTime = meetPerf.time.calculateSecondsFrom()
+
+                        prCount ++
+                    }
+                }
+            }
+        }
+
+        val roundedSecondsImproved = totalTimeTakenOff.roundToInt()
+        val hours = roundedSecondsImproved / 3600;
+        val minutes = (roundedSecondsImproved % 3600) / 60;
+        val seconds = roundedSecondsImproved % 60;
+
+        val timeString = String.format("%2d:%02d:%02d", hours, minutes, seconds);
+        return AggregatePRStatsDTO(prCount, timeString)
     }
 
 }
