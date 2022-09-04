@@ -1,4 +1,6 @@
 package com.terkula.uaxctf.statistics.response
 
-class MeetNameResponse(var meets: List<String>) {
+import com.terkula.uaxctf.statisitcs.model.Meet
+
+class MeetResponse(var meets: List<Meet>) {
 }

@@ -1,6 +1,6 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.statistics.response.MeetNameResponse
+import com.terkula.uaxctf.statistics.response.MeetResponse
 import com.terkula.uaxctf.statistics.service.MeetInfoService
 import io.swagger.annotations.ApiOperation
 
@@ -13,9 +13,9 @@ class MeetInfoController(var meetInfoService: MeetInfoService) {
 
     @ApiOperation("Returns a List of meet names to select for results ")
     @RequestMapping(value = ["xc/getMeetNames"], method = [RequestMethod.GET])
-    fun getMeetNames() : MeetNameResponse {
+    fun getMeets() : MeetResponse {
 
-       return MeetNameResponse(meetInfoService.getMeetInfo())
+       return MeetResponse(meetInfoService.getMeetInfo())
     }
 
 
