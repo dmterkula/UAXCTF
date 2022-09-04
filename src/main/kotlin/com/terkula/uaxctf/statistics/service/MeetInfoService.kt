@@ -12,7 +12,7 @@ class MeetInfoService(
     var meetInfoRepository: MeetInfoRepository
 ) {
 
-    fun getMeetInfo(): List<String>  {
+    fun getMeetInfo(): List<Meet>  {
 
         var meets = meetRepository.findAll()
         var meetInfo = meetInfoRepository.findAll()
@@ -22,7 +22,7 @@ class MeetInfoService(
 
         val meetsToInfos: Map<Meet, MeetInfo?> = meets.map { it to meetInfoToMeetId[it.id] }.toMap()
 
-        return meets.map { it.name }.toSet().toList().sorted()
+        return meets.distinctBy { it.name }.sortedBy { it.name }
     }
 
 }
