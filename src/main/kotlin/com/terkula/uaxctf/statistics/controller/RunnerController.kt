@@ -30,4 +30,20 @@ class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) 
             runnerRepository.findByGraduatingClassGreaterThan(currentYear)
         }
     }
+
+    @ApiOperation("Returns runners, by oldest grad class, then sorted by name")
+    @RequestMapping(value = ["xc/allRunners/"], method = [RequestMethod.GET])
+    fun getAllRunnersRegardlessOfClass(
+
+    ): List<Runner> {
+
+        val runners = runnerRepository.findAll().groupBy { it.graduatingClass }.map {
+            it.key to it.value.sortedBy { runner -> runner.graduatingClass }
+        }
+                .sortedByDescending { it.first }
+                .map { it.second }
+                .flatten()
+
+        return runners
+    }
 }
