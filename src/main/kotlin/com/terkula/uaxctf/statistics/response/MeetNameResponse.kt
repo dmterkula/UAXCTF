@@ -1,6 +1,6 @@
 package com.terkula.uaxctf.statistics.response
 
-import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statistics.dto.MeetToDatesRunDTO
 
-class MeetResponse(var meets: List<Meet>) {
+class MeetResponse(var meets: List<MeetToDatesRunDTO>) {
 }

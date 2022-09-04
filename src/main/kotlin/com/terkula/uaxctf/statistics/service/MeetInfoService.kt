@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statisitcs.model.MeetInfo
+import com.terkula.uaxctf.statistics.dto.MeetToDatesRunDTO
 import com.terkula.uaxctf.statistics.repository.MeetInfoRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import org.springframework.stereotype.Service
@@ -12,17 +13,15 @@ class MeetInfoService(
     var meetInfoRepository: MeetInfoRepository
 ) {
 
-    fun getMeetInfo(): List<Meet>  {
+    fun getMeetInfo(): List<MeetToDatesRunDTO>  {
 
         var meets = meetRepository.findAll()
-        var meetInfo = meetInfoRepository.findAll()
 
-        val meetsToId = meets.map { it.id to it }.toMap()
-        val meetInfoToMeetId = meetInfo.map { it.meetId to it }.toMap()
-
-        val meetsToInfos: Map<Meet, MeetInfo?> = meets.map { it to meetInfoToMeetId[it.id] }.toMap()
-
-        return meets.distinctBy { it.name }.sortedBy { it.name }
+        return meets.groupBy { it.name }.map {
+            it.key to it.value.map { meet -> meet.date }
+        }.map {
+            MeetToDatesRunDTO(it.first, it.second)
+        }
     }
 
 }
