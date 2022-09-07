@@ -16,7 +16,7 @@ class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) 
 
     @ApiOperation("Returns runners in the the given class constraints, if no filter.class value is provided," +
             "returns all runners with a grad class greater than current year")
-    @RequestMapping(value = ["xc/runners/"], method = [RequestMethod.GET])
+    @RequestMapping(value = ["xc/runnersGivenClass/"], method = [RequestMethod.GET])
     fun getAllRunners(
             @RequestParam(value = "filter.class", required = false, defaultValue = "")
             classYear: String
@@ -41,6 +41,26 @@ class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) 
             it.key to it.value.sortedBy { runner -> runner.graduatingClass }
         }
                 .sortedByDescending { it.first }
+                .map { it.second }
+                .flatten()
+
+        return runners
+    }
+
+    @ApiOperation("Returns roster of runners for given season sorted by seniors first")
+    @RequestMapping(value = ["xc/runners"], method = [RequestMethod.GET])
+    fun getRunnersForReason(
+            @RequestParam(value = "filter.season", required = false, defaultValue = "")
+            season: String
+
+    ): List<Runner> {
+
+        val runners = runnerRepository.findAll()
+                .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+                .groupBy { it.graduatingClass }.map {
+            it.key to it.value.sortedBy { runner -> runner.name }
+        }
+                .sortedBy { it.first }
                 .map { it.second }
                 .flatten()
 
