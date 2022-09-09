@@ -52,7 +52,7 @@ class TimeTrialService (@field: Autowired
                 .toMap()
 
         return timeTrialResultsInputYear.filter { timeTrialResultsPreviousYear[it.runnerId] != null }
-                .map { TimeTrialDifferenceDTO(runners[it.runnerId]!!, (timeTrialResultsPreviousYear[it.runnerId]!!.time.calculateSecondsFrom() - it.time.calculateSecondsFrom()).toMinuteSecondString(),
+                .map { TimeTrialDifferenceDTO(runners[it.runnerId]!!, (it.time.calculateSecondsFrom() - timeTrialResultsPreviousYear[it.runnerId]!!.time.calculateSecondsFrom()).toMinuteSecondString(),
                     listOf(TimeTrialDTO(runners[it.runnerId]!!, it.time, it.place, startDate.getYearString()),
                             TimeTrialDTO(runners[it.runnerId]!!, timeTrialResultsPreviousYear[it.runnerId]!!.time, timeTrialResultsPreviousYear[it.runnerId]!!.place, startDate.subtractYear(1).getYearString())))
                 }.sortedBy { it.timeDifference.calculateSecondsFrom() }
