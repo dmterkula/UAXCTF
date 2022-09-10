@@ -11,27 +11,33 @@ import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
-import org.apache.commons.math3.stat.inference.TestUtils.tTest
+import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
+import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
 import org.nield.kotlinstatistics.standardDeviation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.Exception
 import java.sql.Date
+import java.util.concurrent.Future
 import kotlin.math.absoluteValue
 
 @Component
-class MeetMileSplitService(@field:Autowired
-                           private val meetMileSplitRepository: MeetMileSplitRepository,
-                           @field:Autowired
-                           private val meetRepository: MeetRepository,
-                           @field:Autowired
-                           private val runnerRepository: RunnerRepository,
-                           @field:Autowired
-                           private val meetPerformanceService: MeetPerformanceService,
-                           @field:Autowired
-                           private val seasonBestService: SeasonBestService,
-                           @field:Autowired
-                           private val personalRecordService: PersonalRecordService) {
+class MeetMileSplitService(
+    @field:Autowired
+    private val meetMileSplitRepository: MeetMileSplitRepository,
+    @field:Autowired
+    private val meetRepository: MeetRepository,
+    @field:Autowired
+    private val runnerRepository: RunnerRepository,
+    @field:Autowired
+    private val meetPerformanceService: MeetPerformanceService,
+    @field:Autowired
+    private val seasonBestService: SeasonBestService,
+    @field:Autowired
+    private val personalRecordService: PersonalRecordService,
+    @field:Autowired
+    private val meetSplitsAsyncService: MeetMileSplitAsyncService
+) {
 
 
     fun getAllMeetMileSplitsForRunner(name: String, startDate: Date, endDate: Date): RunnerMeetSplitResponse {
@@ -405,38 +411,48 @@ class MeetMileSplitService(@field:Autowired
             comparisonPace: String
     ): TTestResponse {
 
-        val dataYear1 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate1, endDate1)
-        val dataYear2 = getMeetSplitsToComparision(filterMeet, comparisonPace, startDate2, endDate2)
-
-        var labelPrefixYear1 = "$filterMeet ${startDate1.getYearString()}:"
-        var labelPrefixYear2 = "$filterMeet ${startDate2.getYearString()}:"
-
-        var label: String = if (comparisonPace.equals("SB", true)) {
-            "percent of previous season best pace "
-        } else {
-            "percent of PR pace"
-        }
-
-        val mile1DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 1 $label", dataYear1.map {it.first }, "decimal", 4)
-        val mile2DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 2 $label", dataYear1.map{ it.second }, "decimal", 4)
-        val mile3DistributionYear1 = StatisticalComparisonDTO.from("$labelPrefixYear1 mile 3 $label", dataYear1.map{ it.third }, "decimal", 4)
-
-        val mile1DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 1 $label", dataYear2.map {it.first }, "decimal", 4)
-        val mile2DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 2 $label", dataYear2.map{ it.second }, "decimal", 4)
-        val mile3DistributionYear2 = StatisticalComparisonDTO.from("$labelPrefixYear2 mile 3 $label", dataYear2.map{ it.third }, "decimal", 4)
-
-        val tStatDTOMile1 = TStatDTO("t test comparing mile1 splits", tTest(dataYear1.map { it.first }.toDoubleArray(), dataYear2.map { it.first }.toDoubleArray()).round(4))
-        val tStatDTOMile2 = TStatDTO("t test comparing mile2 splits", tTest(dataYear1.map{ it.second }.toDoubleArray(), dataYear2.map { it.second }.toDoubleArray()).round(4))
-        val tStatDTOMile3 = TStatDTO("t test comparing mile3 splits", tTest(dataYear1.map{ it.third }.toDoubleArray(), dataYear2.map { it.third }.toDoubleArray()).round(4))
-
-
-        return TTestResponse(
-                listOf(mile1DistributionYear1, mile2DistributionYear1, mile3DistributionYear1),
-                listOf(mile1DistributionYear2, mile2DistributionYear2, mile3DistributionYear2),
-                listOf(tStatDTOMile1, tStatDTOMile2, tStatDTOMile3)
-        )
+        return meetSplitsAsyncService.runTwoSampleTTestForMileSplits(filterMeet, startDate1, endDate1, startDate2, endDate2, comparisonPace)
     }
 
+    fun runTwoSampleTTestForMileSplitsForSameMeetsInSeasons(
+        baseSeason: String,
+        comparisonSeason: String,
+        comparisonPace: String
+    ): List<TTestResponse> {
+
+        val baseYearMeets = meetRepository.findByDateBetween(getFirstDayOfGivenYear(baseSeason), getLastDayOfGivenYear(baseSeason))
+
+        val comparisonYearMeets = meetRepository.findByDateBetween(getFirstDayOfGivenYear(comparisonSeason), getLastDayOfGivenYear(comparisonSeason))
+
+        val commonMeets = baseYearMeets.filter { comparisonYearMeets.any {compMeet -> compMeet.name == it.name} }
+
+        val comparisonsFutures = mutableListOf<Future<TTestResponse>>()
+
+        commonMeets.forEach {
+
+            val filterMeet = it.name
+            val startDate1 = getFirstDayOfGivenYear(baseSeason)
+            val endDate1 = getLastDayOfGivenYear(baseSeason)
+
+            val startDate2 = getFirstDayOfGivenYear(comparisonSeason)
+            val endDate2 = getLastDayOfGivenYear(comparisonSeason)
+
+            comparisonsFutures.add(meetSplitsAsyncService.runTwoSampleTTestForMileSplitsForAllMeets(filterMeet, startDate1, endDate1, startDate2, endDate2, comparisonPace))
+        }
+
+        val comparisons = comparisonsFutures.map {
+            try {
+                it.get()
+            } catch (e: Exception) {
+                null
+            }
+
+        }
+
+        return comparisons
+                .filter { it != null }
+                .map { it!! }
+    }
 
     fun getMeetSplitsToComparision(filterMeet: String,
                                    comparisonPace: String,

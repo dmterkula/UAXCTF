@@ -181,6 +181,20 @@ class MeetSplitsController(@field:Autowired
         return meetMileSplitService.runTwoSampleTTestForMileSplits(filterMeet, startDate1, endDate1, startDate2, endDate2, comparisonPace)
     }
 
+    @ApiOperation("Returns statistical distribution and t test for each mile split to runners SB or PR pace" +
+            " at all commin meets in the two input years")
+    @RequestMapping(value = ["/xc/meetSplit/YearComparisonTTest/allMeets"], method = [RequestMethod.GET])
+    fun getStatisticalComparisonsBySplitNumberTTestForAllMeets(
+            @ApiParam("Base year")
+            @RequestParam(value = "filter.baseSeason") baseSeason: String,
+            @ApiParam("Comparison year")
+            @RequestParam(value = "filter.comparisonSeason") comparisonSeason: String,
+            @ApiParam("Filters results the given meet, averages for all meets there is data for if none provided")
+            @RequestParam(value = "comparisonPace", required = false, defaultValue = "PR") comparisonPace: String = "PR"): List<TTestResponse> {
+
+        return meetMileSplitService.runTwoSampleTTestForMileSplitsForSameMeetsInSeasons(baseSeason, comparisonSeason, comparisonPace)
+    }
+
     @ApiOperation("Returns statistical distribution of each mile split to runners SB or PR pace")
     @RequestMapping(value = ["/xc/meetSplit/statDistribution"], method = [RequestMethod.GET])
     fun getStatisticalComparisionBySplitNumberTo(
