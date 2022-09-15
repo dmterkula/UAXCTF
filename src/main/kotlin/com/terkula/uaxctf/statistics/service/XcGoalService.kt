@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.XcGoal
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.exception.GoalNotFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
@@ -52,26 +53,16 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun getRunnersGoalForSeason(name: String, season: String): List<RunnerGoalDTO> {
+    fun getRunnersGoalForSeason(name: String, season: String): RunnerGoalDTO {
 
 
-//        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
-//                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
-//
-//        val goals = xcGoalRepository.findByRunnerId(runner.id)
-//                .filter { it.season == season }
-//
-//        if (goals == null) {
-//            throw GoalNotFoundException("No goal found for $name")
-//        } else {
-//            return listOf(RunnerGoalDTO(runner, goals
-//                    .map { it.time.calculateSecondsFrom() }
-//                    .toMutableList()
-//                    .sorted()
-//                    .map { it.toMinuteSecondString()}))
-//        }
+        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
+                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
 
-        return emptyList()
+        val goals = xcGoalRepository.findByRunnerId(runner.id)
+                .filter { it.season == season }
+
+        return RunnerGoalDTO(runner, goals)
 
     }
 
