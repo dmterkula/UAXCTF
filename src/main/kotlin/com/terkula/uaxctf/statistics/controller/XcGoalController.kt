@@ -23,7 +23,7 @@ class XcGoalController(@field:Autowired
             @ApiParam("Filters results for athlete with the given name. ")
             @RequestParam(value = "filter.runner", required = true) name: String,
             @ApiParam("Filters results for the season in the given year.")
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): RunnerGoalResponse {
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): RunnerGoalDTO {
 
         var filterSeason = season
 
@@ -31,7 +31,7 @@ class XcGoalController(@field:Autowired
             filterSeason = MeetPerformanceController.CURRENT_YEAR
         }
 
-        return RunnerGoalResponse(xcGoalService.getRunnersGoalForSeason(name, filterSeason))
+        return xcGoalService.getRunnersGoalForSeason(name, filterSeason)
 
     }
 
