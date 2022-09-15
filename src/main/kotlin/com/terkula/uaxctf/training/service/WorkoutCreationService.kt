@@ -37,175 +37,175 @@ class WorkoutCreationService (@field:Autowired
 
     fun createWorkout(type: String, distance: Int, pace: String): WorkoutCreationResponse? {
 
-        val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
-        when (type) {
-            "interval" -> {
-                val distanceRatio = distance.toDouble() / fiveK.toDouble()
-                when (pace) {
-                    "goal" -> {
-
-                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
-                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-
-                    }
-                    "seasonBest" -> {
-
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
-
-                        val workoutPlanDTOs = seasonBests.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("split",
-                                    (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-                    }
-                    "pr" -> {
-                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
-
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
-
-                        val workoutPlanDTOs = prs.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("split",
-                                    (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
-                        }.toList()
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-
-                    }
-                    "seasonAverage" -> {
-
-                        // find all runners whose graduating class is > current year
-                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
-
-                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
-                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
-
-                    }
-                }
-
-            }
-            "tempo" -> {
-                val distanceRatio = 1609.0/5000.0
-                when (pace) {
-                    "goal" -> {
-
-                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
-                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-                    }
-                    "seasonBest" -> {
-
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
-
-
-                        val workoutPlanDTOs = seasonBests.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("perMile", ((it.seasonBest.first().time
-                                    .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-                    }
-                    "pr" -> {
-                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
-
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
-                        val workoutPlanDTOs = prs.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
-                        }.toList()
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-
-                    }
-                    "seasonAverage" -> {
-                        // find all runners whose graduating class is > current year
-                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
-
-                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
-                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
-                    }
-                }
-            }
-            "progression" -> {
-                val distanceRatio = 1609.0/5000.0
-
-                when (pace) {
-                    "goal" -> {
-
-                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
-                        val workoutPlanDTOs = seasonGoals.map {
-                            val baseTimePerMile = it.times.first().calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.times.first(), constructProgressionTargetedPaces(baseTimePerMile))
-                        }
-
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-                    }
-                    "seasonBest" -> {
-
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
-
-
-                        val workoutPlanDTOs = seasonBests.map {
-                            val baseTimePerMile = it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-                    }
-                    "pr" -> {
-                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
-
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
-                        val workoutPlanDTOs = prs.map {
-                            val baseTimePerMile = it.pr.first().time.calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
-                        }.toList()
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
-
-
-                    }
-                    "seasonAverage" -> {
-                        // find all runners whose graduating class is > current year
-                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
-
-                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate) .map {
-                            val basePacePerMile = distanceRatio * it.value.first()
-                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
-                        }
-
-                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
-                    }
-                }
-
-            }
-            else -> {
-                return null
-            }
-        }
+//        val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+//        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+//        when (type) {
+//            "interval" -> {
+//                val distanceRatio = distance.toDouble() / fiveK.toDouble()
+//                when (pace) {
+//                    "goal" -> {
+//
+//                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
+//                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
+//                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//
+//                    }
+//                    "seasonBest" -> {
+//
+//                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+//
+//                        val workoutPlanDTOs = seasonBests.map {
+//                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("split",
+//                                    (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//                    }
+//                    "pr" -> {
+//                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
+//
+//                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
+//
+//                        val workoutPlanDTOs = prs.map {
+//                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("split",
+//                                    (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
+//                        }.toList()
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//
+//                    }
+//                    "seasonAverage" -> {
+//
+//                        // find all runners whose graduating class is > current year
+//                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
+//
+//                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
+//                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
+//                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
+//
+//                    }
+//                }
+//
+//            }
+//            "tempo" -> {
+//                val distanceRatio = 1609.0/5000.0
+//                when (pace) {
+//                    "goal" -> {
+//
+//                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
+//                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.times.first(), listOf(TargetedPace("split",
+//                                (it.times.first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//                    }
+//                    "seasonBest" -> {
+//
+//                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+//
+//
+//                        val workoutPlanDTOs = seasonBests.map {
+//                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("perMile", ((it.seasonBest.first().time
+//                                    .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//                    }
+//                    "pr" -> {
+//                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
+//
+//                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
+//                        val workoutPlanDTOs = prs.map {
+//                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
+//                        }.toList()
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//
+//                    }
+//                    "seasonAverage" -> {
+//                        // find all runners whose graduating class is > current year
+//                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
+//
+//                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
+//                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
+//                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
+//                    }
+//                }
+//            }
+//            "progression" -> {
+//                val distanceRatio = 1609.0/5000.0
+//
+//                when (pace) {
+//                    "goal" -> {
+//
+//                        val seasonGoals = xcGoalService.getGoalsForSeason(MeetPerformanceController.CURRENT_YEAR)
+//                        val workoutPlanDTOs = seasonGoals.map {
+//                            val baseTimePerMile = it.times.first().calculateSecondsFrom() * distanceRatio
+//                            RunnerWorkoutPlanDTO(it.runner, it.times.first(), constructProgressionTargetedPaces(baseTimePerMile))
+//                        }
+//
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//                    }
+//                    "seasonBest" -> {
+//
+//                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+//
+//
+//                        val workoutPlanDTOs = seasonBests.map {
+//                            val baseTimePerMile = it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio
+//                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//                    }
+//                    "pr" -> {
+//                        val gradClass = MeetPerformanceController.CURRENT_YEAR.toInt().toString()
+//
+//                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
+//                        val workoutPlanDTOs = prs.map {
+//                            val baseTimePerMile = it.pr.first().time.calculateSecondsFrom() * distanceRatio
+//                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
+//                        }.toList()
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlanDTOs)
+//
+//
+//                    }
+//                    "seasonAverage" -> {
+//                        // find all runners whose graduating class is > current year
+//                        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR).map { it.id to it }.toMap()
+//
+//                        val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate) .map {
+//                            val basePacePerMile = distanceRatio * it.value.first()
+//                            RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
+//                                    it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
+//                        }
+//
+//                        return WorkoutCreationResponse(WorkoutCreationMetadata(type, distance, pace), workoutPlans)
+//                    }
+//                }
+//
+//            }
+//            else -> {
+//                return null
+//            }
+//        }
 
         return null
 

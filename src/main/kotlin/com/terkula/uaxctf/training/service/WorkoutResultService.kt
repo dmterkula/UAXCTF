@@ -45,107 +45,109 @@ class WorkoutResultService (
     fun getWorkoutResults(date: Date, type: String, targetDistance: Int, compareTo: String,
                           sortMethod: String): List<WorkoutResultDTO> {
 
-        val workouts = workoutRepository.findByDate(date)
+//        val workouts = workoutRepository.findByDate(date)
+//
+//        val workout = if (workouts.isEmpty()) {
+//            throw WorkoutNotFoundException("no workout found for the given date:  $date")
+//        } else if (workouts.size == 1) {
+//            workouts.first()
+//        } else {
+//            if (type.isNotEmpty()) {
+//                if (workouts.filter { it.type.equals(type, ignoreCase = true) }.size in 1..workouts.size) {
+//                    workouts.filter { it.type.equals(type, ignoreCase = true) }.first()
+//                } else {
+//                    throw DuplicateWorkoutException("multiple workouts found on the same date with the same type")
+//                }
+//            } else {
+//                throw DuplicateWorkoutException("multiple workouts found on the same date")
+//            }
+//
+//        }
+//
+//        val runners: Map<Int, Runner> = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR)
+//                .map { it.id to it }.toMap()
+//
+//        val workoutSplits = workoutSplitRepository.findByWorkoutId(workout.id)
+//
+//        val runnerToSplits = workoutSplits.groupBy { it.runnerId } .map {
+//            runners[it.key] to it.value
+//        }.toMap()
+//
+//        val distanceRatio = workout.targetDistance.toDouble() / 5000
+//
+//        var switch =  workout.pace
+//        if (compareTo.isNotEmpty()) {
+//            switch = compareTo
+//        }
+//
+//        when (switch.toLowerCase()) {
+//
+//            "goal" -> {
+//
+//                val runnerGoals = xcGoalService.getGoalsForSeason(date.toString().substring(0,4))
+//                        .map {
+//                            it.runner.id to it.times
+//                        }.toMap()
+//
+//                val workoutResult = runnerToSplits.map {
+//                    val targetPace = (runnerGoals.getValue(it.key!!.id).first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
+//                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, targetPace, "Goal"))
+//                }
+//
+//                return sortByMethod(workoutResult, sortMethod)
+//            }
+//
+//            "race pace" -> {
+//
+//                val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
+//
+//                val seasonBests = seasonBestService.getAllSeasonBests(startDate, date, false)
+//                        .map {
+//                            it.runner.id to it.seasonBest.first().time
+//                        }.toMap().filter { it.key in workoutSplits.map { split -> split.runnerId } }
+//
+//                val workoutResult = runnerToSplits.map {
+//
+//                    val seasonBest = seasonBests[it.key!!.id]
+//
+//                    val targetTime: String
+//                    val source: String
+//                    if (seasonBest.isNullOrBlank()) {
+//                        val timeTrialResultsForRunner = timeTrialRepository.findByRunnerIdAndSeason(it.key!!.id, date.getYearString())
+//                        if (timeTrialResultsForRunner.isEmpty()) {
+//                            targetTime = default5k
+//                            source = "default"
+//                        } else {
+//                            targetTime = timeTrialResultsForRunner.first().time
+//                            source = "Time Trial"
+//                        }
+//                    } else {
+//                        targetTime = seasonBests[it.key!!.id]!!
+//                        source = "Season Best"
+//                    }
+//
+//                    val targetPace = (targetTime.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
+//                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, targetPace, source))
+//
+//                }
+//
+//                return sortByMethod(workoutResult, sortMethod)
+//            }
+//
+//            else -> {
+//
+//                val workoutResult = runnerToSplits.map {
+//                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, "n/a", "n/a"))
+//
+//                }
+//
+//                return sortByMethod(workoutResult, sortMethod)
+//
+//            }
+//
+//        }
 
-        val workout = if (workouts.isEmpty()) {
-            throw WorkoutNotFoundException("no workout found for the given date:  $date")
-        } else if (workouts.size == 1) {
-            workouts.first()
-        } else {
-            if (type.isNotEmpty()) {
-                if (workouts.filter { it.type.equals(type, ignoreCase = true) }.size in 1..workouts.size) {
-                    workouts.filter { it.type.equals(type, ignoreCase = true) }.first()
-                } else {
-                    throw DuplicateWorkoutException("multiple workouts found on the same date with the same type")
-                }
-            } else {
-                throw DuplicateWorkoutException("multiple workouts found on the same date")
-            }
-
-        }
-
-        val runners: Map<Int, Runner> = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR)
-                .map { it.id to it }.toMap()
-
-        val workoutSplits = workoutSplitRepository.findByWorkoutId(workout.id)
-
-        val runnerToSplits = workoutSplits.groupBy { it.runnerId } .map {
-            runners[it.key] to it.value
-        }.toMap()
-
-        val distanceRatio = workout.targetDistance.toDouble() / 5000
-
-        var switch =  workout.pace
-        if (compareTo.isNotEmpty()) {
-            switch = compareTo
-        }
-
-        when (switch.toLowerCase()) {
-
-            "goal" -> {
-
-                val runnerGoals = xcGoalService.getGoalsForSeason(date.toString().substring(0,4))
-                        .map {
-                            it.runner.id to it.times
-                        }.toMap()
-
-                val workoutResult = runnerToSplits.map {
-                    val targetPace = (runnerGoals.getValue(it.key!!.id).first().calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
-                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, targetPace, "Goal"))
-                }
-
-                return sortByMethod(workoutResult, sortMethod)
-            }
-
-            "race pace" -> {
-
-                val startDate = Date.valueOf(MeetPerformanceController.CURRENT_YEAR + "-01-01")
-
-                val seasonBests = seasonBestService.getAllSeasonBests(startDate, date, false)
-                        .map {
-                            it.runner.id to it.seasonBest.first().time
-                        }.toMap().filter { it.key in workoutSplits.map { split -> split.runnerId } }
-
-                val workoutResult = runnerToSplits.map {
-
-                    val seasonBest = seasonBests[it.key!!.id]
-
-                    val targetTime: String
-                    val source: String
-                    if (seasonBest.isNullOrBlank()) {
-                        val timeTrialResultsForRunner = timeTrialRepository.findByRunnerIdAndSeason(it.key!!.id, date.getYearString())
-                        if (timeTrialResultsForRunner.isEmpty()) {
-                            targetTime = default5k
-                            source = "default"
-                        } else {
-                            targetTime = timeTrialResultsForRunner.first().time
-                            source = "Time Trial"
-                        }
-                    } else {
-                        targetTime = seasonBests[it.key!!.id]!!
-                        source = "Season Best"
-                    }
-
-                    val targetPace = (targetTime.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()
-                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, targetPace, source))
-
-                }
-
-                return sortByMethod(workoutResult, sortMethod)
-            }
-
-            else -> {
-
-                val workoutResult = runnerToSplits.map {
-                    WorkoutResultDTO(it.key!!, buildWorkoutInfoFromSplits(it.value, "n/a", "n/a"))
-
-                }
-
-                return sortByMethod(workoutResult, sortMethod)
-
-            }
-
-        }
+        return emptyList()
     }
 
     fun getWorkoutsForRunner(startDate: Date, endDate: Date, name: String, distance: Int, type: String, sortMethod: String): RunnerWorkoutResultsResponse {
@@ -223,37 +225,41 @@ class WorkoutResultService (
 
     private fun getTargetPaceForRunner(workout: Workout, distanceRatio: Double, runner: Runner, season: String): Pair<String, String> {
 
-        return when (workout.pace.toLowerCase()) {
-            "race" -> {
+        return Pair("", "")
 
-                val startDate = Date.valueOf("$season-01-01")
-                val endDate = Date.valueOf("$season-12-31")
+        // todo
 
-                val seasonBests = seasonBestService.getSeasonBestsByName(runner.name, listOf(startDate to endDate), false)
-
-                val targetPace = if (seasonBests.isEmpty() || seasonBests.first().seasonBest.isEmpty()) {
-                    val timeTrialResultsForRunner = timeTrialRepository.findByRunnerIdAndSeason(runner.id, season)
-                    if (timeTrialResultsForRunner.isEmpty()) {
-                        (default5k.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "default"
-                    } else {
-                        (timeTrialResultsForRunner.first().time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Time Trial"
-                    }
-                } else {
-                    (seasonBests.first().seasonBest.first().time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Season Best"
-                }
-
-                targetPace
-            }
-
-            "goal" -> {
-                (xcGoalService.getRunnersGoalForSeason(runner.name, season).first().times.first().calculateSecondsFrom() * distanceRatio)
-                        .toMinuteSecondString() to "Goal"
-
-            } else -> {
-                (default5k.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Default"
-            }
-
-        }
+//        return when (workout.pace.toLowerCase()) {
+//            "race" -> {
+//
+//                val startDate = Date.valueOf("$season-01-01")
+//                val endDate = Date.valueOf("$season-12-31")
+//
+//                val seasonBests = seasonBestService.getSeasonBestsByName(runner.name, listOf(startDate to endDate), false)
+//
+//                val targetPace = if (seasonBests.isEmpty() || seasonBests.first().seasonBest.isEmpty()) {
+//                    val timeTrialResultsForRunner = timeTrialRepository.findByRunnerIdAndSeason(runner.id, season)
+//                    if (timeTrialResultsForRunner.isEmpty()) {
+//                        (default5k.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "default"
+//                    } else {
+//                        (timeTrialResultsForRunner.first().time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Time Trial"
+//                    }
+//                } else {
+//                    (seasonBests.first().seasonBest.first().time.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Season Best"
+//                }
+//
+//                targetPace
+//            }
+//
+//            "goal" -> {
+//                (xcGoalService.getRunnersGoalForSeason(runner.name, season).first().times.first().calculateSecondsFrom() * distanceRatio)
+//                        .toMinuteSecondString() to "Goal"
+//
+//            } else -> {
+//                (default5k.calculateSecondsFrom() * distanceRatio).toMinuteSecondString() to "Default"
+//            }
+//
+//        }
 
     }
 

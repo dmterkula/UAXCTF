@@ -1,5 +1,8 @@
 package com.terkula.uaxctf.statistics.controller
 
+import com.terkula.uaxctf.statistics.dto.RunnerGoalDTO
+import com.terkula.uaxctf.statistics.request.GoalsRequest
+import com.terkula.uaxctf.statistics.request.UpdateGoalRequest
 import com.terkula.uaxctf.statistics.response.MetGoalResponse
 import com.terkula.uaxctf.statistics.response.RunnerGoalResponse
 import com.terkula.uaxctf.statistics.response.UnMetGoalResponse
@@ -7,10 +10,7 @@ import com.terkula.uaxctf.statistics.service.XcGoalService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.sql.Date
 
 @RestController
@@ -92,6 +92,45 @@ class XcGoalController(@field:Autowired
 
         return UnMetGoalResponse(xcGoalService.getRunnersWhoHaveNotMetGoal(startDate, endDate, adjustForDistance))
 
+    }
+
+    @ApiOperation("Creates a time goal for the given runner in the given season")
+    @RequestMapping(value = ["xc/goals/create"], method = [RequestMethod.POST], consumes=["application/json"])
+    fun createGoals(
+            @ApiParam("Create the goal for the given runner ")
+            @RequestParam(value = "filter.runner", required = true) name: String,
+            @ApiParam("Filters results for the season in the given year.")
+            @RequestParam(value = "filter.season", required = true) season: String,
+            @RequestBody createGoalsRequest: GoalsRequest
+            ): RunnerGoalDTO {
+
+        return xcGoalService.createRunnersGoalsForSeason(name, season, createGoalsRequest)
+    }
+
+    @ApiOperation("Creates a time goal for the given runner in the given season")
+    @RequestMapping(value = ["xc/goals/update"], method = [RequestMethod.PUT], consumes=["application/json"])
+    fun updateGoal(
+            @ApiParam("Create the goal for the given runner ")
+            @RequestParam(value = "filter.runner", required = true) name: String,
+            @ApiParam("Filters results for the season in the given year.")
+            @RequestParam(value = "filter.season", required = true) season: String,
+            @RequestBody updateGoalRequest: UpdateGoalRequest
+    ): RunnerGoalDTO {
+
+        return xcGoalService.updateRunnerGoalForSeason(name, season, updateGoalRequest)
+    }
+
+    @ApiOperation("Creates a time goal for the given runner in the given season")
+    @RequestMapping(value = ["xc/goals/delete"], method = [RequestMethod.DELETE], consumes=["application/json"])
+    fun deleteGoals(
+            @ApiParam("Create the goal for the given runner ")
+            @RequestParam(value = "filter.runner", required = true) name: String,
+            @ApiParam("Filters results for the season in the given year.")
+            @RequestParam(value = "filter.season", required = true) season: String,
+            @RequestBody createGoalsRequest: GoalsRequest
+    ): RunnerGoalDTO {
+
+        return xcGoalService.deleteRunnersGoals(name, season, createGoalsRequest)
     }
 
 }
