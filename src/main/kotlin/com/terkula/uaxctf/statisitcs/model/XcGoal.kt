@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statisitcs.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import javax.persistence.*
 
 //@Entity
@@ -32,5 +33,6 @@ class XcGoal (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
+    @JsonIgnore
     val id: Int = 0
 }
