@@ -244,7 +244,7 @@ open class RunnerProfileAsyncHelper (@field:Autowired
     }
 
     @Async
-    open fun getGoalForRunner(name: String, year: String): Future<List<RunnerGoalDTO>> {
+    open fun getGoalForRunner(name: String, year: String): Future<RunnerGoalDTO> {
         return AsyncResult(goalService.getRunnersGoalForSeason(name, year))
     }
 

@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statisitcs.model.XcGoal
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.*
@@ -10,7 +11,11 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.XcGoalRepository
+import com.terkula.uaxctf.statistics.request.GoalsRequest
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.request.UpdateGoalRequest
+import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
+import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.substractDays
 import com.terkula.uaxctf.util.toMinuteSecondString
@@ -34,45 +39,134 @@ class XcGoalService (@field:Autowired
 
     fun getGoalsForSeason(season: String): List<RunnerGoalDTO> {
 
-        val goals = xcGoalRepository.findBySeason(season)
+        val goals: List<XcGoal> = xcGoalRepository.findBySeason(season)
+
+        var runners = runnerRepository.findAll().map { it.id to it }.toMap()
 
         val runnerMap = goals.map {
             val runner = runnerRepository.findById(it.runnerId)
             runner.get().id to runner
         }.toMap()
 
-        return goals.map { runnerMap[it.runnerId]!!.get() to it.time }
+        return goals.map { runnerMap[it.runnerId]!!.get() to it }
                 .groupBy { it.first }
                 .map {
                     it.key to it.value.map { pair -> pair.second }
                 }
                 .map {
-                    RunnerGoalDTO(it.first, it.second.map{time ->
-                        time.calculateSecondsFrom()
-                    }
-                            .toMutableList()
-                            .sorted()
-                            .map {time-> time.toMinuteSecondString()})
+                    RunnerGoalDTO(it.first, it.second.map{ goal ->
+
+                        if (goal.type.equals("Time", ignoreCase = true)) {
+
+                            var sb = seasonBestService.getSeasonBestsByName(runners[it.first.id]!!.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
+
+                            var goalMet = false
+
+                            if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && goal.value.calculateSecondsFrom() <= sb.first().seasonBest.first().time.calculateSecondsFrom()) {
+                                goalMet = true
+                            }
+
+                            return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet)
+                        } else {
+                            return@map goal
+                        }
+                    })
                 }
+
     }
 
-    fun getRunnersGoalForSeason(name: String, season: String): List<RunnerGoalDTO> {
+    fun getRunnersGoalForSeason(name: String, season: String): RunnerGoalDTO {
+
 
         val runner = runnerRepository.findByNameContaining(name).firstOrNull()
                 ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
 
-        val goals = xcGoalRepository.findByRunnerId(runner.id)
-                .filter { it.season == season }
+        val sb = seasonBestService.getSeasonBestsByName(runner.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
 
-        if (goals == null) {
-            throw GoalNotFoundException("No goal found for $name")
-        } else {
-            return listOf(RunnerGoalDTO(runner, goals
-                    .map { it.time.calculateSecondsFrom() }
-                    .toMutableList()
-                    .sorted()
-                    .map { it.toMinuteSecondString()}))
+        val goals = xcGoalRepository.findByRunnerId(runner.id)
+                .filter { it.season == season }.map {
+            if (it.type.equals("Time", true)) {
+                if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && sb.first().seasonBest.first().time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
+                    return@map XcGoal(it.id, it.season, it.type, it.value, true)
+                }
+                else {
+                    return@map it
+                }
+            } else {
+                return@map it
+            }
         }
+
+
+        return RunnerGoalDTO(runner, goals)
+
+    }
+
+    fun createRunnersGoalsForSeason(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+
+        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
+                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+
+        val goals = createGoalsRequest.goals.map {
+            XcGoal(runner.id, season, it.type, it.value, it.isMet)
+        }
+
+        goals.forEach {
+
+            val existingGoal = xcGoalRepository.findByRunnerIdAndSeasonAndTypeAndValue(runner.id, season, it.type, it.value)
+
+            if (existingGoal.isEmpty()) {
+                xcGoalRepository.save(XcGoal(runner.id, season, it.type, it.value, it.isMet))
+            } else {
+                // update
+                existingGoal[0].season = it.season
+                existingGoal[0].type = it.type
+                existingGoal[0].value = it.value
+                existingGoal[0].isMet = it.isMet
+                xcGoalRepository.save(existingGoal[0])
+            }
+        }
+
+        return RunnerGoalDTO(runner, goals)
+
+    }
+
+    fun deleteRunnersGoals(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+
+        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
+                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+
+        var deletedGoals = mutableListOf<XcGoal>()
+
+        createGoalsRequest.goals.forEach {
+
+            val existingGoal = xcGoalRepository.findByRunnerIdAndSeasonAndTypeAndValue(runner.id, season, it.type, it.value)
+
+            if (existingGoal.isNotEmpty()) {
+                xcGoalRepository.delete(existingGoal[0])
+                deletedGoals.add(existingGoal[0])
+            }
+        }
+
+        return RunnerGoalDTO(runner, deletedGoals)
+
+    }
+
+    fun updateRunnerGoalForSeason(name: String, season: String, updateGoalRequest: UpdateGoalRequest): RunnerGoalDTO {
+
+        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
+                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+
+        val existingGoal = xcGoalRepository.findByRunnerIdAndSeasonAndTypeAndValue(runner.id, season, updateGoalRequest.existingGoal.type, updateGoalRequest.existingGoal.value)
+
+            // update
+            existingGoal[0].season = season
+            existingGoal[0].type = updateGoalRequest.updatedGoal.type
+            existingGoal[0].value = updateGoalRequest.updatedGoal.value
+            existingGoal[0].isMet = updateGoalRequest.updatedGoal.isMet
+            xcGoalRepository.save(existingGoal[0])
+
+        return RunnerGoalDTO(runner, existingGoal)
 
     }
 
@@ -102,8 +196,10 @@ class XcGoalService (@field:Autowired
         val lastMeetPerformances = meetPerformanceService.getMeetPerformancesAtMeetName(meetName,
                 startSeasonDate, endSeasonDate, SortingMethodContainer.TIME, 99, adjustForDistance).map { it.runner.id to it }.toMap()
 
-        // get goals for those who ran
-        val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR).map { it.runnerId to it }.toMap()
+        // get goals for those who ran in the last meet to their runnerId
+        val goals: Map<Int, List<XcGoal>> = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
+                .filter { it.type.equals("Time", ignoreCase = true)}
+                .groupBy { it.runnerId }.toMap()
                 .filter { it.key in lastMeetPerformances.keys }
 
         // get the seasonBests before the last meet for each runner
@@ -112,17 +208,29 @@ class XcGoalService (@field:Autowired
                 .map { it.runner.id to it }.toMap()
 
         // get goals which have been previously un-met before the last meet
-        val unmetGoalsBeforeLastMeet = goals.filter { it.key in seasonBestsBeforeLastMeet.keys }
-                .filter { it.value.time < seasonBestsBeforeLastMeet[it.key]!!.seasonBest.first().time }
+        val unmetGoalsBeforeLastMeet: Map<Int, List<XcGoal>> = goals.filter { it.key in seasonBestsBeforeLastMeet.keys }
+                .map {
+                    it.key to it.value.filter { goal -> goal.value < seasonBestsBeforeLastMeet[it.key]!!.seasonBest.first().time  }
+                }
+                .filter {
+                    it.second.isNotEmpty()
+                }.toMap()
 
         // of the unmet goals, find those who met their goal and return
-        return unmetGoalsBeforeLastMeet.filter {
-            truncate(lastMeetPerformances[it.key]!!.performance.first().time.calculateSecondsFrom()) <= truncate(it.value.time.calculateSecondsFrom())
-        }
-                .map {
-                    RunnersMetGoals(lastMeetPerformances[it.key]!!.runner, listOf(MetGoalPerformanceDTO(it.value.time, lastMeetPerformances[it.key]!!.performance.first())))
-                }
 
+
+        var runnerMetGoals: MutableList<RunnersMetGoals> = unmetGoalsBeforeLastMeet.map {
+           it.key to it.value.filter { goal ->
+                truncate(lastMeetPerformances[it.key]!!.performance.first().time.calculateSecondsFrom()) <= truncate(goal.value.calculateSecondsFrom())
+            }
+        }.map {
+            RunnersMetGoals(
+                    lastMeetPerformances[it.first]!!.runner,
+                    it.second.map { goal -> MetGoalPerformanceDTO(goal.value, lastMeetPerformances[it.first]!!.performance.first()) }
+            )
+            }.toMutableList()
+
+        return runnerMetGoals
     }
 
     fun getRunnersWhoHaveMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<RunnersMetGoals> {
@@ -132,6 +240,7 @@ class XcGoalService (@field:Autowired
 
         val goalsMap = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
                 .filter { it.runnerId in seasonBests.keys }
+                .filter { it.type.equals("time", ignoreCase = true)}
                 .groupBy { it.runnerId }.toMap()
 
         val meets = meetRepository.findByDateBetween(startSeasonDate, endSeasonDate).map { it.id to it }.toMap()
@@ -149,7 +258,7 @@ class XcGoalService (@field:Autowired
                     it.key to
                     it.value.filter {
                         // filter for runner who has met goals
-                        goal -> seasonBests[goal.runnerId]!!.seasonBest.first().time.calculateSecondsFrom() <= goal.time.calculateSecondsFrom()
+                        goal -> seasonBests[goal.runnerId]!!.seasonBest.first().time.calculateSecondsFrom() <= goal.value.calculateSecondsFrom()
                     }
                 }.toMap()
                 .filter { it.value.isNotEmpty() }
@@ -158,23 +267,11 @@ class XcGoalService (@field:Autowired
 
         return runnerToMetGoals.map {
             it.key to it.value.map {
-                goal -> goal to meetPerformances[goal.runnerId]!!.first { meetResult -> meetResult.time.calculateSecondsFrom() <= goal.time.calculateSecondsFrom()}
+                goal -> goal to meetPerformances[goal.runnerId]!!.first { meetResult -> meetResult.time.calculateSecondsFrom() <= goal.value.calculateSecondsFrom()}
             } .toMap()
         }.toMap().map {
-            RunnersMetGoals(seasonBests[it.key]!!.runner,  it.value.map { pair -> MetGoalPerformanceDTO(pair.key.time, listOf(pair.value).toMeetPerformanceDTO(meets).first()) })
+            RunnersMetGoals(seasonBests[it.key]!!.runner,  it.value.map { pair -> MetGoalPerformanceDTO(pair.key.value, listOf(pair.value).toMeetPerformanceDTO(meets).first()) })
         }
-
-
-
-
-//        return seasonBests
-//                .filter { goals[it.key] != null }
-//                .filter {
-//            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) <= truncate(goals[it.key]!!.time.calculateSecondsFrom())
-//        }.map {
-//            MetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first())
-//        }.toMutableList()
-
     }
 
     fun getRunnersWhoHaveNotMetGoal(startSeasonDate: Date, endSeasonDate: Date, adjustForDistance: Boolean): List<UnMetGoalDTO> {
@@ -183,15 +280,16 @@ class XcGoalService (@field:Autowired
                 .map { it.runner.id to it }.toMap()
         val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
                 .filter { it.runnerId in seasonBests.keys }
+                .filter { it.type.equals("Time", ignoreCase = true) }
                 .map { it.runnerId to it }.toMap()
 
         return seasonBests
                 .filter { goals[it.key] != null }
                 .filter {
-            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) > truncate(goals[it.key]!!.time.calculateSecondsFrom())
+            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) > truncate(goals[it.key]!!.value.calculateSecondsFrom())
         }.map {
-            UnMetGoalDTO(it.value.runner, goals[it.key]!!.time, it.value.seasonBest.first(),
-                    (it.value.seasonBest.first().time.calculateSecondsFrom() - goals[it.key]!!.time.calculateSecondsFrom()).toMinuteSecondString())
+            UnMetGoalDTO(it.value.runner, goals[it.key]!!.value, it.value.seasonBest.first(),
+                    (it.value.seasonBest.first().time.calculateSecondsFrom() - goals[it.key]!!.value.calculateSecondsFrom()).toMinuteSecondString())
         }.toMutableList().sortedBy { it.difference }
 
     }
