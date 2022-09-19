@@ -228,7 +228,10 @@ class XcGoalService (@field:Autowired
                     lastMeetPerformances[it.first]!!.runner,
                     it.second.map { goal -> MetGoalPerformanceDTO(goal.value, lastMeetPerformances[it.first]!!.performance.first()) }
             )
-            }.toMutableList()
+            }
+                .filter {
+                    it.metGoals.isNotEmpty()
+                }.toMutableList()
 
         return runnerMetGoals
     }
