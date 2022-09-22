@@ -7,6 +7,7 @@ import com.terkula.uaxctf.statistics.response.MetGoalResponse
 import com.terkula.uaxctf.statistics.response.RunnerGoalResponse
 import com.terkula.uaxctf.statistics.response.UnMetGoalResponse
 import com.terkula.uaxctf.statistics.service.XcGoalService
+import com.terkula.uaxctf.util.TimeUtilities
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
@@ -70,13 +71,15 @@ class XcGoalController(@field:Autowired
 
     @ApiOperation("Returns runners who have met their goal this season")
     @RequestMapping(value = ["xc/goals/metThisSeason"], method = [RequestMethod.GET])
-    fun getRunnerGoalsThisSeason(
+    fun getMetRunnerGoalsThisSeason(
             @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
-            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false,
+            @ApiParam("Filters results for the season in the given year.")
+            @RequestParam(value = "filter.season", required = true) season: String
     ): MetGoalResponse {
 
-        val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+        val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        val endDate = TimeUtilities.getLastDayOfGivenYear(season)
 
         return MetGoalResponse(xcGoalService.getRunnersWhoHaveMetGoal(startDate, endDate, adjustForDistance))
 
@@ -84,11 +87,15 @@ class XcGoalController(@field:Autowired
 
     @ApiOperation("Returns runners who have not met their goal this season")
     @RequestMapping(value = ["xc/goals/notMetThisSeason"], method = [RequestMethod.GET])
-    fun getNotMetRunnerGoalsThisSeason(@ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
-                                       @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): UnMetGoalResponse {
+    fun getNotMetRunnerGoalsThisSeason(
+           @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+           @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false,
+           @ApiParam("Filters results for the season in the given year.")
+           @RequestParam(value = "filter.season", required = true) season: String
+    ): UnMetGoalResponse {
 
-        val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        val endDate = Date.valueOf((MeetPerformanceController.CURRENT_YEAR) + "-12-31")
+        val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        val endDate = TimeUtilities.getLastDayOfGivenYear(season)
 
         return UnMetGoalResponse(xcGoalService.getRunnersWhoHaveNotMetGoal(startDate, endDate, adjustForDistance))
 

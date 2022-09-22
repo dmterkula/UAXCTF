@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.XcGoal
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
@@ -17,6 +18,7 @@ import com.terkula.uaxctf.statistics.request.UpdateGoalRequest
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
 import com.terkula.uaxctf.util.calculateSecondsFrom
+import com.terkula.uaxctf.util.getYearString
 import com.terkula.uaxctf.util.substractDays
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
@@ -241,7 +243,7 @@ class XcGoalService (@field:Autowired
         val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate, adjustForDistance)
                 .map { it.runner.id to it }.toMap()
 
-        val goalsMap = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
+        val goalsMap = xcGoalRepository.findBySeason(startSeasonDate.getYearString())
                 .filter { it.runnerId in seasonBests.keys }
                 .filter { it.type.equals("time", ignoreCase = true)}
                 .groupBy { it.runnerId }.toMap()
@@ -281,19 +283,26 @@ class XcGoalService (@field:Autowired
 
         val seasonBests = seasonBestService.getAllSeasonBests(startSeasonDate, endSeasonDate, adjustForDistance)
                 .map { it.runner.id to it }.toMap()
-        val goals = xcGoalRepository.findBySeason(MeetPerformanceController.CURRENT_YEAR)
+        val goals: List<XcGoal> = xcGoalRepository.findBySeason(startSeasonDate.getYearString())
                 .filter { it.runnerId in seasonBests.keys }
                 .filter { it.type.equals("Time", ignoreCase = true) }
-                .map { it.runnerId to it }.toMap()
 
-        return seasonBests
-                .filter { goals[it.key] != null }
-                .filter {
-            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) > truncate(goals[it.key]!!.value.calculateSecondsFrom())
+        return  goals.filter {
+            seasonBests[it.runnerId]!!.seasonBest.first().time.calculateSecondsFrom() > it.value.calculateSecondsFrom()
         }.map {
-            UnMetGoalDTO(it.value.runner, goals[it.key]!!.value, it.value.seasonBest.first(),
-                    (it.value.seasonBest.first().time.calculateSecondsFrom() - goals[it.key]!!.value.calculateSecondsFrom()).toMinuteSecondString())
+            UnMetGoalDTO(seasonBests[it.runnerId]!!.runner, it.value, seasonBests[it.runnerId]!!.seasonBest.first(),
+                    (seasonBests[it.runnerId]!!.seasonBest.first().time.calculateSecondsFrom() - it.value.calculateSecondsFrom()).toMinuteSecondString())
         }.toMutableList().sortedBy { it.difference }
+
+
+//        return seasonBests
+//                .filter { goals[it.key] != null }
+//                .filter {
+//            truncate(it.value.seasonBest.first().time.calculateSecondsFrom()) > truncate(goals[it.key]!!.value.calculateSecondsFrom())
+//        }.map {
+//            UnMetGoalDTO(it.value.runner, goals[it.key]!!.value, it.value.seasonBest.first(),
+//                    (it.value.seasonBest.first().time.calculateSecondsFrom() - goals[it.key]!!.value.calculateSecondsFrom()).toMinuteSecondString())
+//        }.toMutableList().sortedBy { it.difference }
 
     }
 
