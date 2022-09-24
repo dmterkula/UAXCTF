@@ -1,7 +1,8 @@
 package com.terkula.uaxctf.training.controller
 
+import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
-import com.terkula.uaxctf.training.service.WorkoutCreationService
+import com.terkula.uaxctf.training.service.WorkoutService
 import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
@@ -11,34 +12,67 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.sql.Date
 import javax.validation.constraints.Pattern
 
 @RestController
 @Validated
-class WorkoutCreationController(
-    @field:Autowired
-    internal var workoutCreationService: WorkoutCreationService,
-    @field:Autowired
+class WorkoutController(
+        @field:Autowired
+    internal var workoutService: WorkoutService,
+        @field:Autowired
     internal var workoutGroupBuilderService: WorkoutGroupBuilderService
 ) {
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
-    @RequestMapping(value = ["/workoutCreator"], method = [RequestMethod.GET])
+    @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.PUT])
     fun planWorkout(
             @ApiParam("Valid values for type are 'interval', 'tempo' or 'progression'")
             @Pattern(
-                    regexp = "interval|tempo|progression",
+                    regexp = "interval|tempo|progression|descriptionOnly",
                     message = "The value provided for type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
             @RequestParam(value = "type", required = true) workoutType: String,
+
+            @ApiParam("Date in the form of year-month-day")
+            @RequestParam(value = "date", required = true) date: Date,
+
+            @ApiParam("Workout Title")
+            @RequestParam(value = "title", required = true) title: String,
+
+            @ApiParam("Workout Description")
+            @RequestParam(value = "description", required = false, defaultValue = "") description: String,
+
             @ApiParam("The entered distance should be in meters, this field is ignored for tempos and progression types")
             @RequestParam(value = "distance", required = true) distance: Int,
+
+            @ApiParam("The number of reps. 0 if not applicable")
+            @RequestParam(value = "count", required = true) count: Int,
+
+            @ApiParam("Workout Description")
+            @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
+
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
             @Pattern(
                     regexp = "goal|pr|seasonBest|seasonAverage",
                     message = "The value provided for pace is invalid. Valid values are 'goal', 'pr' or 'seasonBest', or 'seasonBestAverage'")
             @RequestParam(value = "pace", required = true) pace: String): WorkoutCreationResponse? {
 
-        return workoutCreationService.createWorkout(workoutType, distance, pace)
+        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration)
+    }
+
+    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
+    @RequestMapping(value = ["xc/workout/get"], method = [RequestMethod.PUT])
+    fun getWorkouts(
+
+            @ApiParam("Earliest Date to look for")
+            @RequestParam(value = "startDate", required = true) startDate: Date,
+
+            @ApiParam("Latest date to look for")
+            @RequestParam(value = "endDate", required = true) endDate: Date,
+
+           ): List<Workout> {
+
+        return workoutService.getWorkouts(startDate, endDate)
     }
 
     @ApiOperation("Returns workout groups")

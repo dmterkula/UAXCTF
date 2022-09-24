@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.training.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import java.sql.Date
 import javax.persistence.*
@@ -17,10 +18,12 @@ class Workout (val date: Date,
                @Column(name = "target_pace")
                val pace: String,
                @Column(name = "target_duration")
-               val duration: String?) {
+               val duration: String?,
+               val title: String) {
 
+    @JsonIgnore
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
 }
