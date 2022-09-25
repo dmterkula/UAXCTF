@@ -8,18 +8,18 @@ import javax.persistence.*
 @Entity
 @Table(name = "workout", schema = "uaxc")
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
-class Workout (val date: Date,
-               val type: String,
-               val description: String,
+class Workout (var date: Date,
+               var type: String,
+               var description: String,
                @Column(name = "target_distance")
-               val targetDistance: Int,
+               var targetDistance: Int,
                @Column(name = "target_count")
-               val targetCount: Int,
+               var targetCount: Int,
                @Column(name = "target_pace")
-               val pace: String,
+               var pace: String,
                @Column(name = "target_duration")
-               val duration: String?,
-               val title: String) {
+               var duration: String?,
+               var title: String) {
 
     @JsonIgnore
     @Id

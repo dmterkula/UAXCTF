@@ -17,10 +17,7 @@ import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.response.WorkoutCreationMetadata
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
-import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.getYearString
-import com.terkula.uaxctf.util.round
-import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.RuntimeException
@@ -45,8 +42,44 @@ class WorkoutService (@field:Autowired
 
     fun getWorkouts(startDate: Date, endDate: Date): List<Workout> {
 
-        return workoutRepository.findByDateBetween(startDate, endDate)
+        val workouts =
+                workoutRepository.findByDateBetween(startDate, endDate)
 
+        workouts.forEach { it.date.addDay() }
+
+        return workouts
+
+    }
+
+    fun deleteWorkout(date: Date, title: String): Workout? {
+        val workoutToDelete = workoutRepository.findByDateAndTitle(date, title).firstOrNull()
+
+        if (workoutToDelete != null) {
+            workoutRepository.delete(workoutToDelete)
+            workoutToDelete.date = workoutToDelete.date.addDay()
+        }
+
+        return workoutToDelete
+    }
+
+    fun updateWorkout(originalDate: Date, originalTitle: String, newDate: Date, type: String, newTitle: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): Workout? {
+
+        val workoutToUpdate = workoutRepository.findByDateAndTitle(originalDate, originalTitle).firstOrNull()
+
+        if (workoutToUpdate != null) {
+            workoutToUpdate.date = newDate
+            workoutToUpdate.title = newTitle
+            workoutToUpdate.description = description
+            workoutToUpdate.type = type
+            workoutToUpdate.pace = pace
+            workoutToUpdate.targetCount = targetCount
+            workoutToUpdate.targetDistance = distance
+
+
+            workoutRepository.save(workoutToUpdate)
+        }
+
+        return workoutToUpdate
     }
 
     fun createWorkout(date: Date, type: String, title: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): WorkoutCreationResponse? {
