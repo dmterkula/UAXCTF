@@ -25,7 +25,7 @@ class WorkoutController(
 ) {
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
-    @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.PUT])
+    @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.POST])
     fun planWorkout(
             @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
             @Pattern(
