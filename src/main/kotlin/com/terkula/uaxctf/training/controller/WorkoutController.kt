@@ -27,10 +27,10 @@ class WorkoutController(
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
     @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.PUT])
     fun planWorkout(
-            @ApiParam("Valid values for type are 'interval', 'tempo' or 'progression'")
+            @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
             @Pattern(
-                    regexp = "interval|tempo|progression|descriptionOnly",
-                    message = "The value provided for type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
+                    regexp = "Interval|Tempo|Progression|descriptionOnly",
+                    message = "The value provided for type is invalid. Valid values are 'Interval', 'Tempo' or 'Progression'")
             @RequestParam(value = "type", required = true) workoutType: String,
 
             @ApiParam("Date in the form of year-month-day")
@@ -53,8 +53,8 @@ class WorkoutController(
 
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
             @Pattern(
-                    regexp = "goal|pr|seasonBest|seasonAverage",
-                    message = "The value provided for pace is invalid. Valid values are 'goal', 'pr' or 'seasonBest', or 'seasonBestAverage'")
+                    regexp = "Goal|PR|SB|Season Avg",
+                    message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
             @RequestParam(value = "pace", required = true) pace: String): WorkoutCreationResponse? {
 
         return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration)
@@ -63,10 +63,10 @@ class WorkoutController(
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
     @RequestMapping(value = ["xc/workout/update"], method = [RequestMethod.PUT])
     fun updateWorkout(
-            @ApiParam("Valid values for type are 'interval', 'tempo' or 'progression'")
+            @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
             @Pattern(
-                    regexp = "interval|tempo|progression|descriptionOnly",
-                    message = "The value provided for type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
+                    regexp = "Interval|Tempo|Progression|descriptionOnly",
+                    message = "The value provided for type is invalid. Valid values are 'Interval', 'Tempo' or 'Progression'")
             @RequestParam(value = "type", required = true) workoutType: String,
 
             @ApiParam("Date in the form of year-month-day")
@@ -93,10 +93,10 @@ class WorkoutController(
             @ApiParam("Workout Description")
             @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
 
-            @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
+            @ApiParam("The target pace for the workout, as based upon the following provided value: 'Goal', 'PR' 'SB' or 'Season Avg'")
             @Pattern(
-                    regexp = "goal|pr|seasonBest|seasonAverage",
-                    message = "The value provided for pace is invalid. Valid values are 'goal', 'pr' or 'seasonBest', or 'seasonBestAverage'")
+                    regexp = "Goal|PR|SB|Season Avg",
+                    message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
             @RequestParam(value = "pace", required = true) pace: String): Workout? {
 
         return workoutService.updateWorkout(originalDate, originalTitle, newDate, workoutType,  newTitle, description, distance, count, pace, duration)
