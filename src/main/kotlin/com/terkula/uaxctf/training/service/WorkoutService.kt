@@ -17,10 +17,7 @@ import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.response.WorkoutCreationMetadata
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
-import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.getYearString
-import com.terkula.uaxctf.util.round
-import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.RuntimeException
@@ -45,8 +42,44 @@ class WorkoutService (@field:Autowired
 
     fun getWorkouts(startDate: Date, endDate: Date): List<Workout> {
 
-        return workoutRepository.findByDateBetween(startDate, endDate)
+        val workouts =
+                workoutRepository.findByDateBetween(startDate, endDate)
 
+        workouts.forEach { it.date.addDay() }
+
+        return workouts
+
+    }
+
+    fun deleteWorkout(date: Date, title: String): Workout? {
+        val workoutToDelete = workoutRepository.findByDateAndTitle(date, title).firstOrNull()
+
+        if (workoutToDelete != null) {
+            workoutRepository.delete(workoutToDelete)
+            workoutToDelete.date = workoutToDelete.date.addDay()
+        }
+
+        return workoutToDelete
+    }
+
+    fun updateWorkout(originalDate: Date, originalTitle: String, newDate: Date, type: String, newTitle: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): Workout? {
+
+        val workoutToUpdate = workoutRepository.findByDateAndTitle(originalDate, originalTitle).firstOrNull()
+
+        if (workoutToUpdate != null) {
+            workoutToUpdate.date = newDate
+            workoutToUpdate.title = newTitle
+            workoutToUpdate.description = description
+            workoutToUpdate.type = type
+            workoutToUpdate.pace = pace
+            workoutToUpdate.targetCount = targetCount
+            workoutToUpdate.targetDistance = distance
+
+
+            workoutRepository.save(workoutToUpdate)
+        }
+
+        return workoutToUpdate
     }
 
     fun createWorkout(date: Date, type: String, title: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): WorkoutCreationResponse? {
@@ -59,10 +92,10 @@ class WorkoutService (@field:Autowired
         }
 
         when (type) {
-            "interval" -> {
+            "Interval" -> {
                 val distanceRatio = distance.toDouble() / fiveK.toDouble()
                 when (pace) {
-                    "goal" -> {
+                    "Goal" -> {
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
                                 .map {
@@ -81,7 +114,7 @@ class WorkoutService (@field:Autowired
 
 
                     }
-                    "seasonBest" -> {
+                    "SB" -> {
 
                         val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
@@ -95,7 +128,7 @@ class WorkoutService (@field:Autowired
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
                     }
-                    "pr" -> {
+                    "PR" -> {
                         val gradClass = date.getYearString().toInt().toString()
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
@@ -111,7 +144,7 @@ class WorkoutService (@field:Autowired
 
 
                     }
-                    "seasonAverage" -> {
+                    "Season Avg" -> {
 
                         // find all runners whose graduating class is > current year
                         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(date.getYearString()).map { it.id to it }.toMap()
@@ -129,10 +162,10 @@ class WorkoutService (@field:Autowired
                 }
 
             }
-            "tempo" -> {
+            "Tempo" -> {
                 val distanceRatio = 1609.0/5000.0
                 when (pace) {
-                    "goal" -> {
+                    "Goal" -> {
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
                                 .map {
@@ -150,7 +183,7 @@ class WorkoutService (@field:Autowired
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
                     }
-                    "seasonBest" -> {
+                    "SB" -> {
 
                         val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
@@ -165,7 +198,7 @@ class WorkoutService (@field:Autowired
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
                     }
-                    "pr" -> {
+                    "PR" -> {
                         val gradClass = date.getYearString().toInt().toString()
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
@@ -179,7 +212,7 @@ class WorkoutService (@field:Autowired
 
 
                     }
-                    "seasonAverage" -> {
+                    "Season Avg" -> {
                         // find all runners whose graduating class is > current year
                         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(date.getYearString()).map { it.id to it }.toMap()
 
@@ -194,11 +227,11 @@ class WorkoutService (@field:Autowired
                     }
                 }
             }
-            "progression" -> {
+            "Progression" -> {
                 val distanceRatio = 1609.0/5000.0
 
                 when (pace) {
-                    "goal" -> {
+                    "Goal" -> {
 
                         val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
                                 .map {
@@ -219,7 +252,7 @@ class WorkoutService (@field:Autowired
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
                     }
-                    "seasonBest" -> {
+                    "SB" -> {
 
                         val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
@@ -234,7 +267,7 @@ class WorkoutService (@field:Autowired
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
                     }
-                    "pr" -> {
+                    "PR" -> {
                         val gradClass = date.getYearString().toInt().toString()
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
@@ -249,7 +282,7 @@ class WorkoutService (@field:Autowired
 
 
                     }
-                    "seasonAverage" -> {
+                    "Season Avg" -> {
                         // find all runners whose graduating class is > current year
                         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(date.getYearString()).map { it.id to it }.toMap()
 
