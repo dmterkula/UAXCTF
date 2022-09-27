@@ -24,20 +24,21 @@ import java.lang.RuntimeException
 import java.sql.Date
 
 @Component
-class WorkoutService (@field:Autowired
-                              internal var seasonBestService: SeasonBestService,
-                      @field:Autowired
-                              internal var prService: PersonalRecordService,
-                      @field:Autowired
-                              internal var runnerRepository: RunnerRepository,
-                      @field:Autowired
-                              internal var meetRepository: MeetRepository,
-                      @field:Autowired
-                              internal var meetPerformanceRepository: MeetPerformanceRepository,
-                      @field:Autowired
-                              internal var xcGoalService: XcGoalService,
-                      @field:Autowired
-                              internal var workoutRepository: WorkoutRepository
+class WorkoutService (
+        @field:Autowired
+        internal var seasonBestService: SeasonBestService,
+        @field:Autowired
+        internal var prService: PersonalRecordService,
+        @field:Autowired
+        internal var runnerRepository: RunnerRepository,
+        @field:Autowired
+        internal var meetRepository: MeetRepository,
+        @field:Autowired
+        internal var meetPerformanceRepository: MeetPerformanceRepository,
+        @field:Autowired
+        internal var xcGoalService: XcGoalService,
+        @field:Autowired
+        internal var workoutRepository: WorkoutRepository
 ) {
 
     fun getWorkouts(startDate: Date, endDate: Date): List<Workout> {
@@ -51,29 +52,40 @@ class WorkoutService (@field:Autowired
 
     }
 
-    fun deleteWorkout(date: Date, title: String): Workout? {
-        val workoutToDelete = workoutRepository.findByDateAndTitle(date, title).firstOrNull()
+    fun deleteWorkout(uuid: String): Workout? {
+        val workoutToDelete = workoutRepository.findByUuid(uuid).firstOrNull()
 
         if (workoutToDelete != null) {
             workoutRepository.delete(workoutToDelete)
-            workoutToDelete.date = workoutToDelete.date.addDay()
         }
 
         return workoutToDelete
     }
 
-    fun updateWorkout(originalDate: Date, originalTitle: String, newDate: Date, type: String, newTitle: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): Workout? {
+    fun updateWorkout(
+        uuid: String,
+        date: Date,
+        type: String,
+        title: String,
+        description: String,
+        distance: Int,
+        targetCount: Int,
+        pace: String,
+        duration: String,
+        icon: String
+    ): Workout? {
 
-        val workoutToUpdate = workoutRepository.findByDateAndTitle(originalDate, originalTitle).firstOrNull()
+        val workoutToUpdate = workoutRepository.findByUuid(uuid).firstOrNull()
 
         if (workoutToUpdate != null) {
-            workoutToUpdate.date = newDate
-            workoutToUpdate.title = newTitle
+            workoutToUpdate.date = date
+            workoutToUpdate.title = title
             workoutToUpdate.description = description
             workoutToUpdate.type = type
             workoutToUpdate.pace = pace
             workoutToUpdate.targetCount = targetCount
             workoutToUpdate.targetDistance = distance
+            workoutToUpdate.icon = icon
 
 
             workoutRepository.save(workoutToUpdate)
@@ -82,7 +94,18 @@ class WorkoutService (@field:Autowired
         return workoutToUpdate
     }
 
-    fun createWorkout(date: Date, type: String, title: String, description: String, distance: Int, targetCount: Int, pace: String, duration: String): WorkoutCreationResponse? {
+    fun createWorkout(
+            date: Date,
+            type: String,
+            title: String,
+            description: String,
+            distance: Int,
+            targetCount: Int,
+            pace: String,
+            duration: String,
+            icon: String,
+            uuid: String
+    ): WorkoutCreationResponse? {
 
         val startDate = Date.valueOf("${date.getYearString()}-01-01")
         val endDate = Date.valueOf((date.getYearString()) + "-12-31")
@@ -108,7 +131,7 @@ class WorkoutService (@field:Autowired
                                 (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -123,7 +146,7 @@ class WorkoutService (@field:Autowired
                                     (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -138,7 +161,7 @@ class WorkoutService (@field:Autowired
                                     (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -154,7 +177,7 @@ class WorkoutService (@field:Autowired
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlans)
 
@@ -178,7 +201,7 @@ class WorkoutService (@field:Autowired
                         val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
                                 (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -193,7 +216,7 @@ class WorkoutService (@field:Autowired
                                     .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -206,7 +229,7 @@ class WorkoutService (@field:Autowired
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -221,7 +244,7 @@ class WorkoutService (@field:Autowired
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlans)
                     }
@@ -247,7 +270,7 @@ class WorkoutService (@field:Autowired
                         }
 
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -262,7 +285,7 @@ class WorkoutService (@field:Autowired
                             RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -276,7 +299,7 @@ class WorkoutService (@field:Autowired
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlanDTOs)
 
@@ -292,7 +315,7 @@ class WorkoutService (@field:Autowired
                                     it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                         workoutRepository.save(workout)
                         return WorkoutCreationResponse(workout, workoutPlans)
                     }
@@ -300,7 +323,7 @@ class WorkoutService (@field:Autowired
 
             }
             "descriptionOnly" -> {
-                val workout = Workout(date, type, description, distance, targetCount, pace, duration, title)
+                val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
                 workoutRepository.save(workout)
                 return WorkoutCreationResponse(workout, emptyList())
             }
