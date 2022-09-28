@@ -17,6 +17,7 @@ import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.response.WorkoutCreationMetadata
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
+import com.terkula.uaxctf.training.response.WorkoutPlanResponse
 import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -112,7 +113,25 @@ class WorkoutService (
 
         if (workoutRepository.findByDate(date).firstOrNull()?.title == title) {
             throw RuntimeException("Workout with that date and title already exists")
+        } else {
+            val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
+            workoutRepository.save(workout)
+            return WorkoutCreationResponse(workout)
         }
+
+    }
+
+    fun getWorkoutPlan(uuid: String): WorkoutPlanResponse {
+
+
+        val workout = workoutRepository.findByUuid(uuid).firstOrNull() ?: return WorkoutPlanResponse(emptyList())
+
+        val date = workout.date
+        val type = workout.type
+        val pace = workout.pace
+        val distance = workout.targetDistance
+        val startDate = Date.valueOf("${date.getYearString()}-01-01")
+        val endDate = Date.valueOf((date.getYearString()) + "-12-31")
 
         when (type) {
             "Interval" -> {
@@ -130,10 +149,7 @@ class WorkoutService (
                         val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
                                 (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
-
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -146,9 +162,7 @@ class WorkoutService (
                                     (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -161,9 +175,7 @@ class WorkoutService (
                                     (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -177,9 +189,7 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlans)
+                        WorkoutPlanResponse(workoutPlans)
 
                     }
                 }
@@ -201,9 +211,7 @@ class WorkoutService (
                         val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
                                 (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "SB" -> {
@@ -216,9 +224,7 @@ class WorkoutService (
                                     .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -229,9 +235,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -244,9 +248,7 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlans)
+                        WorkoutPlanResponse(workoutPlans)
                     }
                 }
             }
@@ -269,10 +271,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
-
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "SB" -> {
@@ -285,9 +284,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -299,9 +296,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }.toList()
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlanDTOs)
+                        WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -315,25 +310,19 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
                         }
 
-                        val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                        workoutRepository.save(workout)
-                        return WorkoutCreationResponse(workout, workoutPlans)
+                        WorkoutPlanResponse(workoutPlans)
                     }
                 }
 
             }
             "descriptionOnly" -> {
-                val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
-                workoutRepository.save(workout)
-                return WorkoutCreationResponse(workout, emptyList())
+                WorkoutPlanResponse(emptyList())
             }
             else -> {
-                return null
+                return WorkoutPlanResponse(emptyList())
             }
         }
-
-        return null
-
+        return WorkoutPlanResponse(emptyList())
     }
 
     fun getSeasonAverages(eligibleRunners: Map<Int, Runner>, startDate: Date, endDate: Date): Map<Int, List<Double>> {

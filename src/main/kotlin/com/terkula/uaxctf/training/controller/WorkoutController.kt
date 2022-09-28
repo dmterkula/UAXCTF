@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.response.WorkoutCreationResponse
+import com.terkula.uaxctf.training.response.WorkoutPlanResponse
 import com.terkula.uaxctf.training.service.WorkoutService
 import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
 import io.swagger.annotations.ApiOperation
@@ -26,7 +27,7 @@ class WorkoutController(
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
     @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.POST])
-    fun planWorkout(
+    fun createWorkout(
             @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
             @Pattern(
                     regexp = "Interval|Tempo|Progression|descriptionOnly",
@@ -65,6 +66,19 @@ class WorkoutController(
 
         return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration, icon, uuid)
     }
+
+    @ApiOperation("Get the plan for the given workout")
+    @RequestMapping(value = ["xc/workout/plan"], method = [RequestMethod.GET])
+    fun getWorkoutPlan(
+
+            @ApiParam("uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            ): WorkoutPlanResponse {
+
+        return workoutService.getWorkoutPlan(uuid)
+    }
+
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
     @RequestMapping(value = ["xc/workout/update"], method = [RequestMethod.POST])
@@ -125,7 +139,7 @@ class WorkoutController(
 
     @ApiOperation("Delete a workout on a given day with the matching title")
     @RequestMapping(value = ["xc/workout/delete"], method = [RequestMethod.DELETE])
-    fun getWorkouts(
+    fun deleteWorkouts(
 
             @ApiParam("uuid")
             @RequestParam(value = "uuid", required = true) uuid: String,
