@@ -19,7 +19,10 @@ class Workout (var date: Date,
                var pace: String,
                @Column(name = "target_duration")
                var duration: String?,
-               var title: String) {
+               var title: String,
+               var icon: String,
+               var uuid: String
+) {
 
     @JsonIgnore
     @Id

@@ -51,13 +51,19 @@ class WorkoutController(
             @ApiParam("Workout Description")
             @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
 
+            @ApiParam("Workout uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            @ApiParam("Workout icon")
+            @RequestParam(value = "icon", required = false, defaultValue = "") icon: String,
+
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
             @Pattern(
                     regexp = "Goal|PR|SB|Season Avg",
                     message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
             @RequestParam(value = "pace", required = true) pace: String): WorkoutCreationResponse? {
 
-        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration)
+        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration, icon, uuid)
     }
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
@@ -70,16 +76,16 @@ class WorkoutController(
             @RequestParam(value = "type", required = true) workoutType: String,
 
             @ApiParam("Date in the form of year-month-day")
-            @RequestParam(value = "originalDate", required = true) originalDate: Date,
-
-            @ApiParam("Date in the form of year-month-day")
-            @RequestParam(value = "newDate", required = true) newDate: Date,
+            @RequestParam(value = "date", required = true) date: Date,
 
             @ApiParam("Workout Title")
-            @RequestParam(value = "originalTitle", required = true) originalTitle:  String,
+            @RequestParam(value = "title", required = true) title: String,
 
-            @ApiParam("Workout Title")
-            @RequestParam(value = "newTitle", required = true) newTitle: String,
+            @ApiParam("Workout uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            @ApiParam("Workout icon")
+            @RequestParam(value = "icon", required = false, defaultValue = "") icon: String,
 
             @ApiParam("Workout Description")
             @RequestParam(value = "description", required = false, defaultValue = "") description: String,
@@ -99,7 +105,7 @@ class WorkoutController(
                     message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
             @RequestParam(value = "pace", required = true) pace: String): Workout? {
 
-        return workoutService.updateWorkout(originalDate, originalTitle, newDate, workoutType,  newTitle, description, distance, count, pace, duration)
+        return workoutService.updateWorkout(uuid, date, workoutType, title, description, distance, count, pace, duration, icon)
     }
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
@@ -121,15 +127,12 @@ class WorkoutController(
     @RequestMapping(value = ["xc/workout/delete"], method = [RequestMethod.DELETE])
     fun getWorkouts(
 
-            @ApiParam("date")
-            @RequestParam(value = "date", required = true) date: Date,
-
-            @ApiParam("Title")
-            @RequestParam(value = "title", required = true) title: String,
+            @ApiParam("uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
 
             ): Workout? {
 
-        return workoutService.deleteWorkout(date, title)
+        return workoutService.deleteWorkout(uuid)
     }
 
     @ApiOperation("Returns workout groups")
