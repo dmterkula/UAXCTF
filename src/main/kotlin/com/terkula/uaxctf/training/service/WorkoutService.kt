@@ -162,7 +162,7 @@ class WorkoutService (
                                     (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -175,7 +175,7 @@ class WorkoutService (
                                     (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -189,7 +189,7 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
                         }
 
-                        WorkoutPlanResponse(workoutPlans)
+                        return WorkoutPlanResponse(workoutPlans)
 
                     }
                 }
@@ -211,7 +211,7 @@ class WorkoutService (
                         val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
                                 (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "SB" -> {
@@ -224,7 +224,7 @@ class WorkoutService (
                                     .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
                         }
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -235,7 +235,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
                         }.toList()
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -248,7 +248,7 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
                         }
 
-                        WorkoutPlanResponse(workoutPlans)
+                        return WorkoutPlanResponse(workoutPlans)
                     }
                 }
             }
@@ -271,7 +271,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "SB" -> {
@@ -284,7 +284,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
                     }
                     "PR" -> {
@@ -296,7 +296,7 @@ class WorkoutService (
                             RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }.toList()
 
-                        WorkoutPlanResponse(workoutPlanDTOs)
+                        return WorkoutPlanResponse(workoutPlanDTOs)
 
 
                     }
@@ -310,7 +310,7 @@ class WorkoutService (
                                     it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
                         }
 
-                        WorkoutPlanResponse(workoutPlans)
+                        return WorkoutPlanResponse(workoutPlans)
                     }
                 }
 
