@@ -1,14 +1,9 @@
 package com.terkula.uaxctf.statistics.controller
 
-import com.terkula.uaxctf.google.GoogleSheetsClient
 import com.terkula.uaxctf.statistics.exception.UnauthenticatedException
-import com.terkula.uaxctf.statistics.response.MeetResultDataLoadResponse
-import com.terkula.uaxctf.statistics.response.MileSplitDataLoadResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
-import com.terkula.uaxctf.statistics.service.XcDataLoaderService
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.env.Environment
 import org.springframework.core.env.get
 import org.springframework.web.bind.annotation.*
@@ -19,10 +14,6 @@ import java.sql.Date
 class XcDataLoaderController(
     @field:Autowired
     internal var meetPerformanceService: MeetPerformanceService,
-    @field:Autowired
-    internal var xcDataLoaderService: XcDataLoaderService,
-    @field:Autowired
-    internal var googleSheetsClient: GoogleSheetsClient,
     @field:Autowired
     internal var env: Environment
 ) {
@@ -57,21 +48,6 @@ class XcDataLoaderController(
         }
     }
 
-    @ApiOperation("Clean milesplit time formats")
-    @RequestMapping(value = ["xc/load/cleanMileSplitData"], method = [RequestMethod.GET])
-    fun cleanMileSplits(
-        @RequestParam(value = "meetId", defaultValue = "0") meetId: Int = 0,
-        @RequestParam(value = "password") password: String
-    ): String {
-
-        if (authenticated(password)) {
-            meetPerformanceService.cleanSplits(meetId)
-            return "cleanedMileSplits"
-        } else {
-            throw UnauthenticatedException("The provided password is not valid")
-        }
-    }
-
     @ApiOperation("Load Time Trial Data")
     @RequestMapping(value = ["xc/load/TimeTrialResult"], method = [RequestMethod.GET])
     fun loadTimeTrialData(
@@ -82,38 +58,6 @@ class XcDataLoaderController(
         if (authenticated(password)) {
             meetPerformanceService.loadTimeTrial(season)
             return "loaded time trial"
-        } else {
-            throw UnauthenticatedException("The provided password is not valid")
-        }
-    }
-
-    @ApiOperation("Read Race Results From Google Sheet")
-    @RequestMapping(value = ["xc/readRaceResults/"], method = [RequestMethod.GET])
-    fun readSheet(
-            @RequestParam(value = "sheetName") sheetName: String,
-            @RequestParam(value = "password") password: String
-    ): MeetResultDataLoadResponse {
-
-        if (authenticated(password)) {
-            // List<List<name, time, place>
-            val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
-            return xcDataLoaderService.processRaceResults(rawSheetData, sheetName)
-        } else {
-            throw UnauthenticatedException("The provided password is not valid")
-        }
-    }
-
-    @ApiOperation("Read Race Mile Splits From Google Sheet")
-    @RequestMapping(value = ["xc/readRaceMileSplits/"], method = [RequestMethod.GET])
-    fun readMileSplits(
-            @RequestParam(value = "sheetName") sheetName: String,
-            @RequestParam(value = "password") password: String
-    ): MileSplitDataLoadResponse {
-
-        if (authenticated(password)) {
-            // List<List<name, time, place>
-            val rawSheetData = googleSheetsClient.readSheet("1Aa2dwVHbF-QOArqFWjFxeoWdiuIVwoGULKCkMGoIP1Q", sheetName)
-            return xcDataLoaderService.loadMileSplits(rawSheetData, sheetName)
         } else {
             throw UnauthenticatedException("The provided password is not valid")
         }
