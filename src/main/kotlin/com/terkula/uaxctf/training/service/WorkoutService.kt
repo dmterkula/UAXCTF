@@ -73,7 +73,8 @@ class WorkoutService (
         targetCount: Int,
         pace: String,
         duration: String,
-        icon: String
+        icon: String,
+        targetPaceAdjustment: String
     ): Workout? {
 
         val workoutToUpdate = workoutRepository.findByUuid(uuid).firstOrNull()
@@ -87,6 +88,7 @@ class WorkoutService (
             workoutToUpdate.targetCount = targetCount
             workoutToUpdate.targetDistance = distance
             workoutToUpdate.icon = icon
+            workoutToUpdate.targetPaceAdjustment = targetPaceAdjustment
 
 
             workoutRepository.save(workoutToUpdate)
@@ -105,16 +107,14 @@ class WorkoutService (
             pace: String,
             duration: String,
             icon: String,
-            uuid: String
+            uuid: String,
+            targetPaceAdjustment: String
     ): WorkoutCreationResponse? {
-
-        val startDate = Date.valueOf("${date.getYearString()}-01-01")
-        val endDate = Date.valueOf((date.getYearString()) + "-12-31")
 
         if (workoutRepository.findByDate(date).firstOrNull()?.title == title) {
             throw RuntimeException("Workout with that date and title already exists")
         } else {
-            val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid)
+            val workout = Workout(date, type, description, distance, targetCount, pace, duration, title, icon, uuid, targetPaceAdjustment)
             workoutRepository.save(workout)
             return WorkoutCreationResponse(workout)
         }
@@ -129,6 +129,14 @@ class WorkoutService (
         val date = workout.date
         val type = workout.type
         val pace = workout.pace
+        val targetPaceAdjustment = workout.targetPaceAdjustment
+
+        var paceAdjustment: Int = if (targetPaceAdjustment.isEmpty()) {
+            0
+        } else {
+            targetPaceAdjustment.calculateSecondsFrom().toInt()
+        }
+
         val distance = workout.targetDistance
         val startDate = Date.valueOf("${date.getYearString()}-01-01")
         val endDate = Date.valueOf((date.getYearString()) + "-12-31")
@@ -146,8 +154,10 @@ class WorkoutService (
                                 .filter {
                                     it.goals.isNotEmpty()
                                 }
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
-                                (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+
+                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom()
+                                        * distanceRatio) + paceAdjustment).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
 
@@ -158,8 +168,8 @@ class WorkoutService (
                         val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
 
                         val workoutPlanDTOs = seasonBests.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("split",
-                                    (it.seasonBest.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
+                            RunnerWorkoutPlanDTO(it.runner, (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), listOf(TargetedPace("split",
+                                    ((it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString())))
                         }
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -171,8 +181,9 @@ class WorkoutService (
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
 
                         val workoutPlanDTOs = prs.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("split",
-                                    (it.pr.first().time.calculateSecondsFrom() * (distanceRatio)).round(2).toMinuteSecondString())))
+                            RunnerWorkoutPlanDTO(it.runner, (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), listOf(TargetedPace("split",
+                                    (it.pr.first().time.calculateSecondsFrom() * (distanceRatio) + paceAdjustment).round(2).toMinuteSecondString())))
+
                         }.toList()
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -186,7 +197,8 @@ class WorkoutService (
 
                         val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
                             RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("split", (distanceRatio * it.value.first()).toMinuteSecondString())))
+                                    (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                    listOf(TargetedPace("split", (distanceRatio * it.value.first() + paceAdjustment).toMinuteSecondString())))
                         }
 
                         return WorkoutPlanResponse(workoutPlans)
@@ -208,8 +220,8 @@ class WorkoutService (
                                     it.goals.isNotEmpty()
                                 }
 
-                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, listOf(TargetedPace("split",
-                                (it.goals.first().value.calculateSecondsFrom() * distanceRatio).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
+                        val workoutPlanDTOs =  seasonGoals.map { RunnerWorkoutPlanDTO(it.runner, (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), listOf(TargetedPace("split",
+                                (it.goals.first().value.calculateSecondsFrom() * distanceRatio + paceAdjustment).toMinuteSecondString()))) }.toMutableList().sortedBy { it.baseTime }
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
 
@@ -220,8 +232,8 @@ class WorkoutService (
 
 
                         val workoutPlanDTOs = seasonBests.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, listOf(TargetedPace("perMile", ((it.seasonBest.first().time
-                                    .calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString()))))
+                            RunnerWorkoutPlanDTO(it.runner, (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), listOf(TargetedPace("perMile", ((it.seasonBest.first().time
+                                    .calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString()))))
                         }
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -232,7 +244,9 @@ class WorkoutService (
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
                         val workoutPlanDTOs = prs.map {
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale).round(2).toMinuteSecondString())))
+                            RunnerWorkoutPlanDTO(it.runner, (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                    listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment)
+                                            .round(2).toMinuteSecondString())))
                         }.toList()
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -245,7 +259,7 @@ class WorkoutService (
 
                         val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate).map {
                             RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale).toMinuteSecondString())))
+                                    (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale + paceAdjustment).toMinuteSecondString())))
                         }
 
                         return WorkoutPlanResponse(workoutPlans)
@@ -267,8 +281,8 @@ class WorkoutService (
                                 }
 
                         val workoutPlanDTOs = seasonGoals.map {
-                            val baseTimePerMile = it.goals.first().value.calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.goals.first().value, constructProgressionTargetedPaces(baseTimePerMile))
+                            val baseTimePerMile = it.goals.first().value.calculateSecondsFrom() * distanceRatio + paceAdjustment
+                            RunnerWorkoutPlanDTO(it.runner, (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -280,7 +294,7 @@ class WorkoutService (
 
 
                         val workoutPlanDTOs = seasonBests.map {
-                            val baseTimePerMile = it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio
+                            val baseTimePerMile = it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio + paceAdjustment
                             RunnerWorkoutPlanDTO(it.runner, it.seasonBest.first().time, constructProgressionTargetedPaces(baseTimePerMile))
                         }
 
@@ -292,8 +306,8 @@ class WorkoutService (
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
                         val workoutPlanDTOs = prs.map {
-                            val baseTimePerMile = it.pr.first().time.calculateSecondsFrom() * distanceRatio
-                            RunnerWorkoutPlanDTO(it.runner, it.pr.first().time, constructProgressionTargetedPaces(baseTimePerMile))
+                            val baseTimePerMile = it.pr.first().time.calculateSecondsFrom() * distanceRatio + paceAdjustment
+                            RunnerWorkoutPlanDTO(it.runner, (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), constructProgressionTargetedPaces(baseTimePerMile))
                         }.toList()
 
                         return WorkoutPlanResponse(workoutPlanDTOs)
@@ -305,9 +319,9 @@ class WorkoutService (
                         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThan(date.getYearString()).map { it.id to it }.toMap()
 
                         val workoutPlans = getSeasonAverages(eligibleRunners, startDate, endDate) .map {
-                            val basePacePerMile = distanceRatio * it.value.first()
+                            val basePacePerMile = distanceRatio * it.value.first() + paceAdjustment
                             RunnerWorkoutPlanDTO(eligibleRunners[it.key]!!,
-                                    it.value.first().toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
+                                    (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(), constructProgressionTargetedPaces(basePacePerMile))
                         }
 
                         return WorkoutPlanResponse(workoutPlans)

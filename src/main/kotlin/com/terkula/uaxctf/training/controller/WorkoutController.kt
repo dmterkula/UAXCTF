@@ -62,9 +62,14 @@ class WorkoutController(
             @Pattern(
                     regexp = "Goal|PR|SB|Season Avg",
                     message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
-            @RequestParam(value = "pace", required = true) pace: String): WorkoutCreationResponse? {
+            @RequestParam(value = "pace", required = true) pace: String,
 
-        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration, icon, uuid)
+            @ApiParam("Workout pace adjustment, +- minute minute second string")
+            @RequestParam(value = "paceAdjustment", required = false, defaultValue = "") targetPaceAdjustment: String
+
+            ): WorkoutCreationResponse? {
+
+        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration, icon, uuid, targetPaceAdjustment)
     }
 
     @ApiOperation("Get the plan for the given workout")
@@ -110,16 +115,21 @@ class WorkoutController(
             @ApiParam("The number of reps. 0 if not applicable")
             @RequestParam(value = "count", required = true) count: Int,
 
-            @ApiParam("Workout Description")
+            @ApiParam("Workout Duration")
             @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
 
             @ApiParam("The target pace for the workout, as based upon the following provided value: 'Goal', 'PR' 'SB' or 'Season Avg'")
             @Pattern(
                     regexp = "Goal|PR|SB|Season Avg",
                     message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
-            @RequestParam(value = "pace", required = true) pace: String): Workout? {
+            @RequestParam(value = "pace", required = true) pace: String,
 
-        return workoutService.updateWorkout(uuid, date, workoutType, title, description, distance, count, pace, duration, icon)
+            @ApiParam("Workout pace adjustment, +- minute minute second string")
+            @RequestParam(value = "paceAdjustment", required = false, defaultValue = "") targetPaceAdjustment: String,
+
+            ): Workout? {
+
+        return workoutService.updateWorkout(uuid, date, workoutType, title, description, distance, count, pace, duration, icon, targetPaceAdjustment)
     }
 
     @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")

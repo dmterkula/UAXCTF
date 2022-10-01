@@ -21,7 +21,9 @@ class Workout (var date: Date,
                var duration: String?,
                var title: String,
                var icon: String,
-               var uuid: String
+               var uuid: String,
+               @Column(name = "target_pace_adjustment")
+               var targetPaceAdjustment: String = ""
 ) {
 
     @JsonIgnore
