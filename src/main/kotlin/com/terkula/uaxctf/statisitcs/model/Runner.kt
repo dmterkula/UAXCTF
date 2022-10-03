@@ -1,18 +1,19 @@
 package com.terkula.uaxctf.statisitcs.model
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import javax.persistence.*
 
 @Entity
 @Table(name = "runners", schema = "uaxc")
 class Runner(
-             var name: String,
-             @Column(name = "graduating_class")
-             var graduatingClass: String) {
+         var name: String,
+         @Column(name = "graduating_class")
+         var graduatingClass: String,
+         @Column(name = "is_active")
+         var isActive: Boolean = true
+) {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @JsonIgnore
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int = 0
 
     override fun toString(): String {
