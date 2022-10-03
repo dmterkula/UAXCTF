@@ -2,17 +2,19 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.request.CreateRunnerRequest
+import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
-class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) {
+class RunnerController(
+    val runnerRepository: RunnerRepository,
+    val runnerService: RunnerService
+) {
 
     @ApiOperation("Returns runners in the the given class constraints, if no filter.class value is provided," +
             "returns all runners with a grad class greater than current year")
@@ -49,14 +51,22 @@ class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) 
 
     @ApiOperation("Returns roster of runners for given season sorted by seniors first")
     @RequestMapping(value = ["xc/runners"], method = [RequestMethod.GET])
-    fun getRunnersForReason(
+    fun getRunnersForSeason(
             @RequestParam(value = "filter.season", required = false, defaultValue = "")
-            season: String
+            season: String,
+            @RequestParam(value = "filter.active", required = false, defaultValue = "false")
+            active: Boolean
 
     ): List<Runner> {
 
-        val runners = runnerRepository.findAll()
+        var runners = runnerRepository.findAll()
                 .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+
+        if (active) {
+            runners = runners.filter { it.isActive }
+        }
+
+        runners = runners
                 .groupBy { it.graduatingClass }.map {
             it.key to it.value.sortedBy { runner -> runner.name }
         }
@@ -65,5 +75,24 @@ class RunnerController(@field:Autowired val runnerRepository: RunnerRepository) 
                 .flatten()
 
         return runners
+    }
+
+    @ApiOperation("Create Runner")
+    @RequestMapping(value = ["xc/runners/create"], method = [RequestMethod.POST])
+    fun createRunner(
+            @RequestBody createRunnerRequest: CreateRunnerRequest
+
+    ): Runner {
+        return runnerService.createRunner(createRunnerRequest)
+    }
+
+    @ApiOperation("Update Runner")
+    @RequestMapping(value = ["xc/runners/update"], method = [RequestMethod.PUT])
+    fun update(
+            @RequestParam(value = "runnerId", required = true)
+            runnerId: Int,
+            @RequestBody createRunnerRequest: CreateRunnerRequest
+    ): Runner? {
+        return runnerService.updateRunner(runnerId, createRunnerRequest)
     }
 }
