@@ -1,19 +1,17 @@
 package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.training.model.Workout
-import com.terkula.uaxctf.training.response.WorkoutCreationResponse
-import com.terkula.uaxctf.training.response.WorkoutPlanResponse
+import com.terkula.uaxctf.training.request.CreateWorkoutRequest
+import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.service.WorkoutService
 import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import java.sql.Date
+import javax.validation.Valid
 import javax.validation.constraints.Pattern
 
 @RestController
@@ -24,140 +22,6 @@ class WorkoutController(
         @field:Autowired
     internal var workoutGroupBuilderService: WorkoutGroupBuilderService
 ) {
-
-    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
-    @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.POST])
-    fun createWorkout(
-            @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
-            @Pattern(
-                    regexp = "Interval|Tempo|Progression|descriptionOnly",
-                    message = "The value provided for type is invalid. Valid values are 'Interval', 'Tempo' or 'Progression'")
-            @RequestParam(value = "type", required = true) workoutType: String,
-
-            @ApiParam("Date in the form of year-month-day")
-            @RequestParam(value = "date", required = true) date: Date,
-
-            @ApiParam("Workout Title")
-            @RequestParam(value = "title", required = true) title: String,
-
-            @ApiParam("Workout Description")
-            @RequestParam(value = "description", required = false, defaultValue = "") description: String,
-
-            @ApiParam("The entered distance should be in meters, this field is ignored for tempos and progression types")
-            @RequestParam(value = "distance", required = true) distance: Int,
-
-            @ApiParam("The number of reps. 0 if not applicable")
-            @RequestParam(value = "count", required = true) count: Int,
-
-            @ApiParam("Workout Description")
-            @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
-
-            @ApiParam("Workout uuid")
-            @RequestParam(value = "uuid", required = true) uuid: String,
-
-            @ApiParam("Workout icon")
-            @RequestParam(value = "icon", required = false, defaultValue = "") icon: String,
-
-            @ApiParam("The target pace for the workout, as based upon the following provided value: 'goal', 'pr' 'seasonBest' or 'seasonBestAverage'")
-            @Pattern(
-                    regexp = "Goal|PR|SB|Season Avg",
-                    message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
-            @RequestParam(value = "pace", required = true) pace: String,
-
-            @ApiParam("Workout pace adjustment, +- minute minute second string")
-            @RequestParam(value = "paceAdjustment", required = false, defaultValue = "") targetPaceAdjustment: String
-
-            ): WorkoutCreationResponse? {
-
-        return workoutService.createWorkout(date, workoutType, title, description, distance, count, pace, duration, icon, uuid, targetPaceAdjustment)
-    }
-
-    @ApiOperation("Get the plan for the given workout")
-    @RequestMapping(value = ["xc/workout/plan"], method = [RequestMethod.GET])
-    fun getWorkoutPlan(
-
-            @ApiParam("uuid")
-            @RequestParam(value = "uuid", required = true) uuid: String,
-
-            ): WorkoutPlanResponse {
-
-        return workoutService.getWorkoutPlan(uuid)
-    }
-
-
-    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
-    @RequestMapping(value = ["xc/workout/update"], method = [RequestMethod.POST])
-    fun updateWorkout(
-            @ApiParam("Valid values for type are 'Interval', 'Tempo' or 'Progression'")
-            @Pattern(
-                    regexp = "Interval|Tempo|Progression|descriptionOnly",
-                    message = "The value provided for type is invalid. Valid values are 'Interval', 'Tempo' or 'Progression'")
-            @RequestParam(value = "type", required = true) workoutType: String,
-
-            @ApiParam("Date in the form of year-month-day")
-            @RequestParam(value = "date", required = true) date: Date,
-
-            @ApiParam("Workout Title")
-            @RequestParam(value = "title", required = true) title: String,
-
-            @ApiParam("Workout uuid")
-            @RequestParam(value = "uuid", required = true) uuid: String,
-
-            @ApiParam("Workout icon")
-            @RequestParam(value = "icon", required = false, defaultValue = "") icon: String,
-
-            @ApiParam("Workout Description")
-            @RequestParam(value = "description", required = false, defaultValue = "") description: String,
-
-            @ApiParam("The entered distance should be in meters, this field is ignored for tempos and progression types")
-            @RequestParam(value = "distance", required = true) distance: Int,
-
-            @ApiParam("The number of reps. 0 if not applicable")
-            @RequestParam(value = "count", required = true) count: Int,
-
-            @ApiParam("Workout Duration")
-            @RequestParam(value = "duration", required = false, defaultValue = "") duration: String,
-
-            @ApiParam("The target pace for the workout, as based upon the following provided value: 'Goal', 'PR' 'SB' or 'Season Avg'")
-            @Pattern(
-                    regexp = "Goal|PR|SB|Season Avg",
-                    message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
-            @RequestParam(value = "pace", required = true) pace: String,
-
-            @ApiParam("Workout pace adjustment, +- minute minute second string")
-            @RequestParam(value = "paceAdjustment", required = false, defaultValue = "") targetPaceAdjustment: String,
-
-            ): Workout? {
-
-        return workoutService.updateWorkout(uuid, date, workoutType, title, description, distance, count, pace, duration, icon, targetPaceAdjustment)
-    }
-
-    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
-    @RequestMapping(value = ["xc/workout/get"], method = [RequestMethod.GET])
-    fun getWorkouts(
-
-            @ApiParam("Earliest Date to look for")
-            @RequestParam(value = "startDate", required = true) startDate: Date,
-
-            @ApiParam("Latest date to look for")
-            @RequestParam(value = "endDate", required = true) endDate: Date,
-
-           ): List<Workout> {
-
-        return workoutService.getWorkouts(startDate, endDate)
-    }
-
-    @ApiOperation("Delete a workout on a given day with the matching title")
-    @RequestMapping(value = ["xc/workout/delete"], method = [RequestMethod.DELETE])
-    fun deleteWorkouts(
-
-            @ApiParam("uuid")
-            @RequestParam(value = "uuid", required = true) uuid: String,
-
-            ): Workout? {
-
-        return workoutService.deleteWorkout(uuid)
-    }
 
     @ApiOperation("Returns workout groups")
     @RequestMapping(value = ["/workout/groups"], method = [RequestMethod.GET])
@@ -177,6 +41,62 @@ class WorkoutController(
            ) {
 
         workoutGroupBuilderService.buildWorkoutGroups(season, maxSpread, minGroupSize, maxGroupSize, fuzzinessFactor)
+    }
+
+    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
+    @RequestMapping(value = ["xc/workout/get"], method = [RequestMethod.GET])
+    fun getWorkoutsV2(
+
+            @ApiParam("Earliest Date to look for")
+            @RequestParam(value = "startDate", required = true) startDate: Date,
+
+            @ApiParam("Latest date to look for")
+            @RequestParam(value = "endDate", required = true) endDate: Date,
+
+            ): List<WorkoutResponseDTO> {
+
+        return workoutService.getWorkoutsV2(startDate, endDate)
+    }
+
+    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
+    @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.POST])
+    fun createWorkoutV2(
+           @RequestBody @Valid createWorkoutRequest: CreateWorkoutRequest
+    ): WorkoutResponseDTO {
+        return workoutService.createWorkoutV2(createWorkoutRequest)
+    }
+
+    @ApiOperation("Returns a planned workout for each runner based on workout type and the given pace and distance parameters")
+    @RequestMapping(value = ["xc/workout/update"], method = [RequestMethod.PUT])
+    fun updateWorkoutV2(
+            @RequestParam workoutUUID: String,
+            @RequestBody @Valid createWorkoutRequest: CreateWorkoutRequest
+    ): WorkoutResponseDTO {
+        return workoutService.updateWorkoutV2(workoutUUID, createWorkoutRequest)
+    }
+
+    @ApiOperation("Delete a workout on a given day with the matching title")
+    @RequestMapping(value = ["xc/workout/delete"], method = [RequestMethod.DELETE])
+    fun deleteWorkoutsV2(
+
+            @ApiParam("uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            ): WorkoutResponseDTO? {
+
+        return workoutService.deleteWorkoutV2(uuid)
+    }
+
+    @ApiOperation("Get the plan for the given workout")
+    @RequestMapping(value = ["xc/workout/plan"], method = [RequestMethod.GET])
+    fun getWorkoutPlanV2(
+
+            @ApiParam("uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            ): WorkoutPlanResponseV2 {
+
+        return workoutService.getWorkoutPlanV2(uuid)
     }
 
 }

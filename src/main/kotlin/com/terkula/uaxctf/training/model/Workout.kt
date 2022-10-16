@@ -6,24 +6,13 @@ import java.sql.Date
 import javax.persistence.*
 
 @Entity
-@Table(name = "workout", schema = "uaxc")
+@Table(name = "workout_clone", schema = "uaxc")
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
 class Workout (var date: Date,
-               var type: String,
                var description: String,
-               @Column(name = "target_distance")
-               var targetDistance: Int,
-               @Column(name = "target_count")
-               var targetCount: Int,
-               @Column(name = "target_pace")
-               var pace: String,
-               @Column(name = "target_duration")
-               var duration: String?,
                var title: String,
                var icon: String,
                var uuid: String,
-               @Column(name = "target_pace_adjustment")
-               var targetPaceAdjustment: String = ""
 ) {
 
     @JsonIgnore

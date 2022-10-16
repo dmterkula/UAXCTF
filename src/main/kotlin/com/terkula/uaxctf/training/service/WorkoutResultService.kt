@@ -159,31 +159,31 @@ class WorkoutResultService (
             throw RunnerNotFoundByPartialNameException("Unable to find results for runner by: $name")
         }
 
-        var workouts= workoutRepository.findByDateBetween(startDate, endDate).map { it.id to it }.toMap()
-        if (distance != 0) {
-            workouts = workouts.filter { it.value.targetDistance == distance }
-        }
+//        var workouts= workoutRepository.findByDateBetween(startDate, endDate).map { it.id to it }.toMap()
+//        if (distance != 0) {
+//            workouts = workouts.filter { it.value.targetDistance == distance }
+//        }
+//
+//        if (type.isNotEmpty()) {
+//            workouts =  workouts.filter { it.value.type.toLowerCase() == type.toLowerCase() }
+//        }
+//
+//        val workoutsForRunner = workouts.map { workoutSplitRepository.findByWorkoutIdAndRunnerId(it.key, runner.id) }
+//                .flatten()
+//                .groupBy { it.workoutId }
+//                .map { workouts[it.key]!! to it.value }.toMap()
+//                // pair workout to the summary info that workout
+//                .map {
+//                    val distanceRatio =  it.key.targetDistance.toDouble() / 5000
+//                    val season = it.key.date.getYearString()
+//                    val targetPace = getTargetPaceForRunner(it.key, distanceRatio, runner, season)
+//                    it.key to buildWorkoutInfoFromSplits(it.value, targetPace.first, targetPace.second)
+//                }.toMap()
+//                .map {
+//                    RunnerWorkoutResultsDTO(it.key, it.value)
+//                }.toMutableList()
 
-        if (type.isNotEmpty()) {
-            workouts =  workouts.filter { it.value.type.toLowerCase() == type.toLowerCase() }
-        }
-
-        val workoutsForRunner = workouts.map { workoutSplitRepository.findByWorkoutIdAndRunnerId(it.key, runner.id) }
-                .flatten()
-                .groupBy { it.workoutId }
-                .map { workouts[it.key]!! to it.value }.toMap()
-                // pair workout to the summary info that workout
-                .map {
-                    val distanceRatio =  it.key.targetDistance.toDouble() / 5000
-                    val season = it.key.date.getYearString()
-                    val targetPace = getTargetPaceForRunner(it.key, distanceRatio, runner, season)
-                    it.key to buildWorkoutInfoFromSplits(it.value, targetPace.first, targetPace.second)
-                }.toMap()
-                .map {
-                    RunnerWorkoutResultsDTO(it.key, it.value)
-                }.toMutableList()
-
-        return RunnerWorkoutResultsResponse(runner, sortRunnerWorkoutsByMethod(workoutsForRunner, sortMethod))
+        return RunnerWorkoutResultsResponse(runner, emptyList())
 
     }
 
