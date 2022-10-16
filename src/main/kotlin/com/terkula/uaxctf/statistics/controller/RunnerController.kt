@@ -59,22 +59,7 @@ class RunnerController(
 
     ): List<Runner> {
 
-        var runners = runnerRepository.findAll()
-                .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
-
-        if (active) {
-            runners = runners.filter { it.isActive }
-        }
-
-        runners = runners
-                .groupBy { it.graduatingClass }.map {
-            it.key to it.value.sortedBy { runner -> runner.name }
-        }
-                .sortedBy { it.first }
-                .map { it.second }
-                .flatten()
-
-        return runners
+        return runnerService.getRoster(active, season)
     }
 
     @ApiOperation("Create Runner")

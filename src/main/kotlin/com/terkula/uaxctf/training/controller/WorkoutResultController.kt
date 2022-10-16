@@ -45,34 +45,34 @@ class WorkoutResultController (@field:Autowired
         return WorkoutResultResponse(workoutResultService.getWorkoutResults(Date.valueOf(date), workoutType, distance, pace, sortMethod))
     }
 
-    @ApiOperation("Returns the workout results for a given runner")
-    @RequestMapping(value = ["/workoutResults/forRunner"], method = [RequestMethod.GET])
-    fun getWorkoutsForRunner(
-            @ApiParam("Optional parameter to filter for workouts of a given type. Valid values are 'progression', 'tempo' or 'progression")
-            @Pattern(
-                    regexp = "interval|tempo|progression",
-                    message = "The value provided for filter.type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
-            @RequestParam(value = "filter.type", required = false) workoutType: String = "",
-            @ApiParam("The name of the runner")
-            @RequestParam(value = "filter.runner", required = true) name: String,
-            @ApiParam("Filters workouts to within a given season")
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
-            @RequestParam(value = "filter.distance", required = false) distance: Int = 0,
-            @Pattern(
-                    regexp = "spread|target|differential",
-                    message = "The value provided for sort.method is invalid. Accepted values are 'spread', 'target', or 'differential'")
-            @ApiParam("Optional sort parameter to sort the list of workouts based on the attribute, defaulting to target pace." +
-                    " Accepted values are 'spread', 'target', or 'differential'")
-            @RequestParam(value = "sort.method", required = false, defaultValue = "target") sortMethod: String = "target"): RunnerWorkoutResultsResponse {
-
-        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
-        var endDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-12-31")
-
-        if (season.isNotEmpty()) {
-            startDate = Date.valueOf("$season-01-01")
-            endDate = Date.valueOf("$season-12-31")
-        }
-
-        return workoutResultService.getWorkoutsForRunner(startDate, endDate, name, distance, workoutType, sortMethod)
-    }
+//    @ApiOperation("Returns the workout results for a given runner")
+//    @RequestMapping(value = ["/workoutResults/forRunner"], method = [RequestMethod.GET])
+//    fun getWorkoutsForRunner(
+//            @ApiParam("Optional parameter to filter for workouts of a given type. Valid values are 'progression', 'tempo' or 'progression")
+//            @Pattern(
+//                    regexp = "interval|tempo|progression",
+//                    message = "The value provided for filter.type is invalid. Valid values are 'progression', 'tempo' or 'progression'")
+//            @RequestParam(value = "filter.type", required = false) workoutType: String = "",
+//            @ApiParam("The name of the runner")
+//            @RequestParam(value = "filter.runner", required = true) name: String,
+//            @ApiParam("Filters workouts to within a given season")
+//            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+//            @RequestParam(value = "filter.distance", required = false) distance: Int = 0,
+//            @Pattern(
+//                    regexp = "spread|target|differential",
+//                    message = "The value provided for sort.method is invalid. Accepted values are 'spread', 'target', or 'differential'")
+//            @ApiParam("Optional sort parameter to sort the list of workouts based on the attribute, defaulting to target pace." +
+//                    " Accepted values are 'spread', 'target', or 'differential'")
+//            @RequestParam(value = "sort.method", required = false, defaultValue = "target") sortMethod: String = "target"): RunnerWorkoutResultsResponse {
+//
+//        var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
+//        var endDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-12-31")
+//
+//        if (season.isNotEmpty()) {
+//            startDate = Date.valueOf("$season-01-01")
+//            endDate = Date.valueOf("$season-12-31")
+//        }
+//
+//        return workoutResultService.getWorkoutsForRunner(startDate, endDate, name, distance, workoutType, sortMethod)
+//    }
 }

@@ -83,23 +83,23 @@ class MeetPerformanceService(@field:Autowired
 
     fun loadWorkout(workoutId: Int) {
 
-        val workout = workoutRepository.findById(workoutId).get()
-
-        val runners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR)
-
-        val rawSplits = rawWorkoutRepository.findAll().asSequence().toList()
-
-
-        val workoutSplits = rawSplits.map { record ->
-            val runnerList = runners.filter { runner: Runner -> runner.name.equals(record.name, ignoreCase = true) }
-            if (runnerList.isEmpty()) {
-                println("runner name in raw workout split table does not matcher roster: " + record.name)
-                throw RunnerNotFoundByPartialNameException("runner name in raw workout split table does not matcher roster:" + record.name)
-            }
-            return@map WorkoutSplit(workoutId, runnerList[0].id, workout.targetDistance, record.time.convertHourMileSplitToMinuteSecond(), record.splitNumber)
-        }
-
-        workoutSplitRepository.saveAll(workoutSplits)
+//        val workout = workoutRepository.findById(workoutId).get()
+//
+//        val runners = runnerRepository.findByGraduatingClassGreaterThan(MeetPerformanceController.CURRENT_YEAR)
+//
+//        val rawSplits = rawWorkoutRepository.findAll().asSequence().toList()
+//
+//
+//        val workoutSplits = rawSplits.map { record ->
+//            val runnerList = runners.filter { runner: Runner -> runner.name.equals(record.name, ignoreCase = true) }
+//            if (runnerList.isEmpty()) {
+//                println("runner name in raw workout split table does not matcher roster: " + record.name)
+//                throw RunnerNotFoundByPartialNameException("runner name in raw workout split table does not matcher roster:" + record.name)
+//            }
+//            return@map WorkoutSplit(workoutId, runnerList[0].id, workout.targetDistance, record.time.convertHourMileSplitToMinuteSecond(), record.splitNumber)
+//        }
+//
+//        workoutSplitRepository.saveAll(workoutSplits)
 
     }
 

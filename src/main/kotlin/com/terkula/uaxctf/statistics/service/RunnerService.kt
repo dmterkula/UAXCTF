@@ -36,4 +36,22 @@ class RunnerService (val runnerRepository: RunnerRepository) {
         }
     }
 
+    fun getRoster(active: Boolean, season: String): List<Runner> {
+        var runners = runnerRepository.findAll()
+                .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+
+        if (active) {
+            runners = runners.filter { it.isActive }
+        }
+
+        return runners
+                .groupBy { it.graduatingClass }.map {
+                    it.key to it.value.sortedBy { runner -> runner.name }
+                }
+                .sortedBy { it.first }
+                .map { it.second }
+                .flatten()
+
+    }
+
 }
