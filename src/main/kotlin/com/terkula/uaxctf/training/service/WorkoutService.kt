@@ -22,30 +22,23 @@ import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.util.*
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.RuntimeException
 import java.sql.Date
 
 @Component
 class WorkoutService (
-        @field:Autowired
-        internal var seasonBestService: SeasonBestService,
-        @field:Autowired
-        internal var prService: PersonalRecordService,
-        @field:Autowired
-        internal var runnerRepository: RunnerRepository,
-        @field:Autowired
-        internal var meetRepository: MeetRepository,
-        @field:Autowired
-        internal var meetPerformanceRepository: MeetPerformanceRepository,
-        @field:Autowired
-        internal var xcGoalService: XcGoalService,
-        @field:Autowired
-        internal var workoutRepository: WorkoutRepository,
-        var workoutRepositoryV2: WorkoutRepository,
-        var workoutComponentRepository: WorkoutComponentRepository,
-        var runnerService: RunnerService
+     var seasonBestService: SeasonBestService,
+     var prService: PersonalRecordService,
+     var runnerRepository: RunnerRepository,
+     var meetRepository: MeetRepository,
+     var meetPerformanceRepository: MeetPerformanceRepository,
+     var xcGoalService: XcGoalService,
+     var  workoutRepository: WorkoutRepository,
+     var workoutRepositoryV2: WorkoutRepository,
+     var workoutComponentRepository: WorkoutComponentRepository,
+     var workoutSplitService: WorkoutSplitService,
+     var runnerService: RunnerService
 ) {
 
     fun getWorkoutsV2(startDate: Date, endDate: Date): List<WorkoutResponseDTO> {
@@ -234,7 +227,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom() * distanceRatio) + paceAdjustment).toMinuteSecondString()))
+                                            listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom() * distanceRatio) + paceAdjustment).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         )
                                     )
                             )
@@ -252,7 +246,9 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString()))
+                                            listOf(TargetedPace("split", ((it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+
                                     )
                                 )
                             )
@@ -272,7 +268,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (it.pr.first().time.calculateSecondsFrom() * (distanceRatio) + paceAdjustment).round(2).toMinuteSecondString()))
+                                            listOf(TargetedPace("split", (it.pr.first().time.calculateSecondsFrom() * (distanceRatio) + paceAdjustment).round(2).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -291,7 +288,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (distanceRatio * it.value.first() + paceAdjustment).toMinuteSecondString()))
+                                            listOf(TargetedPace("split", (distanceRatio * it.value.first() + paceAdjustment).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                     )
                                 )
                             )
@@ -321,7 +319,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (it.goals.first().value.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).toMinuteSecondString()))
+                                            listOf(TargetedPace("split", (it.goals.first().value.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -339,7 +338,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("perMile", ((it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString())))
+                                            listOf(TargetedPace("perMile", ((it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString()))),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -358,7 +358,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString()))
+                                            listOf(TargetedPace("perMile", (it.pr.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -376,7 +377,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale + paceAdjustment).toMinuteSecondString()))
+                                            listOf(TargetedPace("perMile", (distanceRatio * it.value.first() + tempoScale + paceAdjustment).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                     )
                                 )
                             )
@@ -409,7 +411,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.goals.first().value.calculateSecondsFrom() * distanceRatio + paceAdjustment).toMinuteSecondString(),
-                                            constructProgressionTargetedPaces(baseTimePerMile)
+                                            constructProgressionTargetedPaces(baseTimePerMile),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -429,7 +432,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            constructProgressionTargetedPaces(baseTimePerMile)
+                                            constructProgressionTargetedPaces(baseTimePerMile),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -450,7 +454,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            constructProgressionTargetedPaces(baseTimePerMile)
+                                            constructProgressionTargetedPaces(baseTimePerMile),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
                             )
@@ -472,7 +477,8 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            constructProgressionTargetedPaces(basePacePerMile)
+                                            constructProgressionTargetedPaces(basePacePerMile),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                     )
                                 )
                             )

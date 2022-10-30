@@ -1,10 +1,13 @@
 package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.training.model.Workout
+import com.terkula.uaxctf.training.model.WorkoutSplitV2
+import com.terkula.uaxctf.training.request.CreateSplitsRequest
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.service.WorkoutService
 import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
+import com.terkula.uaxctf.training.service.WorkoutSplitService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,10 +20,10 @@ import javax.validation.constraints.Pattern
 @RestController
 @Validated
 class WorkoutController(
-        @field:Autowired
-    internal var workoutService: WorkoutService,
-        @field:Autowired
-    internal var workoutGroupBuilderService: WorkoutGroupBuilderService
+    var workoutService: WorkoutService,
+    var workoutGroupBuilderService: WorkoutGroupBuilderService,
+    var workoutSplitService: WorkoutSplitService
+
 ) {
 
     @ApiOperation("Returns workout groups")
@@ -98,5 +101,37 @@ class WorkoutController(
 
         return workoutService.getWorkoutPlanV2(uuid)
     }
+
+    @ApiOperation("Add splits for runner for component")
+    @RequestMapping(value = ["xc/workout/split/create"], method = [RequestMethod.PUT])
+    fun createSplits(
+            @RequestBody @Valid createSplitsRequest: CreateSplitsRequest
+    ): SplitsResponse {
+        return workoutSplitService.createSplits(createSplitsRequest)
+    }
+
+    @ApiOperation("Add splits for runner for component")
+    @RequestMapping(value = ["xc/workout/split/delete"], method = [RequestMethod.DELETE])
+    fun createSplits(
+            @ApiParam("uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+    ): List<WorkoutSplitV2> {
+        return workoutSplitService.delete(uuid)
+    }
+
+    @ApiOperation("Get Splits for runner for component")
+    @RequestMapping(value = ["xc/workout/splits/get"], method = [RequestMethod.DELETE])
+    fun getSplits(
+            @ApiParam("componentUuid")
+            @RequestParam(value = "componentUuid", required = true) componentUUID: String,
+            @ApiParam("runnerId")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+    ): SplitsResponse {
+        return workoutSplitService.getSplitsForRunnerAndComponent(runnerId, componentUUID)
+    }
+
+
+
 
 }

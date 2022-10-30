@@ -3,6 +3,7 @@ package com.terkula.uaxctf.training.dto
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.training.model.TargetedPace
 import com.terkula.uaxctf.training.model.WorkoutComponent
+import com.terkula.uaxctf.training.response.SplitsResponse
 
 class RunnerWorkoutPlanDTO (
     var runner: Runner,
@@ -25,7 +26,8 @@ class WorkoutComponentPlanElement(
     var distance: Int,
     var duration: String?,
     var baseTime: String,
-    var targetedPace: List<TargetedPace>
+    var targetedPace: List<TargetedPace>,
+    var splits: SplitsResponse? = null
 )
 
 class WorkoutComponentLabel(
