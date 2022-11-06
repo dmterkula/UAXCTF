@@ -115,12 +115,12 @@ class WorkoutController(
     fun createSplits(
             @ApiParam("uuid")
             @RequestParam(value = "uuid", required = true) uuid: String,
-    ): List<WorkoutSplitV2> {
+    ): SplitsResponse {
         return workoutSplitService.delete(uuid)
     }
 
     @ApiOperation("Get Splits for runner for component")
-    @RequestMapping(value = ["xc/workout/splits/get"], method = [RequestMethod.DELETE])
+    @RequestMapping(value = ["xc/workout/splits/get"], method = [RequestMethod.GET])
     fun getSplits(
             @ApiParam("componentUuid")
             @RequestParam(value = "componentUuid", required = true) componentUUID: String,
@@ -131,7 +131,15 @@ class WorkoutController(
         return workoutSplitService.getSplitsForRunnerAndComponent(runnerId, componentUUID)
     }
 
+    @ApiOperation("Get Splits for runner for component")
+    @RequestMapping(value = ["xc/workout/componentResults/get"], method = [RequestMethod.GET])
+    fun getComponentResults(
+            @ApiParam("componentUuid")
+            @RequestParam(value = "componentUuid", required = true) componentUUID: String
 
+            ): ComponentSplitsResponse {
+        return workoutSplitService.getWorkoutSplitsForComponent(componentUUID)
+    }
 
 
 }

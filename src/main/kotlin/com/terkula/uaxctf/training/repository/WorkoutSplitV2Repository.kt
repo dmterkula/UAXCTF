@@ -10,6 +10,8 @@ interface WorkoutSplitV2Repository: CrudRepository<WorkoutSplitV2, Int> {
 
     fun findByComponentUUIDAndRunnerId(uuid: String, runnerId: Int): List<WorkoutSplitV2>
 
+    fun findByComponentUUID(uuid: String): List<WorkoutSplitV2>
+
     @Transactional
     fun deleteByUuid(uuid: String): List<WorkoutSplitV2>
 
