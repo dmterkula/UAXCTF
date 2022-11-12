@@ -1,8 +1,6 @@
 package com.terkula.uaxctf.training.service
 
-import averageBy
 import com.terkula.uaxctf.statistics.service.RunnerService
-import com.terkula.uaxctf.training.dto.WorkoutComponentPlanElement
 import com.terkula.uaxctf.training.model.WorkoutSplitV2
 import com.terkula.uaxctf.training.repository.WorkoutComponentRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
@@ -18,7 +16,6 @@ import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.stereotype.Service
 import java.lang.RuntimeException
-import kotlin.math.roundToInt
 
 @Service
 class WorkoutSplitService(
@@ -61,22 +58,29 @@ class WorkoutSplitService(
 
     fun delete(uuid: String): SplitsResponse {
 
-        val deletedSplits = workoutSplitV2Repository.deleteByUuid(uuid)
-
-        if (deletedSplits.isEmpty()) {
+        val deletedSplit= workoutSplitV2Repository.deleteByUuid(uuid).firstOrNull()
+        if (deletedSplit == null) {
             throw RuntimeException("No split found")
         }
 
+         var splits =  workoutSplitV2Repository.findByComponentUUIDAndRunnerId(deletedSplit.componentUUID, deletedSplit.runnerId).sortedBy { it.number }
+
+         splits.forEachIndexed{ index, workoutSplitV2 ->
+            workoutSplitV2.number = index + 1
+        }
+
+        workoutSplitV2Repository.saveAll(splits)
+
         return SplitsResponse(
-                deletedSplits.first().componentUUID,
-                deletedSplits.first().runnerId,
-                deletedSplits.map { SplitResponse(it.uuid, it.number, it.value) }
+                deletedSplit.componentUUID,
+                deletedSplit.runnerId,
+                listOf(SplitResponse(deletedSplit.uuid, deletedSplit.number, deletedSplit.value))
         )
     }
 
     fun getSplitsForRunnerAndComponent(runnerId: Int, componentUUID: String): SplitsResponse {
 
-        val splits = workoutSplitV2Repository.findByComponentUUIDAndRunnerId(componentUUID, runnerId)
+        val splits = workoutSplitV2Repository.findByComponentUUIDAndRunnerId(componentUUID, runnerId).sortedBy { it.number }
 
         return SplitsResponse(componentUUID, runnerId, splits.map { SplitResponse(it.uuid, it.number, it.value)})
     }

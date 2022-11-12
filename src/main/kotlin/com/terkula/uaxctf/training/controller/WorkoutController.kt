@@ -112,7 +112,7 @@ class WorkoutController(
 
     @ApiOperation("Add splits for runner for component")
     @RequestMapping(value = ["xc/workout/split/delete"], method = [RequestMethod.DELETE])
-    fun createSplits(
+    fun deleteSplits(
             @ApiParam("uuid")
             @RequestParam(value = "uuid", required = true) uuid: String,
     ): SplitsResponse {
