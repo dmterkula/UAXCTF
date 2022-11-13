@@ -5,7 +5,9 @@ import com.terkula.uaxctf.statisitcs.model.MeetInfo
 import com.terkula.uaxctf.statistics.dto.MeetToDatesRunDTO
 import com.terkula.uaxctf.statistics.repository.MeetInfoRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
+import com.terkula.uaxctf.util.TimeUtilities
 import org.springframework.stereotype.Service
+import java.sql.Date
 
 @Service
 class MeetInfoService(
@@ -24,4 +26,11 @@ class MeetInfoService(
         }
     }
 
+    fun getMeetsForSeason(season: String): List<Meet> {
+        return meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+    }
+
+    fun getMeetsBetweenDates(startDate: Date, endDate: Date): List<Meet> {
+        return meetRepository.findByDateBetween(startDate, endDate)
+    }
 }

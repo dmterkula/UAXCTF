@@ -11,8 +11,10 @@ import javax.persistence.Table
 @Entity
 @Table(name = "meets", schema = "uaxc")
 data class Meet(
-              val name: String,
-              val date: Date)
+      val name: String,
+      val date: Date,
+      val uuid: String
+)
 {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
