@@ -11,11 +11,14 @@ import javax.persistence.Table
 @Entity
 @Table(name = "meets", schema = "uaxc")
 data class Meet(
-              val name: String,
-              val date: Date)
+      var name: String,
+      var date: Date,
+      var uuid: String,
+      var icon: String
+)
 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
 }
