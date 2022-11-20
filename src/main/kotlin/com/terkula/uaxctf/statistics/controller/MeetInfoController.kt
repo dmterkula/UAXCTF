@@ -1,15 +1,14 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statisitcs.model.Meet
+import com.terkula.uaxctf.statistics.request.CreateMeetRequest
+import com.terkula.uaxctf.statistics.request.CreateRunnerRequest
 import com.terkula.uaxctf.statistics.response.MeetResponse
 import com.terkula.uaxctf.statistics.service.MeetInfoService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
+import org.springframework.web.bind.annotation.*
 
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 import java.sql.Date
 import java.util.*
 
@@ -43,5 +42,21 @@ class MeetInfoController(var meetInfoService: MeetInfoService) {
     ) : List<Meet> {
 
         return meetInfoService.getMeetsBetweenDates(startDate, endDate)
+    }
+
+    @ApiOperation("Create a meet")
+    @RequestMapping(value = ["xc/meets/create"], method = [RequestMethod.POST])
+    fun createMeet(
+        @RequestBody createMeetRequest: CreateMeetRequest
+    ) : Meet {
+        return meetInfoService.createMeet(createMeetRequest)
+    }
+
+    @ApiOperation("Update a meet")
+    @RequestMapping(value = ["xc/meets/update"], method = [RequestMethod.PUT])
+    fun updateMeet(
+        @RequestBody createMeetRequest: CreateMeetRequest
+    ) : Meet {
+        return meetInfoService.updateMeet(createMeetRequest)
     }
 }
