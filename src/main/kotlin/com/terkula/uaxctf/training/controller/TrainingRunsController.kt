@@ -127,7 +127,7 @@ class TrainingRunsController(
         return trainingRunsService.updateRunnersTrainingRun(createRunnersTrainingRunRequest)
     }
 
-    @ApiOperation("Returns the planned training run between the given dates")
+    @ApiOperation("Delete the planned training run between the given dates")
     @RequestMapping(value = ["xc/runners-training-run/delete"], method = [RequestMethod.DELETE])
     fun deleteRunnersTrainingRun(
             @ApiParam("Runners Training run uuid")
