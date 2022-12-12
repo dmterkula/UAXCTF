@@ -3,6 +3,7 @@ package com.terkula.uaxctf.training.controller
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
+import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnersTrainingRunResponse
 import com.terkula.uaxctf.training.response.TrainingRunResponse
 import com.terkula.uaxctf.training.service.TrainingRunsService
@@ -139,6 +140,20 @@ class TrainingRunsController(
     }
 
 
+    @ApiOperation("Returns total distance run for a given runner in a given season")
+    @RequestMapping(value = ["xc/training-run/runner-distance-run"], method = [RequestMethod.GET])
+    fun getARunnersSeasonDistance(
+
+            @ApiParam("season")
+            @RequestParam(value = "season", required = true) season: String,
+
+            @ApiParam("runnerId")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+            ): List<RankedRunnerDistanceRunDTO> {
+
+        return trainingRunsService.getAllTrainingMilesRunForARunner(runnerId, season)
+    }
 
 
 }
