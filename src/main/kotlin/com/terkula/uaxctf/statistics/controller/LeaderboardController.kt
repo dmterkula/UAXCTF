@@ -18,9 +18,11 @@ class LeaderboardController(val leaderBoardService: LeaderBoardService) {
 
     @ApiOperation("Get PR leaderboard")
     @RequestMapping(value = ["xc/leaderboard/prs"], method = [RequestMethod.GET])
-    fun getPRLeaderBoard(): List<RankedPRDTO> {
+    fun getPRLeaderBoard(
+        @RequestParam(name = "page.size") pageSize: Int
+    ): List<RankedPRDTO> {
 
-        return leaderBoardService.getPRLeaderBoard()
+        return leaderBoardService.getPRLeaderBoard(pageSize)
     }
 
     @ApiOperation("Get SB leaderboard")

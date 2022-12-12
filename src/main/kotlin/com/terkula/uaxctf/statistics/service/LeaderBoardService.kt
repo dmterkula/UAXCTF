@@ -19,10 +19,11 @@ class LeaderBoardService(
     val trainingRunsService: TrainingRunsService
 ) {
 
-    fun getPRLeaderBoard(): List<RankedPRDTO> {
+    fun getPRLeaderBoard(pageSize: Int): List<RankedPRDTO> {
 
         val allPRs: List<PRDTO> = prService.getAllPRs("2017", filterClass = "", adjustForDistance = false, sortingMethodContainer = SortingMethodContainer.TIME)
                 .filter { it.pr.isNotEmpty() }
+                .take(pageSize)
 
         return allPRs.mapIndexed { index, it ->
             RankedPRDTO(it.runner, it.pr.first(), index + 1)
