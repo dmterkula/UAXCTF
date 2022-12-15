@@ -4,6 +4,7 @@ import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.model.WorkoutSplitV2
 import com.terkula.uaxctf.training.request.CreateSplitsRequest
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
+import com.terkula.uaxctf.training.request.LogWorkoutResultsRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.service.WorkoutService
 import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
@@ -139,6 +140,27 @@ class WorkoutController(
 
             ): ComponentSplitsResponse {
         return workoutSplitService.getWorkoutSplitsForComponent(componentUUID)
+    }
+
+    @ApiOperation("Log runners workout results")
+    @RequestMapping(value = ["xc/workout/runner-result/put"], method = [RequestMethod.PUT])
+    fun logRunnersResults(
+        @RequestBody logWorkoutResultsRequest: LogWorkoutResultsRequest
+    ): RunnerWorkoutResultResponse {
+        return workoutSplitService.logRunnersWorkout(logWorkoutResultsRequest)
+    }
+
+    @ApiOperation("Get a runner's workout results")
+    @RequestMapping(value = ["xc/workout/runner-result/get"], method = [RequestMethod.GET])
+    fun logRunnersResults(
+            @ApiParam("workoutUuid")
+            @RequestParam(value = "workoutUuid", required = true) workoutUuid: String,
+
+            @ApiParam("runnerId")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int
+
+    ): RunnerWorkoutResultResponse {
+        return workoutSplitService.getRunnerWorkoutResults(workoutUuid, runnerId)
     }
 
 
