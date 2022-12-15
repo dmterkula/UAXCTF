@@ -54,6 +54,8 @@ class LeaderBoardService(
 
     fun getDistanceRunRankLeaderBoard(season: String): List<RankedRunnerDistanceRunDTO> {
 
+        // need to get workout splits sum and total meets run
+
         return trainingRunsService.getAllTrainingMilesRunByRunner(season)
 
     }
