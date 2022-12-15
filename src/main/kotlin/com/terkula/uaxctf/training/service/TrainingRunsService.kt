@@ -10,10 +10,8 @@ import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
 import com.terkula.uaxctf.training.repository.TrainingRunRepository
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
-import com.terkula.uaxctf.training.response.RunnerTrainingRunDTO
-import com.terkula.uaxctf.training.response.RunnersTrainingRunResponse
-import com.terkula.uaxctf.training.response.TrainingRunDTO
-import com.terkula.uaxctf.training.response.TrainingRunResponse
+import com.terkula.uaxctf.training.response.*
+import com.terkula.uaxctf.util.TimeUtilities
 import org.springframework.stereotype.Service
 import java.lang.RuntimeException
 import java.sql.Date
@@ -276,5 +274,62 @@ class TrainingRunsService(
             }
 
         }
+    }
+
+    fun getAllTrainingMilesRunByRunner(season: String): List<RankedRunnerDistanceRunDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+
+        val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+             runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach{ loggedRun ->
+                        val entry = runnersToDistance[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
+                        } else {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = entry + loggedRun.distance
+                        }
+
+                    }
+
+        }
+
+        return runnersToDistance.toList().sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
+                }
+
+    }
+
+    fun getAllTrainingMilesRunForARunner(runnerId: Int, season: String): List<RankedRunnerDistanceRunDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+
+        val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach{ loggedRun ->
+                        val entry = runnersToDistance[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
+                        } else {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = entry + loggedRun.distance
+                        }
+
+                    }
+        }
+
+        return runnersToDistance.toList().sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
+                }
+
     }
 }

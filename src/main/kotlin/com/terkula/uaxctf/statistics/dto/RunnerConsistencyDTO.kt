@@ -6,3 +6,7 @@ import com.terkula.uaxctf.statisitcs.model.Runner
 class RunnerConsistencyDTO (val runner: Runner, val consistencyRank: ConsistencyRank) {
 
 }
+
+class RankedRunnerConsistencyDTO(val runner: Runner, val consistencyValue: Double, val rank: Int) {
+
+}
