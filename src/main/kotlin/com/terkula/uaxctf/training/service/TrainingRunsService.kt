@@ -203,8 +203,17 @@ class TrainingRunsService(
             )))
 
         } else {
-            throw RuntimeException("runner training run already exists for runnerId: " + createRunnersTrainingRunRequest.runnerId
-            + " and uuid: " + createRunnersTrainingRunRequest.trainingRunUUID)
+
+            runnerRecord.distance == createRunnersTrainingRunRequest.distance
+            runnerRecord.time == createRunnersTrainingRunRequest.time
+            runnerRecord.avgPace = createRunnersTrainingRunRequest.avgPace
+
+            runnersTrainingRunRepository.save(runnerRecord)
+
+            return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
+                    runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance, runnerRecord.avgPace
+            )))
+
         }
     }
 

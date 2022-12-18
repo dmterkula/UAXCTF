@@ -124,7 +124,7 @@ class WorkoutSplitService(
             getSplitsForRunnerAndComponent(runnerId, it.uuid)
         }
 
-        return RunnerWorkoutResultResponse(runner, workout, splitsResponses, totalDistance)
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponses, totalDistance)
 
     }
 
@@ -133,6 +133,8 @@ class WorkoutSplitService(
 
         val workout = workoutRepositoryV2.findByUuid(logWorkoutResultsRequest.workoutUuid).first()
         val runner = runnerService.getRoster(true, workout.date.getYearString()).first { it.id == logWorkoutResultsRequest.runnerId }
+
+        val components = workoutComponentRepository.findByWorkoutUuid(logWorkoutResultsRequest.workoutUuid)
 
         val splitsResponse = logWorkoutResultsRequest.componentsSplits.map {
             createSplits(CreateSplitsRequest(it.componentUUID, logWorkoutResultsRequest.runnerId, it.splits))
@@ -155,7 +157,7 @@ class WorkoutSplitService(
             workoutDistanceRepository.save(existingRecord)
         }
 
-        return RunnerWorkoutResultResponse(runner, workout, splitsResponse, distance)
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponse, distance)
 
     }
 
