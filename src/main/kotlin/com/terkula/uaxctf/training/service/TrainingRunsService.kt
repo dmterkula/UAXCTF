@@ -204,8 +204,8 @@ class TrainingRunsService(
 
         } else {
 
-            runnerRecord.distance == createRunnersTrainingRunRequest.distance
-            runnerRecord.time == createRunnersTrainingRunRequest.time
+            runnerRecord.distance = createRunnersTrainingRunRequest.distance
+            runnerRecord.time = createRunnersTrainingRunRequest.time
             runnerRecord.avgPace = createRunnersTrainingRunRequest.avgPace
 
             runnersTrainingRunRepository.save(runnerRecord)
