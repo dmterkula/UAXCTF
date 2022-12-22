@@ -6,8 +6,10 @@ import com.terkula.uaxctf.training.model.RunnersTrainingRun
 import com.terkula.uaxctf.training.model.TrainingRun
 import com.terkula.uaxctf.training.model.TrainingRunResult
 import com.terkula.uaxctf.training.model.TrainingRunResults
+import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
 import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
 import com.terkula.uaxctf.training.repository.TrainingRunRepository
+import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
 import com.terkula.uaxctf.training.response.*
@@ -21,7 +23,9 @@ import java.util.*
 class TrainingRunsService(
     val trainingRunRepository: TrainingRunRepository,
     val runnersTrainingRunRepository: RunnersTrainingRunRepository,
-    val runnerRepository: RunnerRepository
+    val runnerRepository: RunnerRepository,
+    val workoutRepository: WorkoutRepository,
+    val workoutDistanceRepository: RunnerWorkoutDistanceRepository
 ) {
 
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
@@ -307,6 +311,21 @@ class TrainingRunsService(
 
         }
 
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuid(it.uuid)
+                    .forEach { distance ->
+                        val entry = runnersToDistance[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                        } else {
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                        }
+                    }
+
+        }
+
         return runnersToDistance.toList().sortedByDescending { it.second }
                 .mapIndexed { index, it ->
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
@@ -333,6 +352,21 @@ class TrainingRunsService(
                         }
 
                     }
+        }
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { distance ->
+                        val entry = runnersToDistance[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                        } else {
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                        }
+                    }
+
         }
 
         return runnersToDistance.toList().sortedByDescending { it.second }
