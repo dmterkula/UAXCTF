@@ -2,7 +2,14 @@ package com.terkula.uaxctf.util
 
 import com.terkula.uaxctf.statisitcs.model.Runner
 import java.sql.Date
-import java.util.Calendar
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.*
+import java.util.function.IntFunction
+import java.util.stream.Collectors
+import java.util.stream.IntStream
+import kotlin.streams.toList
+
 
 class TimeUtilities {
 
@@ -22,9 +29,16 @@ class TimeUtilities {
         fun getLastDayOfGivenYear(year: String): Date {
             return Date.valueOf("$year-12-31")
         }
+
+        fun getDatesBetween(startDate: LocalDate, endDate: LocalDate): List<LocalDate> {
+
+            val numOfDaysBetween = ChronoUnit.DAYS.between(startDate, endDate)
+            return IntStream.range(0, numOfDaysBetween.toInt() + 1).toList()
+                    .map { startDate.plusDays(it.toLong()) }
+        }
+
     }
 }
-
 
 fun String.calculateSecondsFrom(): Double {
 

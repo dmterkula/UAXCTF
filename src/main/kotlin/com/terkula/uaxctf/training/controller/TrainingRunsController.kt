@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.training.controller
 
+import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
@@ -153,6 +154,21 @@ class TrainingRunsController(
             ): List<RankedRunnerDistanceRunDTO> {
 
         return trainingRunsService.getAllTrainingMilesRunForARunner(runnerId, season)
+    }
+
+    @ApiOperation("Returns total distance run for a given runner in a given season")
+    @RequestMapping(value = ["xc/training-run/runner-weekly-summary"], method = [RequestMethod.GET])
+    fun getARunnersWeeklySummary(
+
+            @ApiParam("season")
+            @RequestParam(value = "season", required = true) season: String,
+
+            @ApiParam("runnerId")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+            ): List<DateRangeRunSummaryDTO> {
+
+        return trainingRunsService.getTotalDistancePerWeek(season, runnerId)
     }
 
 
