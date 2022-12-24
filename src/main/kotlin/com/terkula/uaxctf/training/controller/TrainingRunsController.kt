@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.training.controller
 
+import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
@@ -13,6 +14,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
 import javax.validation.Valid
+import javax.validation.constraints.Pattern
 
 @RestController
 @Validated
@@ -153,6 +155,32 @@ class TrainingRunsController(
             ): List<RankedRunnerDistanceRunDTO> {
 
         return trainingRunsService.getAllTrainingMilesRunForARunner(runnerId, season)
+    }
+
+    @ApiOperation("Returns total distance run for a given runner in a given season")
+    @RequestMapping(value = ["xc/training-run/runner-summary"], method = [RequestMethod.GET])
+    fun getARunnersWeeklySummary(
+
+            @ApiParam("season")
+            @RequestParam(value = "season", required = true) season: String,
+
+            @ApiParam("runnerId")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+            @ApiParam("timeFrame")
+            @Pattern(regexp = "daily|weekly|monthly", message = "only supported timeFrame values are 'daily', 'weekly', or 'monthly'")
+            @RequestParam(value = "timeFrame", required = false) timeFrame: String? = "weekly"
+
+            ): List<DateRangeRunSummaryDTO> {
+
+        return if (timeFrame == null || timeFrame == "weekly") {
+            trainingRunsService.getTotalDistancePerWeek(season, runnerId)
+        } else if (timeFrame == "monthly") {
+            trainingRunsService.getTotalDistancePerMonth(season, runnerId)
+        } else {
+            trainingRunsService.getTotalDistancePerDay(season, runnerId)
+        }
+
     }
 
 

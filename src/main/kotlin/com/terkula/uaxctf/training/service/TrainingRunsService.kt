@@ -2,10 +2,7 @@ package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
-import com.terkula.uaxctf.training.model.RunnersTrainingRun
-import com.terkula.uaxctf.training.model.TrainingRun
-import com.terkula.uaxctf.training.model.TrainingRunResult
-import com.terkula.uaxctf.training.model.TrainingRunResults
+import com.terkula.uaxctf.training.model.*
 import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
 import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
 import com.terkula.uaxctf.training.repository.TrainingRunRepository
@@ -14,10 +11,23 @@ import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.calculateSecondsFrom
+import com.terkula.uaxctf.util.round
+import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.stereotype.Service
-import java.lang.RuntimeException
 import java.sql.Date
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.Month
+import java.time.format.DateTimeFormatter
+import java.time.temporal.IsoFields
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.TemporalAdjusters.firstDayOfMonth
+import java.time.temporal.TemporalAdjusters.lastDayOfMonth
+import java.time.temporal.WeekFields
 import java.util.*
+import java.util.stream.Collectors
+
 
 @Service
 class TrainingRunsService(
@@ -343,7 +353,7 @@ class TrainingRunsService(
 
         allTrainingRuns.forEach {
             runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runnerId)
-                    .forEach{ loggedRun ->
+                    .forEach { loggedRun ->
                         val entry = runnersToDistance[runners[loggedRun.runnerId]]
                         if (entry == null) {
                             runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
@@ -374,5 +384,181 @@ class TrainingRunsService(
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
                 }
 
+    }
+
+    fun getTotalDistancePerDay(season: String, runnerId: Int): List<DateRangeRunSummaryDTO> {
+
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+
+        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+
+        if (dates.isEmpty()) {
+            return emptyList()
+        }
+
+        val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
+                .groupBy { it.dayOfYear }
+                .toList().sortedBy { it.first }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .toMap()
+
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { loggedRun ->
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingCount + 1
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingRunDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingRunDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile + loggedRun.time.calculateSecondsFrom()
+                    }
+        }
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + distance.distance
+                    }
+
+        }
+
+        return trainingSummaryDates.map {
+
+            val start = LocalDate.ofYearDay(season.toInt(), it.key)
+
+            val avgPace =
+                    if (it.value.trainingCount != 0) {
+                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                    } else {
+                        0.0
+                    }
+            DateRangeRunSummaryDTO(start, start, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
+        }
+    }
+
+    fun getTotalDistancePerWeek(season: String, runnerId: Int): List<DateRangeRunSummaryDTO> {
+
+        val weekOfYear = WeekFields.of(Locale.getDefault()).weekOfYear()
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+
+       val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+
+        if (dates.isEmpty()) {
+           return emptyList()
+        }
+
+        val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
+                .groupBy { it.get(weekOfYear) }
+                .toList().sortedBy { it.first }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .toMap()
+
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { loggedRun ->
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingRunDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingRunDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + loggedRun.time.calculateSecondsFrom()
+                    }
+        }
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + distance.distance
+                    }
+
+        }
+
+        return trainingSummaryDates.map {
+            val start = LocalDate.now()
+                    .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
+                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+
+            val end = LocalDate.now()
+            .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+
+
+            val avgPace =
+                    if (it.value.trainingCount != 0) {
+                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                    } else {
+                        0.0
+                    }
+            DateRangeRunSummaryDTO(start, end, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
+        }
+    }
+
+    fun getTotalDistancePerMonth(season: String, runnerId: Int): List<DateRangeRunSummaryDTO> {
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+
+        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+
+        if (dates.isEmpty()) {
+            // return emp
+            return emptyList()
+        }
+
+        val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
+                .groupBy { it.monthValue }
+                .toList().sortedBy { it.first }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .toMap()
+
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { loggedRun ->
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingCount + 1
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingRunDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingRunDistance + loggedRun.distance
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile + loggedRun.time.calculateSecondsFrom()
+                    }
+        }
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+                    .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + distance.distance
+                    }
+
+        }
+
+        return trainingSummaryDates.map {
+            val start = LocalDate.of(season.toInt(), it.key, 1)
+                    .with(firstDayOfMonth())
+
+
+            val end = start.with(lastDayOfMonth())
+
+
+            val avgPace =
+                    if (it.value.trainingCount != 0) {
+                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                    } else {
+                        0.0
+                    }
+            DateRangeRunSummaryDTO(start, end, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
+        }
     }
 }
