@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
 import javax.validation.Valid
+import javax.validation.constraints.Pattern
 
 @RestController
 @Validated
@@ -157,7 +158,7 @@ class TrainingRunsController(
     }
 
     @ApiOperation("Returns total distance run for a given runner in a given season")
-    @RequestMapping(value = ["xc/training-run/runner-weekly-summary"], method = [RequestMethod.GET])
+    @RequestMapping(value = ["xc/training-run/runner-summary"], method = [RequestMethod.GET])
     fun getARunnersWeeklySummary(
 
             @ApiParam("season")
@@ -166,9 +167,20 @@ class TrainingRunsController(
             @ApiParam("runnerId")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
+            @ApiParam("timeFrame")
+            @Pattern(regexp = "daily|weekly|monthly", message = "only supported timeFrame values are 'daily', 'weekly', or 'monthly'")
+            @RequestParam(value = "timeFrame", required = false) timeFrame: String? = "weekly"
+
             ): List<DateRangeRunSummaryDTO> {
 
-        return trainingRunsService.getTotalDistancePerWeek(season, runnerId)
+        return if (timeFrame == null || timeFrame == "weekly") {
+            trainingRunsService.getTotalDistancePerWeek(season, runnerId)
+        } else if (timeFrame == "monthly") {
+            trainingRunsService.getTotalDistancePerMonth(season, runnerId)
+        } else {
+            trainingRunsService.getTotalDistancePerDay(season, runnerId)
+        }
+
     }
 
 
