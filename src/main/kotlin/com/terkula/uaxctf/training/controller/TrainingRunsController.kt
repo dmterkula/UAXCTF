@@ -88,9 +88,6 @@ class TrainingRunsController(
             @ApiParam("runnerId")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("Training run uuid")
-            @RequestParam(value = "trainingRunUUID", required = true) trainingRunUUID: String,
-
             @ApiParam("Earliest Date")
             @RequestParam(value = "startDate", required = true) startDate: Date,
 
@@ -99,7 +96,7 @@ class TrainingRunsController(
 
             ): TrainingRunResults {
 
-        return trainingRunsService.getARunnersTrainingRunsWithinDates(runnerId, trainingRunUUID, startDate, endDate)
+        return trainingRunsService.getARunnersTrainingRunsWithinDates(runnerId, startDate, endDate)
     }
 
     @ApiOperation("Returns a particular runners training runs")

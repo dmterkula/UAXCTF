@@ -34,6 +34,42 @@ class RunnerProfileService (
         internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper) {
 
 
+    fun buildRunnerProfileV2(runnerId: Int, season: String): RunnerProfileDTOV2 {
+        val runner = runnerRepository.findById(runnerId).get()
+
+
+        ////////// async oeprations //////////
+
+
+        val prRanksFuture = runnerProfileAsyncHelper.getPRLeaderboard()
+        val sbRanksFuture = runnerProfileAsyncHelper.getSBLeaderboard(season)
+        val meetSplitConsistencyRanksFuture = runnerProfileAsyncHelper.getRaceConsistencyLeaderboard(season)
+        val timeTrialProgressionRanksFuture = runnerProfileAsyncHelper.getTimeTrialProgressionLeaderboard(season)
+        val distanceRunRanksFuture = runnerProfileAsyncHelper.getDistanceRunLeaderBoard(season)
+        val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season)
+        val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season)
+        val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season)
+
+        //////// end async operations /////////
+
+
+        // build response
+
+        val prRank = prRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val sbRank = sbRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val consistencyRank = meetSplitConsistencyRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val timeTrailProgressionRank = timeTrialProgressionRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val trainingDistanceRank = distanceRunRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val trainingRuns = trainingRunsFuture.get()
+        val workoutResults = workoutResultsFuture.get()
+        val goals = goalsFuture.get()
+
+        return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
+                goals.goals, trainingRuns.trainingRunResults, workoutResults)
+
+
+    }
+
     fun buildRunnerProfile(name: String): RunnerProfileDTO {
 
         val runner =

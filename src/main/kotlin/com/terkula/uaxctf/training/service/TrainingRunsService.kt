@@ -155,7 +155,7 @@ class TrainingRunsService(
 
     }
 
-    fun getARunnersTrainingRunsWithinDates(runnerId: Int, trainingRunUUID: String, startDate: Date, endDate: Date): TrainingRunResults {
+    fun getARunnersTrainingRunsWithinDates(runnerId: Int, startDate: Date, endDate: Date): TrainingRunResults {
 
         val runner: Optional<Runner> = runnerRepository.findById(runnerId)
 

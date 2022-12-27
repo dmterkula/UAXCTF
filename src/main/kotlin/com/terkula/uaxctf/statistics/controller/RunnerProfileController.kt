@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statistics.controller
 
+import com.terkula.uaxctf.statistics.dto.RunnerProfileDTOV2
 import com.terkula.uaxctf.statistics.response.RunnerProfileResponse
 import com.terkula.uaxctf.statistics.service.RunnerProfileService
 import io.swagger.annotations.ApiOperation
@@ -24,7 +25,19 @@ class RunnerProfileController (@field:Autowired
 
     }
 
+    @ApiOperation("Returns PRs for all runners in the the given date constraints")
+    @RequestMapping(value = ["xc/runnerProfileV2/"], method = [RequestMethod.GET])
+    fun getRunnerProfile(
+            @ApiParam("Specifies the runner whose profile is to be returned")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
 
+            @ApiParam("Specifies season")
+            @RequestParam(value = "season", required = true) season: String
+            ): RunnerProfileDTOV2 {
+
+        return runnerProfileService.buildRunnerProfileV2(runnerId, season)
+
+    }
 
 }

@@ -1,9 +1,6 @@
 package com.terkula.uaxctf.statistics.service
 
-import com.terkula.uaxctf.statistics.dto.PRDTO
-import com.terkula.uaxctf.statistics.dto.RankedPRDTO
-import com.terkula.uaxctf.statistics.dto.RankedRunnerConsistencyDTO
-import com.terkula.uaxctf.statistics.dto.RankedSeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.service.TrainingRunsService
@@ -16,7 +13,8 @@ class LeaderBoardService(
     val prService: PersonalRecordService,
     val seasonBestService: SeasonBestService,
     val consistencyRankService: ConsistencyRankService,
-    val trainingRunsService: TrainingRunsService
+    val trainingRunsService: TrainingRunsService,
+    val timeTrialService: TimeTrialService
 ) {
 
     fun getPRLeaderBoard(pageSize: Int): List<RankedPRDTO> {
@@ -58,6 +56,10 @@ class LeaderBoardService(
 
         return trainingRunsService.getAllTrainingMilesRunByRunner(season)
 
+    }
+
+    fun getTimeTrialProgressionLeaderBoard(season: String): List<TimeTrialImprovementDTO> {
+        return timeTrialService.getRankedProgressionSinceTimeTrial(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), false)
     }
 
 }
