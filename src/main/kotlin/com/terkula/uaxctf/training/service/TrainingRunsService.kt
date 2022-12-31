@@ -155,7 +155,7 @@ class TrainingRunsService(
 
     }
 
-    fun getARunnersTrainingRunsWithinDates(runnerId: Int, trainingRunUUID: String, startDate: Date, endDate: Date): TrainingRunResults {
+    fun getARunnersTrainingRunsWithinDates(runnerId: Int, startDate: Date, endDate: Date): TrainingRunResults {
 
         val runner: Optional<Runner> = runnerRepository.findById(runnerId)
 
@@ -169,6 +169,8 @@ class TrainingRunsService(
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance, result.avgPace) })
         }
+                .filter { it.results.isNotEmpty() }
+
 
         return TrainingRunResults(runnersTrainingRuns)
 

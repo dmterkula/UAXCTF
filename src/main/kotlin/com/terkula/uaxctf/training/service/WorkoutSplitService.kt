@@ -10,10 +10,7 @@ import com.terkula.uaxctf.training.repository.WorkoutSplitV2Repository
 import com.terkula.uaxctf.training.request.CreateSplitsRequest
 import com.terkula.uaxctf.training.request.LogWorkoutResultsRequest
 import com.terkula.uaxctf.training.response.*
-import com.terkula.uaxctf.util.calculateSecondsFrom
-import com.terkula.uaxctf.util.getYearString
-import com.terkula.uaxctf.util.round
-import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
 import java.lang.RuntimeException
 
@@ -126,6 +123,30 @@ class WorkoutSplitService(
 
         return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponses, totalDistance)
 
+    }
+
+    fun getAllARunnersWorkoutResults(runnerId: Int, season: String): List<RunnerWorkoutResultResponse> {
+
+        val workouts = workoutRepositoryV2.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+        val runner = runnerService.getRoster(false, season).first { it.id == runnerId }
+
+        val results = workouts.map {
+            val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
+            val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+            var totalDistance = 0.0
+            if (workoutDistance.isNotEmpty()) {
+                totalDistance = workoutDistance.sumOf {dist-> dist.distance }
+            }
+
+            val splitsResponses = components.map { comp->
+                getSplitsForRunnerAndComponent(runnerId, comp.uuid)
+            }
+                    .filter { splits -> splits.splits.isNotEmpty() }
+
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components), splitsResponses, totalDistance)
+        }
+
+        return results.filter { it.componentResults.isNotEmpty()  }
     }
 
     fun logRunnersWorkout(logWorkoutResultsRequest: LogWorkoutResultsRequest): RunnerWorkoutResultResponse{

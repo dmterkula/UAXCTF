@@ -73,17 +73,30 @@ class TimeTrialService (@field: Autowired
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()
 
-        return adjustedTimeTrialResults
+        val ranks = adjustedTimeTrialResults
                 .map { it to seasonBests[it.runnerId] }
                 .toMap()
-                .filter { it.value != null }
                 .map {
                      // if seasonBestDTO is null, difference is 0, or filter them out and give no rank.
-                    TimeTrialImprovementDTO(0, runners[it.key.runnerId]!!, it.key.time, it.value!!.seasonBest.first().time,
-                            (it.value!!.seasonBest.first().time.calculateSecondsFrom() - it.key.time.calculateSecondsFrom()).toMinuteSecondString())
+
+                    if (it.value == null) {
+                        return@map (TimeTrialImprovementDTO(0, runners[it.key.runnerId]!!, it.key.time, "00:00", "00:00"))
+                    } else {
+                        return@map TimeTrialImprovementDTO(0, runners[it.key.runnerId]!!, it.key.time, it.value!!.seasonBest.first().time,
+                                (it.value!!.seasonBest.first().time.calculateSecondsFrom() - it.key.time.calculateSecondsFrom()).toMinuteSecondString())
+                    }
+
+
                 }.sortedBy { it.improvement.calculateSecondsFrom() }
-                .mapIndexed { index, it ->
-                    TimeTrialImprovementDTO(index + 1, it.runner, it.adjustedTimeTrial, it.seasonBest, it.improvement) }
+
+        return if (ranks.all { it.seasonBest == "00:00" }) {
+            ranks
+        } else {
+            ranks.mapIndexed { index, it ->
+                TimeTrialImprovementDTO(index + 1, it.runner, it.adjustedTimeTrial, it.seasonBest, it.improvement) }
+        }
+
+
     }
 
     fun runTTestBetweenPreviousSBsToTimeTrial(

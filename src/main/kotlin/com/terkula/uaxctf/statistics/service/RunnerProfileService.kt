@@ -34,6 +34,47 @@ class RunnerProfileService (
         internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper) {
 
 
+    fun buildRunnerProfileV2(runnerId: Int, season: String): RunnerProfileDTOV2 {
+        val runner = runnerRepository.findById(runnerId).get()
+
+
+        ////////// async oeprations //////////
+
+
+        val prRanksFuture = runnerProfileAsyncHelper.getPRLeaderboard()
+        val sbRanksFuture = runnerProfileAsyncHelper.getSBLeaderboard(season)
+        val meetSplitConsistencyRanksFuture = runnerProfileAsyncHelper.getRaceConsistencyLeaderboard(season)
+        val timeTrialProgressionRanksFuture = runnerProfileAsyncHelper.getTimeTrialProgressionLeaderboard(season)
+        val distanceRunRanksFuture = runnerProfileAsyncHelper.getDistanceRunLeaderBoard(season)
+        val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season)
+        val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season)
+        val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season)
+        val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20)
+        var trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season)
+
+
+        //////// end async operations /////////
+
+
+        // build response
+
+        val prRank = prRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val sbRank = sbRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val consistencyRank = meetSplitConsistencyRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val timeTrailProgressionRank = timeTrialProgressionRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val trainingDistanceRank = distanceRunRanksFuture.get().firstOrNull { it.runner.id == runnerId }
+        val trainingRuns = trainingRunsFuture.get().trainingRunResults.sortedByDescending { it.trainingRun.date }
+        val workoutResults = workoutResultsFuture.get()
+        val goals = goalsFuture.get()
+        val meetResults = meetResultsFuture.get().map { it.performance }.flatten()
+        var trainingRunSummary = trainingRunSummaryFuture.get()
+
+        return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
+                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trainingRunSummary)
+
+
+    }
+
     fun buildRunnerProfile(name: String): RunnerProfileDTO {
 
         val runner =

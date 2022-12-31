@@ -104,10 +104,36 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun createRunnersGoalsForSeason(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+    fun getRunnersGoalForSeason(runnerId: Int, season: String): RunnerGoalDTO {
 
-        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
-                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+
+        val runner = runnerRepository.findById(runnerId).get()
+
+        val sb = seasonBestService.getSeasonBestsByName(runner.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
+
+        val goals = xcGoalRepository.findByRunnerId(runner.id)
+                .filter { it.season == season }.map {
+                    if (it.type.equals("Time", true)) {
+                        if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && sb.first().seasonBest.first().time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
+                            return@map XcGoal(it.id, it.season, it.type, it.value, true)
+                        }
+                        else {
+                            return@map it
+                        }
+                    } else {
+                        return@map it
+                    }
+                }
+
+
+        return RunnerGoalDTO(runner, goals)
+
+    }
+
+
+    fun createRunnersGoalsForSeason(runnerId: Int, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+
+        val runner = runnerRepository.findById(runnerId).get()
 
         val goals = createGoalsRequest.goals.map {
             XcGoal(runner.id, season, it.type, it.value, it.isMet)
@@ -133,10 +159,9 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun deleteRunnersGoals(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+    fun deleteRunnersGoals(runnerId: Int, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
 
-        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
-                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+        val runner = runnerRepository.findById(runnerId).get()
 
         var deletedGoals = mutableListOf<XcGoal>()
 
