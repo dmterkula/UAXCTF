@@ -1,11 +1,9 @@
 package com.terkula.uaxctf.statistics.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.terkula.uaxctf.statisitcs.model.NamedRank
-import com.terkula.uaxctf.statisitcs.model.Runner
-import com.terkula.uaxctf.statisitcs.model.ValuedRank
-import com.terkula.uaxctf.statisitcs.model.XcGoal
+import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
+import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResult
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
@@ -38,6 +36,8 @@ class RunnerProfileDTOV2(
         val timeTrialImprovementDTO: TimeTrialImprovementDTO?,
         val goals: List<XcGoal>,
         val trainingRuns: List<TrainingRunResult>,
-        val workouts: List<RunnerWorkoutResultResponse>
+        val workouts: List<RunnerWorkoutResultResponse>,
+        val meetResults: List<MeetPerformanceDTO>,
+        var trainingRunSummary: List<DateRangeRunSummaryDTO>
 
 )

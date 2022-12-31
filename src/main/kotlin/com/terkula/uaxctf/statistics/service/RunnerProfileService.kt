@@ -49,6 +49,9 @@ class RunnerProfileService (
         val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season)
         val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season)
         val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season)
+        val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20)
+        var trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season)
+
 
         //////// end async operations /////////
 
@@ -60,12 +63,14 @@ class RunnerProfileService (
         val consistencyRank = meetSplitConsistencyRanksFuture.get().firstOrNull { it.runner.id == runnerId }
         val timeTrailProgressionRank = timeTrialProgressionRanksFuture.get().firstOrNull { it.runner.id == runnerId }
         val trainingDistanceRank = distanceRunRanksFuture.get().firstOrNull { it.runner.id == runnerId }
-        val trainingRuns = trainingRunsFuture.get()
+        val trainingRuns = trainingRunsFuture.get().trainingRunResults.sortedByDescending { it.trainingRun.date }
         val workoutResults = workoutResultsFuture.get()
         val goals = goalsFuture.get()
+        val meetResults = meetResultsFuture.get().map { it.performance }.flatten()
+        var trainingRunSummary = trainingRunSummaryFuture.get()
 
         return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
-                goals.goals, trainingRuns.trainingRunResults, workoutResults)
+                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trainingRunSummary)
 
 
     }

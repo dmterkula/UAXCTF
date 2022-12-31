@@ -8,6 +8,7 @@ import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
+import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
@@ -152,6 +153,18 @@ open class RunnerProfileAsyncHelper (
     @Async
     open fun getGoalForRunner(runnerId: Int, year: String): Future<RunnerGoalDTO> {
         return AsyncResult(goalService.getRunnersGoalForSeason(runnerId, year))
+    }
+
+    @Async
+    open fun getMeetResults(runnerId: Int, season: String,
+                                         sortingMethodContainer: SortingMethodContainer, count: Int): Future<List<RunnerPerformanceDTO>> {
+        return AsyncResult(meetPerformanceService.getMeetPerformancesForRunner(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season),
+                sortingMethodContainer, count, false))
+    }
+
+    @Async
+    open fun getTrainingRunSummary(runnerId: Int, season: String): Future<List<DateRangeRunSummaryDTO>> {
+        return AsyncResult(trainingRunsService.getTotalDistancePerWeek(season, runnerId))
     }
 
 

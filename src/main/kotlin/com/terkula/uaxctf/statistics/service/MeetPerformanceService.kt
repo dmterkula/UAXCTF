@@ -207,6 +207,48 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
+    fun getMeetPerformancesForRunner(
+            runnerId: Int,
+            startDate: Date,
+            endDate: Date,
+            sortingMethodContainer: SortingMethodContainer,
+            count: Int,
+            adjustForDistance: Boolean): List<RunnerPerformanceDTO> {
+        // find runners matching partial name
+        val runner = runnerRepository.findById(runnerId).get()
+
+        // get meets within date range
+        val meets =  meetRepository.findByDateBetween(startDate, endDate)
+
+        // construct map for meet id to meet
+        val meetIdToMeetInfo = meets.map { it.id to it }.toMap()
+
+        // construct all performances for the meets only for meets in date range, and containing an id of a matching runner
+        val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id)
+                .filter { record -> record.runnerId == runnerId }
+        }.flatten()
+
+        // construct map for runner id to runner over the selected performances
+        val runners = performances.map {
+            it.runnerId to runnerRepository.findById(it.runnerId).get()
+        }.toMap()
+
+        // group performances by id.
+        // map runnerId to a MeetDTO constructed from performances and meet info map
+        val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
+                .map {
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
+                        val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
+                }.map {
+                    RunnerPerformanceDTO(it.first, it.second)
+                }
+
+        return runnerPerformanceDTOs
+
+    }
+
     fun getMeetPerformancesForRunner(runnerId: Int,
                                      startDate: Date,
                                      endDate: Date): List<XCMeetPerformance> {

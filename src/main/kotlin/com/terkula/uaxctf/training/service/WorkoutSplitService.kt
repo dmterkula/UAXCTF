@@ -141,11 +141,12 @@ class WorkoutSplitService(
             val splitsResponses = components.map { comp->
                 getSplitsForRunnerAndComponent(runnerId, comp.uuid)
             }
+                    .filter { splits -> splits.splits.isNotEmpty() }
 
             return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components), splitsResponses, totalDistance)
         }
 
-        return results
+        return results.filter { it.componentResults.isNotEmpty()  }
     }
 
     fun logRunnersWorkout(logWorkoutResultsRequest: LogWorkoutResultsRequest): RunnerWorkoutResultResponse{

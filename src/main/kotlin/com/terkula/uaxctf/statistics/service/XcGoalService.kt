@@ -130,10 +130,10 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun createRunnersGoalsForSeason(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
 
-        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
-                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+    fun createRunnersGoalsForSeason(runnerId: Int, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+
+        val runner = runnerRepository.findById(runnerId).get()
 
         val goals = createGoalsRequest.goals.map {
             XcGoal(runner.id, season, it.type, it.value, it.isMet)
@@ -159,10 +159,9 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun deleteRunnersGoals(name: String, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
+    fun deleteRunnersGoals(runnerId: Int, season: String, createGoalsRequest: GoalsRequest): RunnerGoalDTO {
 
-        val runner = runnerRepository.findByNameContaining(name).firstOrNull()
-                ?: throw RunnerNotFoundByPartialNameException("No runner matching the given name of '$name'")
+        val runner = runnerRepository.findById(runnerId).get()
 
         var deletedGoals = mutableListOf<XcGoal>()
 

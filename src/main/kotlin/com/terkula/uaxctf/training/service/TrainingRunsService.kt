@@ -169,6 +169,8 @@ class TrainingRunsService(
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance, result.avgPace) })
         }
+                .filter { it.results.isNotEmpty() }
+
 
         return TrainingRunResults(runnersTrainingRuns)
 
