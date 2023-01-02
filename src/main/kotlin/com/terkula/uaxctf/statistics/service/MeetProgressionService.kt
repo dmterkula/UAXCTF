@@ -47,7 +47,7 @@ class MeetProgressionService(@field:Autowired
 
         val performanceMap = listOf(runner to performanceAdjusterService.adjustMeetPerformances(performancePairs.second.map {
             MeetPerformanceDTO(meetMap[it!!.meetId]!!.name, meetMap[it.meetId]!!.date,
-                    it.time, it.place, null)
+                    it.time, it.place, null, it.passesSecondMile, it.passesLastMile, it.skullsEarned)
         }, adjustForDistance))
                 .map { MeetProgressionDTO(it.first, it.second, it.second.getTimeDifferencesAsStrings()) }
         return performanceMap

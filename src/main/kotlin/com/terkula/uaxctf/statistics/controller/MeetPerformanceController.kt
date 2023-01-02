@@ -1,7 +1,10 @@
 package com.terkula.uaxctf.statistics.controller
 
+import com.terkula.uaxctf.statistics.dto.RunnerMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
+import com.terkula.uaxctf.statistics.dto.TotalMeetPerformanceDTO
+import com.terkula.uaxctf.statistics.request.CreateMeetResultRequest
 import com.terkula.uaxctf.statistics.response.RunnerMeetPerformanceResponse
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import io.swagger.annotations.ApiOperation
@@ -9,10 +12,7 @@ import io.swagger.annotations.ApiParam
 import java.sql.Date
 import java.time.Year
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 class MeetPerformanceController(@field:Autowired
@@ -123,6 +123,42 @@ class MeetPerformanceController(@field:Autowired
 
         val CURRENT_YEAR = Year.now().toString()
         val FIRST_YEAR_ON_RECORD = Year.of(2017).toString()
+    }
+
+
+    @ApiOperation("Returns the meet results for all runners matching the given name")
+    @RequestMapping(value = ["xc/meetResults"], method = [RequestMethod.GET])
+    fun getTotalMeetResultsByMeetName(
+            @ApiParam("Filters results based on runners whose name matches/partially matches the input name'")
+            @RequestParam(value = "filter.meetName") partialName: String,
+            @ApiParam("Filters results for meets with a date after 01-01 of the input year")
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+            @ApiParam("Sorts results based on the input valid sorting methods are 'date' and 'time'. " +
+                    "If one these values is not provided, no sort is used ")
+            @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String,
+            @ApiParam("Limits the number of total results returned to the input")
+            @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int,
+            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): List<RunnerMeetPerformanceDTO>  {
+
+        var startDate = Date.valueOf("$season-01-01")
+        var endDate = Date.valueOf("$season-12-31")
+
+        val sortingMethodContainer = getSortingMethod(sortMethod)
+
+        return meetPerformanceService.getTotalMeetPerformancesAtMeet(partialName,
+                startDate, endDate, sortingMethodContainer, count, adjustForDistance)
+    }
+
+    @ApiOperation("Returns the meet results for all runners matching the given name")
+    @RequestMapping(value = ["xc/meetResults/createForRunner"], method = [RequestMethod.POST])
+    fun createMeetResultForRunner(@RequestBody createMeetResultRequest: CreateMeetResultRequest)
+           : List<RunnerMeetPerformanceDTO>  {
+
+        var startDate = Date.valueOf("${createMeetResultRequest.season}-01-01")
+        var endDate = Date.valueOf("${createMeetResultRequest.season}-12-31")
+
+        return meetPerformanceService.createMeetResult(createMeetResultRequest)
     }
 
 

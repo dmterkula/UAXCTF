@@ -1,16 +1,14 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
-import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
-import com.terkula.uaxctf.statistics.dto.RunnerPerformanceDTO
+import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.*
+import com.terkula.uaxctf.statistics.request.CreateMeetResultRequest
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
-import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
-import com.terkula.uaxctf.training.model.WorkoutSplit
 import com.terkula.uaxctf.training.repository.RawWorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.repository.WorkoutSplitRepository
@@ -56,7 +54,7 @@ class MeetPerformanceService(@field:Autowired
                 println("runner name in performance does not matcher roster: " + result.name)
             }
 
-            return@map XCMeetPerformance(runnerList[0].id, meetId, result.time, result.place)
+            return@map XCMeetPerformance(runnerList[0].id, meetId, result.time, result.place, 0, 0, 0)
         }
 
         meetPerformanceRepository.saveAll(xcMeetPerformances)
@@ -197,7 +195,7 @@ class MeetPerformanceService(@field:Autowired
                 .map {
                     runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
-                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null, meetPerformance.passesSecondMile, meetPerformance.passesLastMile, meetPerformance.skullsEarned)
                     }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
@@ -239,7 +237,7 @@ class MeetPerformanceService(@field:Autowired
                 .map {
                     runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetIdToMeetInfo[meetPerformance.meetId]!!
-                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null, meetPerformance.passesSecondMile, meetPerformance.passesLastMile, meetPerformance.skullsEarned)
                     }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
@@ -285,7 +283,7 @@ class MeetPerformanceService(@field:Autowired
                 .map {
                     runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
                         val meet = meetMap[meetPerformance.meetId]!!
-                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null)
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null, meetPerformance.passesSecondMile, meetPerformance.passesLastMile, meetPerformance.skullsEarned)
                     }.toMutableList(), adjustForDistance).take(count).toMutableList())
                 }.map {
                     RunnerPerformanceDTO(it.first, it.second)
@@ -293,6 +291,122 @@ class MeetPerformanceService(@field:Autowired
 
         return runnerPerformanceDTOs
     }
+
+    fun getTotalMeetPerformancesAtMeet(meetName: String,
+                                       startDate: Date,
+                                       endDate: Date,
+                                       sortingMethodContainer: SortingMethodContainer,
+                                       count: Int,
+                                       adjustForDistance: Boolean): List<RunnerMeetPerformanceDTO> {
+        // find meet matching partial name
+
+        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
+
+        // construct map for meet id to meet
+        val meetMap = meets.map { it.id to it }.toMap()
+
+        // construct all performances for the meets only for meets in date range, and containing an id of a matching runner
+        val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id)}.flatten()
+
+        // construct map for runner id to runner over the selected performances
+        val runners = performances.map {
+            it.runnerId to runnerRepository.findById(it.runnerId).get()
+        }.toMap()
+
+        // group performances by id.
+        // map runnerId to a MeetDTO constructed from performances and meet info map
+        val runnerPerformanceDTOs = performances.groupBy { it.runnerId }
+                .map {
+                    runners[it.key]!! to sortingMethodContainer.sortingFunction(performanceAdjusterService.adjustMeetPerformances(it.value.map { meetPerformance ->
+                        val meet = meetMap[meetPerformance.meetId]!!
+                        MeetPerformanceDTO(meet.name, meet.date, meetPerformance.time, meetPerformance.place, null, meetPerformance.passesSecondMile, meetPerformance.passesLastMile, meetPerformance.skullsEarned)
+                    }.toMutableList(), adjustForDistance).take(count).toMutableList())
+                }.map {
+                    RunnerPerformanceDTO(it.first, it.second)
+                }.sortedBy { it.performance.first().time.calculateSecondsFrom() }
+                .filter {
+                    it.performance.isNotEmpty()
+                }
+                .map {
+                    it.runner to it.performance.first()
+                }
+                .map {
+                    var splits = mileSplitRepository.findByMeetIdAndRunnerId(meets.first { meet-> meet.name == it.second.meetName }.id, it.first.id)
+
+                    if (splits.isNotEmpty()) {
+                        return@map RunnerMeetPerformanceDTO(it.first, TotalMeetPerformanceDTO(it.second.meetName, it.second.meetDate, it.second.time, it.second.place,
+                        splits.first().mileOne, splits.first().mileTwo, splits.first().mileThree, it.second.passesLastMile, it.second.passesSecondMile, it.second.skullsEarned))
+                    } else {
+                        return@map RunnerMeetPerformanceDTO(it.first, TotalMeetPerformanceDTO(it.second.meetName, it.second.meetDate, it.second.time, it.second.place,
+                                "00:00", "00:00", "00:00", it.second.passesLastMile, it.second.passesSecondMile, it.second.skullsEarned))
+                    }
+
+                }
+
+        return runnerPerformanceDTOs
+    }
+
+    fun createMeetResult(createMeetResultRequest: CreateMeetResultRequest): List<RunnerMeetPerformanceDTO> {
+
+        var startDate = Date.valueOf("${createMeetResultRequest.season}-01-01")
+        var endDate = Date.valueOf("${createMeetResultRequest.season}-12-31")
+
+        val meets = meetRepository.findByNameAndDateBetween(createMeetResultRequest.meetName, startDate, endDate)
+
+        if (meets.isEmpty()) {
+            return emptyList()
+        }
+
+        var runner = runnerRepository.findById(createMeetResultRequest.runnerId).get()
+
+        var meet = meets.first()
+
+        var performance = meetPerformanceRepository.findByMeetIdAndRunnerId(meet.id, runner.id)
+
+        if (performance == null) {
+
+           var newPerformance = XCMeetPerformance(runner.id, meet.id, createMeetResultRequest.time, createMeetResultRequest.place, createMeetResultRequest.passesSecondMile,
+                   createMeetResultRequest.passesLastMile, createMeetResultRequest.skullsEarned)
+            performance = newPerformance
+            meetPerformanceRepository.save(newPerformance)
+        } else {
+            performance.time = createMeetResultRequest.time
+            performance.place = createMeetResultRequest.place
+            performance.passesSecondMile = createMeetResultRequest.passesSecondMile
+            performance.passesLastMile = createMeetResultRequest.passesLastMile
+            performance.skullsEarned = createMeetResultRequest.skullsEarned
+            meetPerformanceRepository.save(performance)
+        }
+
+        if (createMeetResultRequest.mileOneSplit == "00:00" && createMeetResultRequest.mileTwoSplit == "00:00" && createMeetResultRequest.mileThreeSplit == "00:00") {
+           // if no real split info, don't insert splits
+
+            return listOf(RunnerMeetPerformanceDTO(runner,
+                    TotalMeetPerformanceDTO(meet.name, meet.date, performance.time, performance.place, createMeetResultRequest.mileOneSplit, createMeetResultRequest.mileTwoSplit,
+                            createMeetResultRequest.mileThreeSplit, createMeetResultRequest.passesLastMile, createMeetResultRequest.passesSecondMile, createMeetResultRequest.skullsEarned)))
+        }
+
+        var splits = mileSplitRepository.findByMeetIdAndRunnerId(meet.id, createMeetResultRequest.runnerId)
+
+        if (splits.isEmpty()) {
+            var newSplit = MeetMileSplit(meet.id, runner.id, createMeetResultRequest.mileOneSplit, createMeetResultRequest.mileTwoSplit, createMeetResultRequest.mileThreeSplit)
+            splits = listOf(newSplit)
+            mileSplitRepository.save(newSplit)
+        } else {
+            var existingSplit = splits.first()
+            existingSplit.mileOne = createMeetResultRequest.mileOneSplit
+            existingSplit.mileTwo = createMeetResultRequest.mileTwoSplit
+            existingSplit.mileThree = createMeetResultRequest.mileThreeSplit
+            splits = listOf(existingSplit)
+        }
+
+        return listOf(RunnerMeetPerformanceDTO(runner,
+                TotalMeetPerformanceDTO(meet.name, meet.date, performance.time, performance.place,
+                        splits.first().mileOne, splits.first().mileTwo, splits.first().mileThree)))
+
+    }
+
+
 
     fun compareTwoMeetsHistorically(
             meetName1: String,

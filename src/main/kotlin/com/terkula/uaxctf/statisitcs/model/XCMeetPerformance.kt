@@ -17,7 +17,14 @@ data class XCMeetPerformance(
          @Column(name = "meet_id")
          var meetId: Int,
          var time: String,
-         var place: Int)
+         var place: Int,
+         @Column(name = "passes_second_mile")
+         var passesSecondMile: Int,
+         @Column(name = "passes_last_mile")
+         var passesLastMile: Int,
+         @Column(name = "skulls_earned")
+         var skullsEarned: Int
+)
 
 {
     @Id
@@ -26,9 +33,11 @@ data class XCMeetPerformance(
 }
 
 fun List<XCMeetPerformance>.toMeetPerformanceDTO(meetMap: Map<Int, Meet>): List<MeetPerformanceDTO> {
-    return this.map { MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date, it.time, it.place, null) }
+    return this.map { MeetPerformanceDTO(meetMap[it.meetId]!!.name, meetMap[it.meetId]!!.date, it.time, it.place, null,
+    it.passesSecondMile, it.passesLastMile, it.skullsEarned) }
 }
 
 fun XCMeetPerformance.toMeetPerformanceDTO(meet: Meet): MeetPerformanceDTO {
-    return MeetPerformanceDTO(meet.name, meet.date, this.time, this.place, null)
+    return MeetPerformanceDTO(meet.name, meet.date, this.time, this.place, null,
+            this.passesSecondMile, this.passesLastMile, this.skullsEarned)
 }
