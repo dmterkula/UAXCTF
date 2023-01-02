@@ -13,11 +13,11 @@ class MeetMileSplit (
                       @Column(name = "runner_id")
                       val runnerId: Int,
                       @Column(name = "first_mile")
-                      val mileOne: String,
+                      var mileOne: String,
                       @Column(name = "second_mile")
-                      val mileTwo: String,
+                      var mileTwo: String,
                       @Column(name = "third_mile")
-                      val mileThree: String) {
+                      var mileThree: String) {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
