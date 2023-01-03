@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.streak.StreakDTO
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
@@ -256,6 +257,14 @@ class MeetPerformanceService(@field:Autowired
         }
     }
 
+    fun getFirstPlacePerformancesForRunner(runnerId: Int): List<XCMeetPerformance> {
+        return meetPerformanceRepository.findByRunnerIdAndPlace(runnerId, 1)
+    }
+
+    fun getPerformancesForRunner(runnerId: Int): List<XCMeetPerformance> {
+        return meetPerformanceRepository.findByRunnerId(runnerId)
+    }
+
     fun getMeetPerformancesAtMeetName(partialName: String,
                                       startDate: Date,
                                       endDate: Date,
@@ -481,6 +490,35 @@ class MeetPerformanceService(@field:Autowired
         }
 
         return meet1Performance?.time?.calculateSecondsFrom() to meet2Performance?.time?.calculateSecondsFrom()
+    }
+
+    fun getTotalPassesLastMileForRunner(runnerId: Int): Int {
+        return meetPerformanceRepository.findByRunnerId(runnerId).sumOf { it.passesLastMile }
+    }
+
+    fun getSkullsEarnedStreak(runnerId: Int): StreakDTO {
+
+        var longestStreak = 0
+        var currentStreak = 0
+
+        meetPerformanceRepository.findByRunnerId(runnerId)
+                .forEach {
+                    if (it.passesLastMile > 0) {
+                        currentStreak += 1
+                        if (currentStreak > longestStreak) {
+                            longestStreak = currentStreak
+                        }
+                    } else {
+                        currentStreak = 0
+                    }
+
+                }
+        return StreakDTO(currentStreak, longestStreak)
+
+    }
+
+    fun getSkullsEarnedTotal(runnerId: Int): Int {
+        return meetPerformanceRepository.findByRunnerId(runnerId).sumOf { it.skullsEarned }
     }
 
 }

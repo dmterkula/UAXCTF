@@ -9,6 +9,8 @@ interface RunnerWorkoutDistanceRepository: CrudRepository<RunnerWorkoutDistance,
 
     fun findByWorkoutUuid(workoutUuid: String): List<RunnerWorkoutDistance>
 
+    fun findByRunnerId(runnerId: Int): List<RunnerWorkoutDistance>
+
     fun findByWorkoutUuidAndRunnerId(workoutUuid: String, runnerId: Int): List<RunnerWorkoutDistance>
 
 }

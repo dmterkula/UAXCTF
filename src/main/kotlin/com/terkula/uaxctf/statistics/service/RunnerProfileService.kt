@@ -7,6 +7,7 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.util.TimeUtilities
@@ -69,8 +70,12 @@ class RunnerProfileService (
         val meetResults = meetResultsFuture.get().map { it.performance }.flatten()
         var trainingRunSummary = trainingRunSummaryFuture.get()
 
+        val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
+
         return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
-                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trainingRunSummary)
+                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trainingRunSummary,
+                achievementsFuture.get()
+        )
 
 
     }

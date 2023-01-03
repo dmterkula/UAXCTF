@@ -15,6 +15,7 @@ import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.stereotype.Service
+import sumBy
 import java.sql.Date
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -51,12 +52,12 @@ class TrainingRunsService(
         if (trainingRunRepository.findByUuid(createTrainingRunRequest.uuid).isEmpty()) {
 
             val trainingRun = TrainingRun(
-                createTrainingRunRequest.date,
-                createTrainingRunRequest.distance,
-                createTrainingRunRequest.time,
-                createTrainingRunRequest.icon,
-                createTrainingRunRequest.uuid,
-                createTrainingRunRequest.name
+                    createTrainingRunRequest.date,
+                    createTrainingRunRequest.distance,
+                    createTrainingRunRequest.time,
+                    createTrainingRunRequest.icon,
+                    createTrainingRunRequest.uuid,
+                    createTrainingRunRequest.name
             )
 
             trainingRunRepository.save(
@@ -126,7 +127,7 @@ class TrainingRunsService(
                 trainingRunRepository.delete(foundTrainingRun)
 
                 return TrainingRunResponse(listOf(TrainingRunDTO(
-                        foundTrainingRun.date, foundTrainingRun.distance,foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name
+                        foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete
@@ -310,8 +311,8 @@ class TrainingRunsService(
         val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
 
         allTrainingRuns.forEach {
-             runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
-                    .forEach{ loggedRun ->
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
                         val entry = runnersToDistance[runners[loggedRun.runnerId]]
                         if (entry == null) {
                             runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
@@ -342,6 +343,23 @@ class TrainingRunsService(
                 .mapIndexed { index, it ->
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
                 }
+
+    }
+
+    // pair of training distance to logged run count
+    fun getAllTrainingMilesRunForARunnerCareer(runnerId: Int): Pair<Double, Int> {
+
+        val runners = runnerRepository.findById(runnerId).get()
+
+        val trainingRuns = runnersTrainingRunRepository.findByRunnerId(runnerId)
+        var trainingRunCount = trainingRuns.size
+        var trainingDistance = trainingRuns.sumOf { it.distance }
+
+        val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
+        trainingRunCount += workoutDistances.size
+        trainingDistance += workoutDistances.sumOf { it.distance }
+        
+        return Pair(trainingDistance.round(2), trainingRunCount)
 
     }
 
@@ -452,10 +470,10 @@ class TrainingRunsService(
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
 
-       val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
 
         if (dates.isEmpty()) {
-           return emptyList()
+            return emptyList()
         }
 
         val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
@@ -491,8 +509,8 @@ class TrainingRunsService(
                     .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
 
             val end = LocalDate.now()
-            .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                    .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
 
 
             val avgPace =

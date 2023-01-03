@@ -507,4 +507,28 @@ class MeetMileSplitService(
         }
     }
 
+
+    fun getMeetSplitsForRunner(runnerId: Int): RunnerMeetSplitResponse {
+        val meets = meetRepository.findAll()
+
+        val meetMap = meets.map { it.id to it }.toMap()
+
+        val runner = runnerRepository.findById(runnerId).get()
+
+        val races = meetPerformanceService.getPerformancesForRunner(runnerId)
+
+        val splitPerformance = races.map {
+            it to meetMileSplitRepository.findByMeetIdAndRunnerId(it.meetId, runner.id).firstOrNull()
+        }
+                .filter {  it.second != null }
+                .map {
+                    it.first.toMeetPerformanceDTO(meetMap[it.first.meetId]!!) to it.second!!
+                }
+                .map {
+                    RunnerMeetSplitDTO(it.first, MeetSplitsDTO(it.second.mileOne, it.second.mileTwo, it.second.mileThree))
+                }
+
+        return RunnerMeetSplitResponse(runner, splitPerformance)
+    }
+
 }

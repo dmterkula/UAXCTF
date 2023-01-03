@@ -7,11 +7,13 @@ import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameExcept
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
+import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
+import com.terkula.uaxctf.training.service.AchievementService
 import com.terkula.uaxctf.training.service.TrainingRunsService
 import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.training.service.WorkoutSplitService
@@ -39,6 +41,7 @@ open class RunnerProfileAsyncHelper (
     val leaderBoardService: LeaderBoardService,
     val trainingRunsService: TrainingRunsService,
     val workoutSplitService: WorkoutSplitService,
+    val achievementService: AchievementService
 ) {
 
 
@@ -167,6 +170,10 @@ open class RunnerProfileAsyncHelper (
         return AsyncResult(trainingRunsService.getTotalDistancePerWeek(season, runnerId))
     }
 
+    @Async
+    open fun getAchievements(runnerId: Int): Future<RunnerAchievementsDTO> {
+        return AsyncResult(achievementService.getRunnersAchievements(runnerId))
+    }
 
 
 }

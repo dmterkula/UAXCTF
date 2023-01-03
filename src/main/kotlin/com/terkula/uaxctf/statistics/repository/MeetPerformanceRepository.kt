@@ -11,5 +11,7 @@ interface MeetPerformanceRepository : CrudRepository<XCMeetPerformance, Int> {
 
     fun findByMeetIdAndRunnerId(meetId: Int, runnerId: Int): XCMeetPerformance?
 
+    fun findByRunnerIdAndPlace(runnerId: Int, place: Int): MutableList<XCMeetPerformance>
+
 
 }
