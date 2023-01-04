@@ -90,6 +90,10 @@ class AsyncAchievementService(
         return AsyncResult(meetPerformanceService.getSkullsEarnedStreak(runnerId))
     }
 
+    @Async fun getSkullsStreakAchievement(runnerId: Int): Future<StreakDTO> {
+        return AsyncResult(meetPerformanceService.getSkullsEarnedStreak(runnerId))
+    }
+
     @Async fun getSkullsEarnedTotal(runnerId: Int): Future<Int> {
         return AsyncResult(meetPerformanceService.getSkullsEarnedTotal(runnerId))
     }

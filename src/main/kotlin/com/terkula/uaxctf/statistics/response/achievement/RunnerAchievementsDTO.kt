@@ -10,6 +10,7 @@ class RunnerAchievementsDTO(
     var totalTrainingDistanceAchievements: List<Achievement>,
     var loggedRunAchievement: List<Achievement>,
     var skullsEarnedStreak: StreakDTO,
+    var skullStreakAchievement: List<Achievement>,
     var totalSkullsEarnedAchievement: List<Achievement>
 )
 
@@ -19,5 +20,8 @@ class RunnerAchievementsDTO(
 class Achievement(
     val threshold: Double,
     val value: Double,
-    val met: Boolean
+    val met: Boolean,
+    val imageName: String,
+    val valueIsInt: Boolean,
+    val description: String
 )
