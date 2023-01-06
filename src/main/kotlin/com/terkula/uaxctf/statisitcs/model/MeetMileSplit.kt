@@ -23,6 +23,28 @@ class MeetMileSplit (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonIgnore
     val id: Int = 0
+
+}
+
+
+
+fun MeetMileSplit.isConsistentRace(): Boolean {
+
+    val splits: List<Double> = listOf(mileOne.calculateSecondsFrom(),
+            mileTwo.calculateSecondsFrom(),
+            mileThree.calculateSecondsFrom())
+
+    val max = splits.maxOrNull()
+    val min = splits.minOrNull()
+
+    return if (max != null && min != null) {
+        val spread = max!! - min!!
+
+        spread <= 20
+    } else {
+        false
+    }
+
 }
 
 fun MeetMileSplit.matches(splits: List<MeetMileSplit>): Boolean {

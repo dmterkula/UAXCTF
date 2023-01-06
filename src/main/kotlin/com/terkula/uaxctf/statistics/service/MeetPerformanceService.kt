@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.streak.StreakDTO
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.MultipleMeetsFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
@@ -205,6 +206,10 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
+    fun getResultsForMeet(meetId: Int): List<XCMeetPerformance> {
+        return meetPerformanceRepository.findByMeetId(meetId)
+    }
+
     fun getMeetPerformancesForRunner(
             runnerId: Int,
             startDate: Date,
@@ -254,6 +259,14 @@ class MeetPerformanceService(@field:Autowired
         return meetRepository.findByDateBetween(startDate, endDate).mapNotNull {
             meetPerformanceRepository.findByMeetIdAndRunnerId(it.id, runnerId)
         }
+    }
+
+    fun getFirstPlacePerformancesForRunner(runnerId: Int): List<XCMeetPerformance> {
+        return meetPerformanceRepository.findByRunnerIdAndPlace(runnerId, 1)
+    }
+
+    fun getPerformancesForRunner(runnerId: Int): List<XCMeetPerformance> {
+        return meetPerformanceRepository.findByRunnerId(runnerId)
     }
 
     fun getMeetPerformancesAtMeetName(partialName: String,
@@ -481,6 +494,106 @@ class MeetPerformanceService(@field:Autowired
         }
 
         return meet1Performance?.time?.calculateSecondsFrom() to meet2Performance?.time?.calculateSecondsFrom()
+    }
+
+    fun getTotalPassesLastMileForRunner(runnerId: Int): Int {
+        return meetPerformanceRepository.findByRunnerId(runnerId).sumOf { it.passesLastMile }
+    }
+
+    fun getSkullsEarnedStreak(runnerId: Int): StreakDTO {
+
+        var longestStreak = 0
+        var currentStreak = 0
+
+        meetPerformanceRepository.findByRunnerId(runnerId)
+                .forEach {
+                    if (it.passesLastMile > 0) {
+                        currentStreak += 1
+                        if (currentStreak > longestStreak) {
+                            longestStreak = currentStreak
+                        }
+                    } else {
+                        currentStreak = 0
+                    }
+
+                }
+        return StreakDTO(currentStreak, longestStreak)
+
+    }
+
+    fun getSkullStreakForRaces(runner: Runner, races: List<MeetPerformanceDTO>, active: Boolean): StreakDTO {
+
+        var longestStreak = 0
+        var currentStreak = 0
+
+
+        races.forEach {
+            if (it.passesLastMile > 0) {
+                currentStreak += 1
+                if (currentStreak > longestStreak) {
+                    longestStreak = currentStreak
+                }
+            } else {
+                currentStreak = 0
+            }
+        }
+
+        if (active) {
+            currentStreak = 0
+            var streakActive = true
+            for (i in races.size - 1 downTo 0) {
+//
+                if (races[i].passesLastMile > 0) {
+                    if (streakActive) {
+                        currentStreak ++
+                    }
+                } else {
+                    streakActive = false
+                }
+            }
+        }
+
+
+        return StreakDTO(currentStreak, longestStreak)
+
+    }
+
+    fun getSkullsEarnedTotal(runnerId: Int): Int {
+        return meetPerformanceRepository.findByRunnerId(runnerId).sumOf { it.skullsEarned }
+    }
+
+    fun getAllRaces(): List<RunnerPerformanceDTO> {
+
+        var runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        var meets = meetRepository.findAll()
+        var meetMap = meets.map { it.id to it }.toMap()
+
+        var races = meetPerformanceRepository.findAll().map {
+            RunnerPerformanceDTO(runners[it.runnerId]!!, listOf(it.toMeetPerformanceDTO(meetMap[it.meetId]!!)))
+        }
+
+
+        return races
+
+    }
+
+    fun getRacesInSeason(season: String): List<RunnerPerformanceDTO> {
+
+        var runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        var meets = meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+        var meetMap = meets.map { it.id to it }.toMap()
+
+        val races = meets.map {
+            meetPerformanceRepository.findByMeetId(it.id)
+                    .map { result -> RunnerPerformanceDTO(runners[result.runnerId]!!, listOf(result.toMeetPerformanceDTO(meetMap[result.meetId]!!))) }
+        }
+                .flatten()
+
+
+        return races
+
     }
 
 }

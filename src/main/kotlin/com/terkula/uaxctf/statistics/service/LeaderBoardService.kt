@@ -1,6 +1,8 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
+import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.service.TrainingRunsService
@@ -14,7 +16,10 @@ class LeaderBoardService(
     val seasonBestService: SeasonBestService,
     val consistencyRankService: ConsistencyRankService,
     val trainingRunsService: TrainingRunsService,
-    val timeTrialService: TimeTrialService
+    val timeTrialService: TimeTrialService,
+    val meetPerformanceService: MeetPerformanceService,
+    val runnerRepository: RunnerRepository,
+    val meetMileSplitService: MeetMileSplitService
 ) {
 
     fun getPRLeaderBoard(pageSize: Int): List<RankedPRDTO> {
@@ -40,8 +45,6 @@ class LeaderBoardService(
 
     }
 
-    // time trial improvement covered
-
    fun getRaceConsistentRankLeaderBoard(season: String): List<RankedRunnerConsistencyDTO> {
 
        return consistencyRankService.getRunnersOrderedByMostConsistentRaces(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
@@ -49,6 +52,25 @@ class LeaderBoardService(
                    RankedRunnerConsistencyDTO(it.runner, it.consistencyRank.consistencyValue.round(2), it.consistencyRank.rank)
                }
    }
+
+    fun getRaceConsistentRankAchievementLeaderBoardSeason(season: String): List<RankedAchievementDTO> {
+
+        return meetMileSplitService.getRankedConsistentMeetSplitsAchievement(season)
+    }
+
+    fun getRaceConsistentRankAchievementLeaderBoardCareer(): List<RankedAchievementDTO> {
+
+        return meetMileSplitService.getMeetSplitsForRunnersCareer()
+                .map { it.key to it.value }
+                .map { it.first to it.second.filter { split -> split.isConsistentRace() }}
+                .map {
+                    it.first to it.second.count()
+                }
+                .sortedByDescending { it.second }
+                .mapIndexed {index, it ->
+                        RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+    }
 
     fun getDistanceRunRankLeaderBoard(season: String): List<RankedRunnerDistanceRunDTO> {
 
@@ -58,8 +80,131 @@ class LeaderBoardService(
 
     }
 
+    fun getDistanceRunRankCareerLeaderBoard(): List<RankedRunnerDistanceRunDTO> {
+
+        // need to get workout splits sum and total meets run
+
+        return trainingRunsService.getAllTrainingMilesRunByRunnerForCareer()
+
+    }
+
+    fun getRunLoggedCountRankLeaderBoardCareer(): List<RankedAchievementDTO> {
+
+
+        return trainingRunsService.getRankedRunnersTrainingRunCountForCareer()
+
+    }
+
+    fun getRunLoggedCountRankLeaderBoardSeason(season: String): List<RankedAchievementDTO> {
+
+
+        return trainingRunsService.getRankedRunnersTrainingRunCountForSeason(season)
+
+    }
+
     fun getTimeTrialProgressionLeaderBoard(season: String): List<TimeTrialImprovementDTO> {
         return timeTrialService.getRankedProgressionSinceTimeTrial(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), false)
+    }
+
+    fun getSkullsTotalLeaderboard(): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll()
+
+        val races = meetPerformanceService.getAllRaces()
+
+        return races.groupBy { it.runner }
+                .map {
+                    it.key to it.value.map { runnerPerf -> runnerPerf.performance.first()}.sumOf { perf-> perf.skullsEarned }
+                }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+    }
+
+    fun getSkullsTotalSeasonLeaderboard(season: String): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll()
+
+        val races = meetPerformanceService.getRacesInSeason(season)
+
+        return races.groupBy { it.runner }
+                .map {
+                    it.key to it.value.map { runnerPerf -> runnerPerf.performance.first()}.sumOf { perf-> perf.skullsEarned }
+                }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+    }
+
+    fun getSkullsStreakSeasonLeaderboard(season: String, active: Boolean?): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        var activeValue = true
+        if (active == null || !active) {
+            activeValue = false
+        }
+
+        return meetPerformanceService.getRacesInSeason(season)
+                .groupBy { it.runner }
+                .map { it.key to it.value.map { perf -> perf.performance.first() } }
+                .map { it.first to it.second.sortedBy { perf -> perf.meetDate } }
+                .map {
+                    it.first to meetPerformanceService.getSkullStreakForRaces(it.first, it.second, activeValue)
+                }
+                .sortedByDescending { it.second.currentStreak }
+                .toMutableList()
+                .mapIndexed { index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second.currentStreak)
+                }
+    }
+
+    fun getSkullsStreakCareerLeaderboard(active: Boolean?): List<RankedAchievementDTO> {
+
+        var activeValue = true
+        if (active == null || !active) {
+            activeValue = false
+        }
+
+        return meetPerformanceService.getAllRaces()
+                .groupBy { it.runner }
+                .map { it.key to it.value.map { perf -> perf.performance.first() } }
+                .map { it.first to it.second.sortedBy { perf -> perf.meetDate } }
+                .map {
+                    it.first to meetPerformanceService.getSkullStreakForRaces(it.first, it.second, activeValue)
+                }
+                .sortedByDescending { it.second.currentStreak }
+                .toMutableList()
+                .mapIndexed { index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second.currentStreak)
+                }
+    }
+
+    fun getPassesLastMileLeaderboardSeason(season: String): List<RankedAchievementDTO> {
+
+        return meetPerformanceService.getRacesInSeason(season)
+                .groupBy { it.runner }
+                .map { it.key to it.value.map { perf -> perf.performance.first() } }
+                .map { it.first to it.second.sumOf { perf-> perf.passesLastMile } }
+                .sortedByDescending { it.second }
+                .mapIndexed{ index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+
+    }
+
+    fun getPassesLastMileLeaderboardCareer(): List<RankedAchievementDTO> {
+
+       return  meetPerformanceService.getAllRaces()
+                .groupBy { it.runner }
+                .map { it.key to it.value.map { perf -> perf.performance.first() } }
+                .map { it.first to it.second.sumOf { perf-> perf.passesLastMile } }
+                .sortedByDescending { it.second }
+                .mapIndexed{ index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
     }
 
 }

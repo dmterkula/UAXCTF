@@ -284,4 +284,29 @@ class PersonalRecordService(@field:Autowired
         return AggregatePRStatsDTO(prCount, timeString)
     }
 
+    fun getPRsForRunner(runnerId: Int): List<MeetPerformanceDTO> {
+
+        val runner = runnerRepository.findById(runnerId).get()
+
+        val meetsById = meetRepository.findAll().map { it.id to it }.toMap()
+
+        var prCount = 0;
+        var prs = mutableListOf<MeetPerformanceDTO>()
+
+        val raceResults = meetPerformanceRepository.findByRunnerId(runnerId).sortedBy { result -> meetsById[result.meetId]!!.date }
+        if (raceResults.isNotEmpty()) {
+            var fastestTime = raceResults[0].time.calculateSecondsFrom()
+
+            raceResults.forEach { meetPerf->
+                if (meetPerf.time.calculateSecondsFrom() < fastestTime) {
+                    fastestTime = meetPerf.time.calculateSecondsFrom()
+                    prs.add(meetPerf.toMeetPerformanceDTO(meetsById[meetPerf.meetId]!!))
+
+                }
+            }
+        }
+
+        return prs
+    }
+
 }

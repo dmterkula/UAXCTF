@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.training.model.*
 import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
@@ -18,15 +19,12 @@ import org.springframework.stereotype.Service
 import java.sql.Date
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.Month
-import java.time.format.DateTimeFormatter
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.firstDayOfMonth
 import java.time.temporal.TemporalAdjusters.lastDayOfMonth
 import java.time.temporal.WeekFields
 import java.util.*
-import java.util.stream.Collectors
 
 
 @Service
@@ -51,12 +49,12 @@ class TrainingRunsService(
         if (trainingRunRepository.findByUuid(createTrainingRunRequest.uuid).isEmpty()) {
 
             val trainingRun = TrainingRun(
-                createTrainingRunRequest.date,
-                createTrainingRunRequest.distance,
-                createTrainingRunRequest.time,
-                createTrainingRunRequest.icon,
-                createTrainingRunRequest.uuid,
-                createTrainingRunRequest.name
+                    createTrainingRunRequest.date,
+                    createTrainingRunRequest.distance,
+                    createTrainingRunRequest.time,
+                    createTrainingRunRequest.icon,
+                    createTrainingRunRequest.uuid,
+                    createTrainingRunRequest.name
             )
 
             trainingRunRepository.save(
@@ -126,7 +124,7 @@ class TrainingRunsService(
                 trainingRunRepository.delete(foundTrainingRun)
 
                 return TrainingRunResponse(listOf(TrainingRunDTO(
-                        foundTrainingRun.date, foundTrainingRun.distance,foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name
+                        foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete
@@ -310,8 +308,8 @@ class TrainingRunsService(
         val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
 
         allTrainingRuns.forEach {
-             runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
-                    .forEach{ loggedRun ->
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
                         val entry = runnersToDistance[runners[loggedRun.runnerId]]
                         if (entry == null) {
                             runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
@@ -342,6 +340,127 @@ class TrainingRunsService(
                 .mapIndexed { index, it ->
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
                 }
+    }
+
+    fun getAllTrainingMilesRunByRunnerForCareer(): List<RankedRunnerDistanceRunDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findAll()
+        val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
+                        val entry = runnersToDistance[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
+                        } else {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = entry + loggedRun.distance
+                        }
+                    }
+        }
+
+        val workouts = workoutRepository.findAll()
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuid(it.uuid)
+                    .forEach { distance ->
+                        val entry = runnersToDistance[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                        } else {
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                        }
+                    }
+
+        }
+
+        return runnersToDistance.toList().sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
+                }
+
+    }
+
+    fun getRankedRunnersTrainingRunCountForCareer(): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val trainingCount = runnersTrainingRunRepository.findAll().groupBy { it.runnerId }
+                .map { runners[it.key]!! to it.value.size }.toMap().toMutableMap()
+
+
+        val workoutCount = workoutDistanceRepository.findAll().groupBy { it.runnerId }
+                .map { runners[it.key]!! to it.value.size }.toMap().toMutableMap()
+
+        trainingCount.forEach { (k, v) -> workoutCount.merge(k, v, Int::plus)  }
+
+       return workoutCount
+            .map { it.key to it.value }
+                .sortedByDescending { it.second }
+                .mapIndexed {index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+
+    }
+
+    fun getRankedRunnersTrainingRunCountForSeason(season: String): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        val runnersToCount: MutableMap<Runner, Int> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
+                        val entry = runnersToCount[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToCount[runners[loggedRun.runnerId]!!] = 1
+                        } else {
+                            runnersToCount[runners[loggedRun.runnerId]!!] = entry + 1
+                        }
+                    }
+        }
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuid(it.uuid)
+                    .forEach { distance ->
+                        val entry = runnersToCount[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToCount[runners[distance.runnerId]!!] = 1
+                        } else {
+                            runnersToCount[runners[distance.runnerId]!!] = entry + 1
+                        }
+                    }
+
+        }
+
+        return runnersToCount.map { it.key to it.value }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, pair ->
+                    RankedAchievementDTO(pair.first, index + 1, pair.second)
+                }
+    }
+
+    // pair of training distance to logged run count
+    fun getAllTrainingMilesRunForARunnerCareer(runnerId: Int): Pair<Double, Int> {
+
+        val runners = runnerRepository.findById(runnerId).get()
+
+        val trainingRuns = runnersTrainingRunRepository.findByRunnerId(runnerId)
+        var trainingRunCount = trainingRuns.size
+        var trainingDistance = trainingRuns.sumOf { it.distance }
+
+        val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
+        trainingRunCount += workoutDistances.size
+        trainingDistance += workoutDistances.sumOf { it.distance }
+
+        return Pair(trainingDistance.round(2), trainingRunCount)
 
     }
 
@@ -452,10 +571,10 @@ class TrainingRunsService(
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
 
-       val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
 
         if (dates.isEmpty()) {
-           return emptyList()
+            return emptyList()
         }
 
         val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
@@ -491,8 +610,8 @@ class TrainingRunsService(
                     .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
 
             val end = LocalDate.now()
-            .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
-                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+                    .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
+                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
 
 
             val avgPace =
