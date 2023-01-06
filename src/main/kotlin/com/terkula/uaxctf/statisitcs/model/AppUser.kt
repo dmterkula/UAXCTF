@@ -6,8 +6,8 @@ import javax.persistence.*
 @Entity
 @Table(name = "app_users", schema = "uaxc")
 data class AppUser(
-        val username: String,
-        val password: String,
+        var username: String,
+        var password: String,
         val role: String,
         @Column(name = "runner_id")
         @JsonIgnore

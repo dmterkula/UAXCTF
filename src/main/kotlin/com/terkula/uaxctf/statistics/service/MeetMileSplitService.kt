@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
@@ -529,6 +530,50 @@ class MeetMileSplitService(
                 }
 
         return RunnerMeetSplitResponse(runner, splitPerformance)
+    }
+
+    fun getRankedConsistentMeetSplitsAchievement(season: String): List<RankedAchievementDTO> {
+        val meets = meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        val meetMap = meets.map { it.id to it }.toMap()
+        val runners = runnerRepository.findAll().associateBy { it.id }
+
+        return meets.map { it to meetPerformanceService.getResultsForMeet(it.id) }
+                .map {
+                    it.second
+                }.flatten()
+                .groupBy { it.runnerId }
+                .map {
+                    runners[it.key]!! to it.value.map { result -> meetMileSplitRepository.findByMeetIdAndRunnerId(result.meetId, result.runnerId).firstOrNull() }.filterNotNull()
+                }
+                .map {
+                    it.first to it.second.filter { it.isConsistentRace() }
+                }
+                .map {
+                    it.first to it.second.size
+                }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, pair ->
+                    RankedAchievementDTO(pair.first, index + 1, pair.second)
+                }
+    }
+
+    fun getMeetSplitsForRunnersCareer(): Map<Runner, List<MeetSplitsDTO>> {
+        val meets = meetRepository.findAll()
+
+        val runners = runnerRepository.findAll()
+
+        return runners.map { it to meetPerformanceService.getPerformancesForRunner(it.id) }
+                .filter { !it.second.isEmpty()}
+                .map {
+                    it.first to it.second!!
+                }
+                .map {
+                     it.first to it.second.map { race -> meetMileSplitRepository.findByMeetIdAndRunnerId(race.meetId, race.runnerId).firstOrNull() }
+                    }
+                .map {
+                    it.first to it.second.filterNotNull().map { split -> MeetSplitsDTO(split.mileOne, split.mileTwo, split.mileThree) }
+                }.toMap()
     }
 
 }

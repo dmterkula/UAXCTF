@@ -12,6 +12,27 @@ class MeetSplitsDTO(val mileOne: String, val mileTwo: String, val mileThree: Str
     var average: String = (((mileOne.calculateSecondsFrom() + mileTwo.calculateSecondsFrom()
     + mileThree.calculateSecondsFrom())/ 3).round(2)).toMinuteSecondString()
 
+    companion object {
+        const val CONSISTENT_SPREAD = 20
+    }
+
+    fun isConsistentRace(): Boolean {
+        val splits: List<Double> = listOf(mileOne.calculateSecondsFrom(),
+                mileTwo.calculateSecondsFrom(),
+                mileThree.calculateSecondsFrom())
+
+        val max = splits.maxOrNull()
+        val min = splits.minOrNull()
+
+        return if (max != null && min != null) {
+            val spread = max!! - min!!
+
+            spread <= CONSISTENT_SPREAD
+        } else {
+            false
+        }
+    }
+
 }
 
 class MeetSplitToComparisonPace(val mileNumber: Int, val time: String, val percentOfComparison: Double,

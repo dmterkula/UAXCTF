@@ -52,21 +52,7 @@ class AsyncAchievementService(
                 splits
                 .mileSplits
                 .filter {
-                    val test: List<Double> = listOf(it.meetSplitsDTO!!.mileOne.calculateSecondsFrom(),
-                            it.meetSplitsDTO!!.mileTwo.calculateSecondsFrom(),
-                            it.meetSplitsDTO.mileThree.calculateSecondsFrom())
-
-                    val max = test.maxOrNull()
-                    val min = test.minOrNull()
-
-                    if (max != null && min != null) {
-                        val spread = max!! - min!!
-
-                        return@filter spread < targetSpread
-                    } else {
-                        return@filter false
-                    }
-
+                    it.meetSplitsDTO!!.isConsistentRace()
                 }
             )
 

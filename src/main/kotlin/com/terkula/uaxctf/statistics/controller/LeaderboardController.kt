@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.controller
 import com.terkula.uaxctf.statistics.dto.RankedPRDTO
 import com.terkula.uaxctf.statistics.dto.RankedRunnerConsistencyDTO
 import com.terkula.uaxctf.statistics.dto.RankedSeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.service.LeaderBoardService
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import io.swagger.annotations.ApiOperation
@@ -42,12 +43,147 @@ class LeaderboardController(val leaderBoardService: LeaderBoardService) {
     }
 
     @ApiOperation("Get Consistency rank leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/consistent-race-splits-achievement"], method = [RequestMethod.GET])
+    fun getRaceSplitConsistencyAchievementRankLeaderBoard(
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
+    ): List<RankedAchievementDTO> {
+        return if (season == null) {
+            if (pageSize == null) {
+                leaderBoardService.getRaceConsistentRankAchievementLeaderBoardCareer()
+            } else {
+                leaderBoardService.getRaceConsistentRankAchievementLeaderBoardCareer().take(pageSize)
+            }
+
+        } else {
+            if (pageSize == null) {
+                leaderBoardService.getRaceConsistentRankAchievementLeaderBoardSeason(season)
+            } else {
+                leaderBoardService.getRaceConsistentRankAchievementLeaderBoardSeason(season).take(pageSize)
+            }
+        }
+    }
+
+    @ApiOperation("Get Distance Run")
     @RequestMapping(value = ["xc/leaderboard/distance-run"], method = [RequestMethod.GET])
     fun getDistanceRunLeaderBoard(
-            @RequestParam(name = "season") season: String
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
     ): List<RankedRunnerDistanceRunDTO> {
-        return leaderBoardService.getDistanceRunRankLeaderBoard(season)
+
+        return if (season != null) {
+            if (pageSize == null) {
+                leaderBoardService.getDistanceRunRankLeaderBoard(season!!)
+            } else {
+                leaderBoardService.getDistanceRunRankLeaderBoard(season!!).take(pageSize!!)
+            }
+
+        } else {
+            if (pageSize == null) {
+                leaderBoardService.getDistanceRunRankCareerLeaderBoard()
+            } else {
+                leaderBoardService.getDistanceRunRankCareerLeaderBoard().take(pageSize)
+            }
+
+        }
     }
+
+    @ApiOperation("Get Logged Run Count Leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/logged-run-count"], method = [RequestMethod.GET])
+    fun getLoggedRunCountLeaderBoard(
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
+    ): List<RankedAchievementDTO> {
+
+        return if (season != null) {
+            if (pageSize == null) {
+                leaderBoardService.getRunLoggedCountRankLeaderBoardSeason(season!!)
+            } else {
+                leaderBoardService.getRunLoggedCountRankLeaderBoardSeason(season!!).take(pageSize)
+            }
+
+        } else {
+
+            if(pageSize == null) {
+                leaderBoardService.getRunLoggedCountRankLeaderBoardCareer()
+            } else {
+                leaderBoardService.getRunLoggedCountRankLeaderBoardCareer().take(pageSize)
+            }
+
+        }
+    }
+
+    @ApiOperation("Get Total Skulls Leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/total-skulls"], method = [RequestMethod.GET])
+    fun getTotalSkullLeaderBoard(
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
+    ): List<RankedAchievementDTO> {
+        return if (season == null) {
+            if (pageSize == null) {
+                leaderBoardService.getSkullsTotalLeaderboard()
+            } else {
+                leaderBoardService.getSkullsTotalLeaderboard().take(pageSize)
+            }
+
+        } else {
+            if (pageSize == null) {
+                leaderBoardService.getSkullsTotalSeasonLeaderboard(season)
+            } else {
+                leaderBoardService.getSkullsTotalSeasonLeaderboard(season).take(pageSize)
+            }
+
+        }
+    }
+
+    @ApiOperation("Get Skull Streak Leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/skull-streak"], method = [RequestMethod.GET])
+    fun getSkullStreakLeaderBoard(
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "active", required = false) active: Boolean?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
+    ): List<RankedAchievementDTO> {
+        return if (season == null) {
+            if (pageSize == null) {
+                leaderBoardService.getSkullsStreakCareerLeaderboard(active)
+            } else {
+                leaderBoardService.getSkullsStreakCareerLeaderboard(active).take(pageSize)
+            }
+
+        } else {
+            if (pageSize == null) {
+                leaderBoardService.getSkullsStreakSeasonLeaderboard(season, active)
+            } else {
+                leaderBoardService.getSkullsStreakSeasonLeaderboard(season, active).take(pageSize)
+            }
+
+        }
+    }
+
+    @ApiOperation("Get Skull Streak Leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/passes-last-mile"], method = [RequestMethod.GET])
+    fun getPassesLastMileLeaderBoard(
+            @RequestParam(name = "season", required = false) season: String?,
+            @RequestParam(name = "page.size", required = false) pageSize: Int?
+    ): List<RankedAchievementDTO> {
+        return if (season == null) {
+            if (pageSize == null) {
+                leaderBoardService.getPassesLastMileLeaderboardCareer()
+            } else {
+                leaderBoardService.getPassesLastMileLeaderboardCareer().take(pageSize)
+            }
+
+        } else {
+            if (pageSize == null) {
+                leaderBoardService.getPassesLastMileLeaderboardSeason(season)
+            } else {
+                leaderBoardService.getPassesLastMileLeaderboardSeason(season).take(pageSize)
+            }
+
+        }
+    }
+
+
 
 
 }

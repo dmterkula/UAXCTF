@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.training.model.*
 import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
@@ -15,19 +16,15 @@ import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.stereotype.Service
-import sumBy
 import java.sql.Date
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.Month
-import java.time.format.DateTimeFormatter
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.firstDayOfMonth
 import java.time.temporal.TemporalAdjusters.lastDayOfMonth
 import java.time.temporal.WeekFields
 import java.util.*
-import java.util.stream.Collectors
 
 
 @Service
@@ -343,7 +340,111 @@ class TrainingRunsService(
                 .mapIndexed { index, it ->
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
                 }
+    }
 
+    fun getAllTrainingMilesRunByRunnerForCareer(): List<RankedRunnerDistanceRunDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findAll()
+        val runnersToDistance: MutableMap<Runner, Double> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
+                        val entry = runnersToDistance[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = loggedRun.distance
+                        } else {
+                            runnersToDistance[runners[loggedRun.runnerId]!!] = entry + loggedRun.distance
+                        }
+                    }
+        }
+
+        val workouts = workoutRepository.findAll()
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuid(it.uuid)
+                    .forEach { distance ->
+                        val entry = runnersToDistance[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                        } else {
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                        }
+                    }
+
+        }
+
+        return runnersToDistance.toList().sortedByDescending { it.second }
+                .mapIndexed { index, it ->
+                    RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)
+                }
+
+    }
+
+    fun getRankedRunnersTrainingRunCountForCareer(): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val trainingCount = runnersTrainingRunRepository.findAll().groupBy { it.runnerId }
+                .map { runners[it.key]!! to it.value.size }.toMap().toMutableMap()
+
+
+        val workoutCount = workoutDistanceRepository.findAll().groupBy { it.runnerId }
+                .map { runners[it.key]!! to it.value.size }.toMap().toMutableMap()
+
+        trainingCount.forEach { (k, v) -> workoutCount.merge(k, v, Int::plus)  }
+
+       return workoutCount
+            .map { it.key to it.value }
+                .sortedByDescending { it.second }
+                .mapIndexed {index, it ->
+                    RankedAchievementDTO(it.first, index + 1, it.second)
+                }
+
+    }
+
+    fun getRankedRunnersTrainingRunCountForSeason(season: String): List<RankedAchievementDTO> {
+
+        val runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        val runnersToCount: MutableMap<Runner, Int> = mutableMapOf()
+
+        allTrainingRuns.forEach {
+            runnersTrainingRunRepository.findByTrainingRunUuid(it.uuid)
+                    .forEach { loggedRun ->
+                        val entry = runnersToCount[runners[loggedRun.runnerId]]
+                        if (entry == null) {
+                            runnersToCount[runners[loggedRun.runnerId]!!] = 1
+                        } else {
+                            runnersToCount[runners[loggedRun.runnerId]!!] = entry + 1
+                        }
+                    }
+        }
+
+        val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        workouts.forEach {
+            workoutDistanceRepository.findByWorkoutUuid(it.uuid)
+                    .forEach { distance ->
+                        val entry = runnersToCount[runners[distance.runnerId]]
+                        if (entry == null) {
+                            runnersToCount[runners[distance.runnerId]!!] = 1
+                        } else {
+                            runnersToCount[runners[distance.runnerId]!!] = entry + 1
+                        }
+                    }
+
+        }
+
+        return runnersToCount.map { it.key to it.value }
+                .sortedByDescending { it.second }
+                .mapIndexed { index, pair ->
+                    RankedAchievementDTO(pair.first, index + 1, pair.second)
+                }
     }
 
     // pair of training distance to logged run count
@@ -358,7 +459,7 @@ class TrainingRunsService(
         val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
         trainingRunCount += workoutDistances.size
         trainingDistance += workoutDistances.sumOf { it.distance }
-        
+
         return Pair(trainingDistance.round(2), trainingRunCount)
 
     }
