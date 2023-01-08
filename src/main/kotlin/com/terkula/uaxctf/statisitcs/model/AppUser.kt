@@ -8,9 +8,8 @@ import javax.persistence.*
 data class AppUser(
         var username: String,
         var password: String,
-        val role: String,
+        var role: String,
         @Column(name = "runner_id")
-        @JsonIgnore
         val runnerId: Int?
         ) {
     @Id
@@ -20,3 +19,5 @@ data class AppUser(
     val id: Int = 0
 
 }
+
+data class RunnerAccount(var runner: Runner, var appUser: AppUser)
