@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statisitcs.model.*
 import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
+import com.terkula.uaxctf.statistics.dto.personalizedsplits.PersonalizedSplitDTO
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
@@ -574,6 +575,43 @@ class MeetMileSplitService(
                 .map {
                     it.first to it.second.filterNotNull().map { split -> MeetSplitsDTO(split.mileOne, split.mileTwo, split.mileThree) }
                 }.toMap()
+    }
+
+    fun getPersonalizedSplitsToHitCertainTime(
+            runnerId: Int,
+            time: String,
+            lastNRaces: Int?,
+    ): PersonalizedSplitDTO {
+
+       val splits = getMeetSplitsForRunner(runnerId)
+
+        val mileSplits = if (lastNRaces != null) {
+            splits.mileSplits.sortedByDescending { it.meetPerformanceDTO.meetDate }.take(lastNRaces)
+        } else {
+            splits.mileSplits
+        }
+
+        val mile1RatioOfTimeAvg = mileSplits.map {
+            it.meetSplitsDTO!!.mileOne.calculateSecondsFrom() / it.meetPerformanceDTO.time.calculateSecondsFrom()
+        }.average()
+
+        val mile2RatioOfTimeAvg = mileSplits.map {
+            it.meetSplitsDTO!!.mileTwo.calculateSecondsFrom() / it.meetPerformanceDTO.time.calculateSecondsFrom()
+        }.average()
+
+        val mile3RatioOfTimeAvg = mileSplits.map {
+            it.meetSplitsDTO!!.mileThree.calculateSecondsFrom() / it.meetPerformanceDTO.time.calculateSecondsFrom()
+        }.average()
+
+        val targetMile1 = (mile1RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+        val targetMile2 = (mile2RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+        val targetMile3 = (mile3RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+
+        val avgSplit = (time.calculateSecondsFrom() / 3.10686).toMinuteSecondString()
+
+        return PersonalizedSplitDTO(avgSplit, targetMile1, targetMile2, targetMile3)
+
+
     }
 
 }
