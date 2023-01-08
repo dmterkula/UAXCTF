@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.personalizedsplits.PersonalizedSplitDTO
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.response.*
 import com.terkula.uaxctf.statistics.service.MeetMileSplitService
@@ -223,6 +224,19 @@ class MeetSplitsController(@field:Autowired
         val endDate = Date.valueOf("$season-12-31")
 
         return meetMileSplitService.buildRankedMileSplitComparisonsAcrossMeets(startDate, endDate, comparisonPace)
+    }
+
+    @ApiOperation("Returns personalized mile splits for a runner to run a given time based given how they run their meets on average")
+    @RequestMapping(value = ["/xc/meetSplit/personalized"], method = [RequestMethod.GET])
+    fun getPersonalizedMileSplitsForInputTime(
+            @ApiParam("Runner Id")
+            @RequestParam(value = "runnerId") runnerId: Int,
+            @ApiParam("Input time")
+            @RequestParam(value = "time") time: String,
+            @ApiParam("last n races")
+            @RequestParam(value = "lastNRaces", required = false) lastNRaces: Int?
+    ): PersonalizedSplitDTO {
+        return meetMileSplitService.getPersonalizedSplitsToHitCertainTime(runnerId, time, lastNRaces)
     }
 
     fun getSplitOption(option: String): MeetSplitsOption {
