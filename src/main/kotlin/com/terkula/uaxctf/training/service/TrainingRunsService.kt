@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service
 import java.sql.Date
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.Month
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.firstDayOfMonth
@@ -510,7 +511,7 @@ class TrainingRunsService(
     fun getTotalDistancePerDay(season: String, runnerId: Int): List<DateRangeRunSummaryDTO> {
 
 
-        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
@@ -566,7 +567,7 @@ class TrainingRunsService(
 
         val weekOfYear = WeekFields.of(Locale.getDefault()).weekOfYear()
 
-        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
@@ -605,11 +606,12 @@ class TrainingRunsService(
         }
 
         return trainingSummaryDates.map {
-            val start = LocalDate.now()
+            var start = LocalDate.of(season.toInt(), Month.JANUARY, 1)
                     .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
                     .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+            start = start.plusYears(1)
 
-            val end = LocalDate.now()
+            val end = LocalDate.of(season.toInt(), Month.DECEMBER, 31)
                     .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
                     .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
 
@@ -626,7 +628,7 @@ class TrainingRunsService(
 
     fun getTotalDistancePerMonth(season: String, runnerId: Int): List<DateRangeRunSummaryDTO> {
 
-        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), Date(System.currentTimeMillis()))
+        val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
