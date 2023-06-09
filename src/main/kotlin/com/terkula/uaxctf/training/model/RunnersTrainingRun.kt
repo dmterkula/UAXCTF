@@ -14,7 +14,8 @@ class RunnersTrainingRun(
     var distance: Double,
     @Column(name = "avg_pace")
     var avgPace: String,
-    val uuid: String
+    val uuid: String,
+    var notes: String?
 ) {
 
     @JsonIgnore
