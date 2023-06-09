@@ -4,6 +4,7 @@ class LogWorkoutResultsRequest(
     val runnerId: Int,
     val workoutUuid: String,
     val totalDistance: Double,
+    val notes: String?,
     val componentsSplits: List<ComponentsSplitsRequest>
 )
 

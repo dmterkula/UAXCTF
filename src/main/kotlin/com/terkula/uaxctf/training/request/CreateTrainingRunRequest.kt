@@ -17,5 +17,6 @@ class CreateRunnersTrainingRunRequest(
     val runnerId: Int,
     val time: String,
     val distance: Double,
-    val avgPace: String
+    val avgPace: String,
+    val notes: String?
 )

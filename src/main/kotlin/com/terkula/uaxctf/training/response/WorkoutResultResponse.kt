@@ -5,4 +5,5 @@ import com.terkula.uaxctf.training.dto.WorkoutResultDTO
 
 class WorkoutResultResponse (val workoutResults: List<WorkoutResultDTO>)
 
-class RunnerWorkoutResultResponse(val runner: Runner, val workout: WorkoutResponseDTO, val componentResults: List<SplitsResponse>, val totalDistance: Double)
+class RunnerWorkoutResultResponse(val runner: Runner, val workout: WorkoutResponseDTO, val componentResults: List<SplitsResponse>,
+                                  val totalDistance: Double, val notes: String?)

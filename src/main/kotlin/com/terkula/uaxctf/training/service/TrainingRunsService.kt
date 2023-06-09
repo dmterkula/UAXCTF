@@ -148,7 +148,7 @@ class TrainingRunsService(
 
         return RunnersTrainingRunResponse(results.map {
             RunnerTrainingRunDTO(
-                    runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace
+                    runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes
             )
         })
 
@@ -166,7 +166,7 @@ class TrainingRunsService(
 
         val runnersTrainingRuns = trainingRuns.map {
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
-                    .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance, result.avgPace) })
+                    .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance, result.avgPace, result.notes) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -183,7 +183,7 @@ class TrainingRunsService(
 
         return RunnersTrainingRunResponse(results.map {
             RunnerTrainingRunDTO(
-                    runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace
+                    runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes
             )
         })
 
@@ -209,12 +209,14 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.time,
                     createRunnersTrainingRunRequest.distance,
                     createRunnersTrainingRunRequest.avgPace,
-                    createRunnersTrainingRunRequest.uuid
+                    createRunnersTrainingRunRequest.uuid,
+                    createRunnersTrainingRunRequest.notes
+
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
-                    runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance, insertMe.avgPace
+                    runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance, insertMe.avgPace, insertMe.notes
             )))
 
         } else {
@@ -222,11 +224,12 @@ class TrainingRunsService(
             runnerRecord.distance = createRunnersTrainingRunRequest.distance
             runnerRecord.time = createRunnersTrainingRunRequest.time
             runnerRecord.avgPace = createRunnersTrainingRunRequest.avgPace
+            runnerRecord.notes = createRunnersTrainingRunRequest.notes
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
-                    runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance, runnerRecord.avgPace
+                    runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes
             )))
 
         }
@@ -252,24 +255,26 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.time,
                     createRunnersTrainingRunRequest.distance,
                     createRunnersTrainingRunRequest.avgPace,
-                    createRunnersTrainingRunRequest.uuid
+                    createRunnersTrainingRunRequest.uuid,
+                    createRunnersTrainingRunRequest.notes
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
-                    runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance, insertMe.avgPace
+                    runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance, insertMe.avgPace, insertMe.notes
             )))
 
         } else {
             runnerRecord.avgPace = createRunnersTrainingRunRequest.avgPace
             runnerRecord.distance = createRunnersTrainingRunRequest.distance
             runnerRecord.time = createRunnersTrainingRunRequest.time
+            runnerRecord.notes = createRunnersTrainingRunRequest.notes
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time,
-                    runnerRecord.distance, runnerRecord.avgPace
+                    runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes
             )))
 
         }
@@ -292,7 +297,7 @@ class TrainingRunsService(
                 runnersTrainingRunRepository.deleteByUuid(uuid)
                 return RunnersTrainingRunResponse(runnerRecords.map {
                     RunnerTrainingRunDTO(
-                            runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace
+                            runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes
                     )
                 })
             }

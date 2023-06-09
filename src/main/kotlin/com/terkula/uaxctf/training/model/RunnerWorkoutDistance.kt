@@ -12,7 +12,8 @@ class RunnerWorkoutDistance(
         var workoutUuid: String,
         @Column(name = "runner_id")
         var runnerId: Int,
-        var distance: Double
+        var distance: Double,
+        var notes: String?
 ) {
 
     @JsonIgnore

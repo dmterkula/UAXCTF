@@ -112,6 +112,8 @@ class WorkoutSplitService(
 
         val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(workoutUuid, runnerId)
 
+        var notes: String? = workoutDistance.firstOrNull()?.notes
+
         var totalDistance = 0.0
         if (workoutDistance.isNotEmpty()) {
             totalDistance = workoutDistance.sumOf { it.distance }
@@ -121,7 +123,7 @@ class WorkoutSplitService(
             getSplitsForRunnerAndComponent(runnerId, it.uuid)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponses, totalDistance)
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponses, totalDistance, notes)
 
     }
 
@@ -137,13 +139,14 @@ class WorkoutSplitService(
             if (workoutDistance.isNotEmpty()) {
                 totalDistance = workoutDistance.sumOf {dist-> dist.distance }
             }
+            var notes: String? = workoutDistance.firstOrNull()?.notes
 
             val splitsResponses = components.map { comp->
                 getSplitsForRunnerAndComponent(runnerId, comp.uuid)
             }
                     .filter { splits -> splits.splits.isNotEmpty() }
 
-            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components), splitsResponses, totalDistance)
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components), splitsResponses, totalDistance, notes)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -166,7 +169,7 @@ class WorkoutSplitService(
         var distance = 0.0
 
         if (workoutDistance.isEmpty()) {
-            val runnerWorkoutDistance = RunnerWorkoutDistance(logWorkoutResultsRequest.workoutUuid, logWorkoutResultsRequest.runnerId, logWorkoutResultsRequest.totalDistance)
+            val runnerWorkoutDistance = RunnerWorkoutDistance(logWorkoutResultsRequest.workoutUuid, logWorkoutResultsRequest.runnerId, logWorkoutResultsRequest.totalDistance, logWorkoutResultsRequest.notes)
             workoutDistanceRepository.save(runnerWorkoutDistance)
             distance = runnerWorkoutDistance.distance
 
@@ -175,10 +178,11 @@ class WorkoutSplitService(
 
             existingRecord.distance = logWorkoutResultsRequest.totalDistance
             distance = existingRecord.distance
+            existingRecord.notes = logWorkoutResultsRequest.notes
             workoutDistanceRepository.save(existingRecord)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponse, distance)
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponse, distance, logWorkoutResultsRequest.notes)
 
     }
 
