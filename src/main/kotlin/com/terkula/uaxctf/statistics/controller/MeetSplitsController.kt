@@ -234,9 +234,10 @@ class MeetSplitsController(@field:Autowired
             @ApiParam("Input time")
             @RequestParam(value = "time") time: String,
             @ApiParam("last n races")
-            @RequestParam(value = "lastNRaces", required = false) lastNRaces: Int?
+            @RequestParam(value = "lastNRaces", required = false) lastNRaces: Int?,
+            @RequestParam(value = "meetName", required = false) meetName: String?
     ): PersonalizedSplitDTO {
-        return meetMileSplitService.getPersonalizedSplitsToHitCertainTime(runnerId, time, lastNRaces)
+        return meetMileSplitService.getPersonalizedSplitsToHitCertainTime(runnerId, time, lastNRaces, meetName)
     }
 
     fun getSplitOption(option: String): MeetSplitsOption {
