@@ -106,6 +106,8 @@ class TrainingRunsService(
             foundTrainingRun.time = createTrainingRunRequest.time
             foundTrainingRun.distance = createTrainingRunRequest.distance
             foundTrainingRun.name = createTrainingRunRequest.name
+            foundTrainingRun.minTime = createTrainingRunRequest.minTime
+            foundTrainingRun.minDistance = createTrainingRunRequest.minDistance
 
             trainingRunRepository.save(foundTrainingRun)
 
