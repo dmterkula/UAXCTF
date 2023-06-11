@@ -12,7 +12,11 @@ class TrainingRun (
     var time: String?,
     var icon: String,
     var uuid: String,
-    var name: String
+    var name: String,
+    @Column(name = "min_time")
+    var minTime: String?,
+    @Column(name = "min_distance")
+    var minDistance: Double?
 ) {
 
     @JsonIgnore

@@ -40,7 +40,7 @@ class TrainingRunsService(
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
         return TrainingRunResponse(
                 trainingRunRepository.findByDateBetween(startDate, endDate).map {
-                    TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid, it.name)
+                    TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid, it.name, it.minTime, it.minDistance)
                 }
         )
     }
@@ -55,7 +55,9 @@ class TrainingRunsService(
                     createTrainingRunRequest.time,
                     createTrainingRunRequest.icon,
                     createTrainingRunRequest.uuid,
-                    createTrainingRunRequest.name
+                    createTrainingRunRequest.name,
+                    createTrainingRunRequest.minTime,
+                    createTrainingRunRequest.minDistance
             )
 
             trainingRunRepository.save(
@@ -63,7 +65,7 @@ class TrainingRunsService(
             )
 
             return TrainingRunResponse(listOf(
-                    TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon, trainingRun.uuid, trainingRun.name)
+                    TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon, trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance)
             ))
 
         } else {
@@ -84,7 +86,9 @@ class TrainingRunsService(
                     createTrainingRunRequest.time,
                     createTrainingRunRequest.icon,
                     createTrainingRunRequest.uuid,
-                    createTrainingRunRequest.name
+                    createTrainingRunRequest.name,
+                    createTrainingRunRequest.minTime,
+                    createTrainingRunRequest.minDistance
             )
 
             trainingRunRepository.save(
@@ -92,7 +96,7 @@ class TrainingRunsService(
             )
 
             return TrainingRunResponse(listOf(
-                    TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon, trainingRun.uuid, trainingRun.name)
+                    TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon, trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance)
             ))
 
         } else {
@@ -106,7 +110,7 @@ class TrainingRunsService(
             trainingRunRepository.save(foundTrainingRun)
 
             return TrainingRunResponse(listOf(
-                    TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name)
+                    TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name, foundTrainingRun.minTime, foundTrainingRun.minDistance)
             ))
         }
 
@@ -125,7 +129,7 @@ class TrainingRunsService(
                 trainingRunRepository.delete(foundTrainingRun)
 
                 return TrainingRunResponse(listOf(TrainingRunDTO(
-                        foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name
+                        foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time, foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name, foundTrainingRun.minTime, foundTrainingRun.minDistance
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete
@@ -210,7 +214,7 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.distance,
                     createRunnersTrainingRunRequest.avgPace,
                     createRunnersTrainingRunRequest.uuid,
-                    createRunnersTrainingRunRequest.notes
+                    createRunnersTrainingRunRequest.notes,
 
             )
             runnersTrainingRunRepository.save(insertMe)

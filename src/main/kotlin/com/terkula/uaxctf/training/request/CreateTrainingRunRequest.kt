@@ -8,7 +8,9 @@ class CreateTrainingRunRequest(
         val time: String?,
         val distance: Double?,
         val icon: String,
-        var name: String
+        var name: String,
+        var minTime: String?,
+        var minDistance: Double?
 )
 
 class CreateRunnersTrainingRunRequest(
