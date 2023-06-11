@@ -15,6 +15,7 @@ import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
+import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfYear
 import org.nield.kotlinstatistics.standardDeviation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -581,6 +582,7 @@ class MeetMileSplitService(
             runnerId: Int,
             time: String,
             lastNRaces: Int?,
+            meetName: String?
     ): PersonalizedSplitDTO {
 
        val splits = getMeetSplitsForRunner(runnerId)
@@ -603,14 +605,73 @@ class MeetMileSplitService(
             it.meetSplitsDTO!!.mileThree.calculateSecondsFrom() / it.meetPerformanceDTO.time.calculateSecondsFrom()
         }.average()
 
-        val targetMile1 = (mile1RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
-        val targetMile2 = (mile2RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
-        val targetMile3 = (mile3RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+        var targetMile1 = (mile1RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+        var targetMile2 = (mile2RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+        var targetMile3 = (mile3RatioOfTimeAvg * time.calculateSecondsFrom()).toMinuteSecondString()
+
+
+        val mile1ToMile2TeamAvg: Double?
+        val mile2ToMile3TeamAvg: Double?
+        val indivMile1ToMile2Difference: Double?
+        val indivMile2ToMile3Difference: Double?
+
+        if (meetName != null) {
+            val teamAverages = getStatisticsForMeet(meetName, getFirstDayOfGivenYear("2017"), getLastDayOfYear())
+            mile1ToMile2TeamAvg = teamAverages[0].value
+            mile2ToMile3TeamAvg = teamAverages[1].value
+
+            indivMile1ToMile2Difference = (mile2RatioOfTimeAvg * time.calculateSecondsFrom()) - (mile1RatioOfTimeAvg * time.calculateSecondsFrom())
+            indivMile2ToMile3Difference = (mile3RatioOfTimeAvg * time.calculateSecondsFrom()) - (mile2RatioOfTimeAvg * time.calculateSecondsFrom())
+
+            // if both negative or both positive, subtract and take divide by 2
+            // if not the same sign, add and divide by 2
+
+
+            var combinedMile1ToMile2Difference = if (indivMile1ToMile2Difference * mile1ToMile2TeamAvg >= 0) {
+                // same sign, take difference
+                (mile1ToMile2TeamAvg - indivMile1ToMile2Difference) / 2
+            } else {
+                // opposite sign, take difference by adding
+                (mile1ToMile2TeamAvg + indivMile1ToMile2Difference) / 2
+            }
+
+            var combinedMile2ToMile3Difference = if (indivMile2ToMile3Difference * mile2ToMile3TeamAvg >= 0) {
+                // same sign, take difference
+                (mile2ToMile3TeamAvg - indivMile2ToMile3Difference) / 2
+            } else {
+                // opposite sign, take difference by adding
+                (mile2ToMile3TeamAvg + indivMile2ToMile3Difference) / 2
+            }
+
+            var target1MileSeconds = (mile1RatioOfTimeAvg * time.calculateSecondsFrom())
+            var target2MileSeconds = (mile2RatioOfTimeAvg * time.calculateSecondsFrom())
+            var target3MileSeconds = (mile3RatioOfTimeAvg * time.calculateSecondsFrom())
+
+            if (combinedMile1ToMile2Difference >= 0) {
+                target1MileSeconds -= combinedMile1ToMile2Difference
+                target2MileSeconds += combinedMile1ToMile2Difference
+            } else {
+                target1MileSeconds += combinedMile1ToMile2Difference
+                target2MileSeconds -= combinedMile1ToMile2Difference
+            }
+
+            if (combinedMile2ToMile3Difference >= 0) {
+                target2MileSeconds -= combinedMile2ToMile3Difference
+                target3MileSeconds += combinedMile2ToMile3Difference
+            } else {
+                target2MileSeconds += combinedMile2ToMile3Difference
+                target3MileSeconds -= combinedMile2ToMile3Difference
+            }
+
+            targetMile1 = target1MileSeconds.toMinuteSecondString()
+            targetMile2 = target2MileSeconds.toMinuteSecondString()
+            targetMile3 = target3MileSeconds.toMinuteSecondString()
+        }
+
 
         val avgSplit = (time.calculateSecondsFrom() / 3.10686).toMinuteSecondString()
 
         return PersonalizedSplitDTO(avgSplit, targetMile1, targetMile2, targetMile3)
-
 
     }
 
