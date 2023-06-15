@@ -35,7 +35,7 @@ class RunnerProfileService (
         internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper) {
 
 
-    fun buildRunnerProfileV2(runnerId: Int, season: String): RunnerProfileDTOV2 {
+    fun buildRunnerProfileV2(runnerId: Int, season: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
         val runner = runnerRepository.findById(runnerId).get()
 
 
@@ -51,7 +51,7 @@ class RunnerProfileService (
         val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season)
         val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season)
         val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20)
-        var trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season)
+        var trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season, includeWarmUps)
 
 
         //////// end async operations /////////

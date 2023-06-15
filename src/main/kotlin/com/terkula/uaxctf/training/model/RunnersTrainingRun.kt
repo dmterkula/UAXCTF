@@ -1,6 +1,8 @@
 package com.terkula.uaxctf.training.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.terkula.uaxctf.util.calculateSecondsFrom
+import com.terkula.uaxctf.util.toMinuteSecondString
 import javax.persistence.*
 
 @Entity
@@ -15,7 +17,11 @@ class RunnersTrainingRun(
     @Column(name = "avg_pace")
     var avgPace: String,
     val uuid: String,
-    var notes: String?
+    var notes: String?,
+    @Column(name = "warm_up_time")
+    var warmUpTime: String?,
+    var warmUpDistance: Double?,
+    var warmUpPace: String?
 ) {
 
     @JsonIgnore
@@ -23,4 +29,32 @@ class RunnersTrainingRun(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    fun getTotalDistance(): Double {
+
+        var warmUpDist = 0.0
+        if (warmUpDistance != null) {
+            warmUpDist = warmUpDistance!!
+        }
+
+        return distance + warmUpDist
+    }
+
+    fun getTotalTime(): String {
+        var warmUpSeconds = 0.0
+        if (warmUpTime != null) {
+            warmUpSeconds += warmUpTime!!.calculateSecondsFrom()
+        }
+
+        return (time.calculateSecondsFrom() + warmUpSeconds).toMinuteSecondString()
+    }
+
+    fun getTotalTimeSeconds(): Double {
+        var warmUpSeconds = 0.0
+        if (warmUpTime != null) {
+            warmUpSeconds += warmUpTime!!.calculateSecondsFrom()
+        }
+
+        return time.calculateSecondsFrom() + warmUpSeconds
+    }
 }
