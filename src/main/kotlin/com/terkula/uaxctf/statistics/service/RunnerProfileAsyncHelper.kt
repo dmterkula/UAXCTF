@@ -166,8 +166,8 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
-    open fun getTrainingRunSummary(runnerId: Int, season: String): Future<List<DateRangeRunSummaryDTO>> {
-        return AsyncResult(trainingRunsService.getTotalDistancePerWeek(season, runnerId))
+    open fun getTrainingRunSummary(runnerId: Int, season: String, includeWarmUps: Boolean): Future<List<DateRangeRunSummaryDTO>> {
+        return AsyncResult(trainingRunsService.getTotalDistancePerWeek(season, runnerId, includeWarmUps))
     }
 
     @Async

@@ -166,16 +166,17 @@ class TrainingRunsController(
 
             @ApiParam("timeFrame")
             @Pattern(regexp = "daily|weekly|monthly", message = "only supported timeFrame values are 'daily', 'weekly', or 'monthly'")
-            @RequestParam(value = "timeFrame", required = false) timeFrame: String? = "weekly"
+            @RequestParam(value = "timeFrame", required = false) timeFrame: String? = "weekly",
+            @RequestParam(value = "includeWarmUps", required = false) includeWarmUps: Boolean = false
 
             ): List<DateRangeRunSummaryDTO> {
 
         return if (timeFrame == null || timeFrame == "weekly") {
-            trainingRunsService.getTotalDistancePerWeek(season, runnerId)
+            trainingRunsService.getTotalDistancePerWeek(season, runnerId, includeWarmUps)
         } else if (timeFrame == "monthly") {
-            trainingRunsService.getTotalDistancePerMonth(season, runnerId)
+            trainingRunsService.getTotalDistancePerMonth(season, runnerId, includeWarmUps)
         } else {
-            trainingRunsService.getTotalDistancePerDay(season, runnerId)
+            trainingRunsService.getTotalDistancePerDay(season, runnerId, includeWarmUps)
         }
 
     }

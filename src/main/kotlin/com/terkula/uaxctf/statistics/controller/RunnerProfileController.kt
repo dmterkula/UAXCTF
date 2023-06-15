@@ -33,10 +33,12 @@ class RunnerProfileController (@field:Autowired
 
 
             @ApiParam("Specifies season")
-            @RequestParam(value = "season", required = true) season: String
+            @RequestParam(value = "season", required = true) season: String,
+
+            @RequestParam(value = "includeWarmUps", required = false) includeWarmUps: Boolean = false
             ): RunnerProfileDTOV2 {
 
-        return runnerProfileService.buildRunnerProfileV2(runnerId, season)
+        return runnerProfileService.buildRunnerProfileV2(runnerId, season, includeWarmUps)
 
     }
 
