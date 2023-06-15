@@ -482,7 +482,7 @@ class TrainingRunsService(
 
         val trainingRuns = runnersTrainingRunRepository.findByRunnerId(runnerId)
         var trainingRunCount = trainingRuns.size
-        var trainingDistance = trainingRuns.sumOf { it.distance }
+        var trainingDistance = trainingRuns.sumOf { it.getTotalDistance()}
 
         val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
         trainingRunCount += workoutDistances.size

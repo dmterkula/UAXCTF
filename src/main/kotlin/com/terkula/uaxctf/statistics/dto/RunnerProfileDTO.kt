@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.statisitcs.model.*
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
 import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
