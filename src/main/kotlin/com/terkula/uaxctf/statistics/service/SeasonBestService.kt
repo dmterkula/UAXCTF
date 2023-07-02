@@ -1,7 +1,7 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statistics.dto.ImprovedUponDTO
-import com.terkula.uaxctf.statistics.dto.SeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.SeasonBestDTO
 import com.terkula.uaxctf.statistics.dto.getTimeDifferencesAsStrings
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statisitcs.model.Runner

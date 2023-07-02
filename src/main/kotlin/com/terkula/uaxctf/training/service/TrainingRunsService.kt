@@ -17,9 +17,7 @@ import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.stereotype.Service
 import java.sql.Date
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.Month
+import java.time.*
 import java.time.temporal.IsoFields
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.firstDayOfMonth
@@ -482,7 +480,7 @@ class TrainingRunsService(
 
         val trainingRuns = runnersTrainingRunRepository.findByRunnerId(runnerId)
         var trainingRunCount = trainingRuns.size
-        var trainingDistance = trainingRuns.sumOf { it.distance }
+        var trainingDistance = trainingRuns.sumOf { it.getTotalDistance()}
 
         val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
         trainingRunCount += workoutDistances.size
@@ -646,15 +644,19 @@ class TrainingRunsService(
         }
 
         return trainingSummaryDates.map {
-            var start = LocalDate.of(season.toInt(), Month.JANUARY, 1)
-                    .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
-                    .with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-            start = start.plusYears(1)
 
-            val end = LocalDate.of(season.toInt(), Month.DECEMBER, 31)
-                    .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, it.key.toLong())
-                    .with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))
+            val calendar = Calendar.getInstance();
+            calendar.clear();
+            calendar.set(Calendar.WEEK_OF_YEAR, it.key);
+            calendar.set(Calendar.YEAR, season.toInt());
 
+            // Now get the first day of week.
+            val calendarStart = calendar.time;
+            val startDate: LocalDate = LocalDateTime.ofInstant(calendarStart.toInstant(), ZoneId.systemDefault()).toLocalDate()
+            // grabbed the start day of the week, now set the end
+            calendar.set(Calendar.DAY_OF_WEEK, 7)
+            var calendarEnd = calendar.time
+            val endDate: LocalDate = LocalDateTime.ofInstant(calendarEnd.toInstant(), ZoneId.systemDefault()).toLocalDate()
 
             val avgPace =
                     if (it.value.trainingCount != 0) {
@@ -662,7 +664,7 @@ class TrainingRunsService(
                     } else {
                         0.0
                     }
-            DateRangeRunSummaryDTO(start, end, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
+            DateRangeRunSummaryDTO(startDate, endDate, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
         }
     }
 

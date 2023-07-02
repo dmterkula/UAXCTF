@@ -2,8 +2,9 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.dto.RankedPRDTO
 import com.terkula.uaxctf.statistics.dto.RankedRunnerConsistencyDTO
-import com.terkula.uaxctf.statistics.dto.RankedSeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedMeetResultDTO
 import com.terkula.uaxctf.statistics.service.LeaderBoardService
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import io.swagger.annotations.ApiOperation
@@ -32,6 +33,15 @@ class LeaderboardController(val leaderBoardService: LeaderBoardService) {
         @RequestParam(name = "season") season: String
     ): List<RankedSeasonBestDTO> {
         return leaderBoardService.getSeasonBestLeaderBoard(season)
+    }
+
+    @ApiOperation("Get Meet Time leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/meetTimes"], method = [RequestMethod.GET])
+    fun getMeetTimeLeaderBoard(
+            @RequestParam(name = "meetName") meetName: String,
+            @RequestParam(name = "count") count: Int
+    ): List<RankedMeetResultDTO> {
+        return leaderBoardService.getMeetTimeLeaderBoard(meetName, count)
     }
 
     @ApiOperation("Get Consistency rank leaderboard")

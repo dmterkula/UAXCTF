@@ -1,30 +1,25 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
-import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.*
-import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.SeasonBestDTO
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
-import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
 import com.terkula.uaxctf.training.service.AchievementService
 import com.terkula.uaxctf.training.service.TrainingRunsService
-import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.training.service.WorkoutSplitService
 import com.terkula.uaxctf.util.TimeUtilities
-import com.terkula.uaxctf.util.toMinuteSecondString
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.AsyncResult
 import org.springframework.stereotype.Component
 import java.sql.Date
-import java.time.Instant
 import java.util.concurrent.Future
 
 @Component

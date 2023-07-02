@@ -2,6 +2,8 @@ package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedMeetResultDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
@@ -41,6 +43,16 @@ class LeaderBoardService(
             it.seasonBest.isNotEmpty()
         }.mapIndexed() { index, it ->
             RankedSeasonBestDTO(it.runner, it.seasonBest.first(), index + 1)
+        }
+
+    }
+
+    fun getMeetTimeLeaderBoard(meet: String, count: Int): List<RankedMeetResultDTO> {
+        val topPerformancesAtMeet = meetPerformanceService.getMeetPerformancesAtMeetName(meet, TimeUtilities.getFirstDayOfGivenYear("2017"), TimeUtilities.getLastDayOfYear(), SortingMethodContainer.TIME, count, false)
+                .filter { it.performance.firstOrNull() !=  null }
+
+        return topPerformancesAtMeet.mapIndexed{ index, it ->
+            RankedMeetResultDTO(it.runner, it.performance.first(), index + 1)
         }
 
     }

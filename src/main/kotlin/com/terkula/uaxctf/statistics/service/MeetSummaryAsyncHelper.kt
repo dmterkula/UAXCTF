@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.NamedStatistic
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.leaderboard.SeasonBestDTO
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import org.springframework.beans.factory.annotation.Autowired
