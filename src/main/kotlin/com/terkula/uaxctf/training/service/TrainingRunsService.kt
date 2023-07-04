@@ -354,9 +354,9 @@ class TrainingRunsService(
                     .forEach { distance ->
                         val entry = runnersToDistance[runners[distance.runnerId]]
                         if (entry == null) {
-                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.getTotalDistance()
                         } else {
-                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.getTotalDistance()
                         }
                     }
 
@@ -394,9 +394,9 @@ class TrainingRunsService(
                     .forEach { distance ->
                         val entry = runnersToDistance[runners[distance.runnerId]]
                         if (entry == null) {
-                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.getTotalDistance()
                         } else {
-                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.getTotalDistance()
                         }
                     }
 
@@ -484,7 +484,7 @@ class TrainingRunsService(
 
         val workoutDistances = workoutDistanceRepository.findByRunnerId(runnerId)
         trainingRunCount += workoutDistances.size
-        trainingDistance += workoutDistances.sumOf { it.distance }
+        trainingDistance += workoutDistances.sumOf { it.getTotalDistance() }
 
         return Pair(trainingDistance.round(2), trainingRunCount)
 
@@ -518,9 +518,9 @@ class TrainingRunsService(
                     .forEach { distance ->
                         val entry = runnersToDistance[runners[distance.runnerId]]
                         if (entry == null) {
-                            runnersToDistance[runners[distance.runnerId]!!] = distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = distance.getTotalDistance()
                         } else {
-                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.distance
+                            runnersToDistance[runners[distance.runnerId]!!] = entry + distance.getTotalDistance()
                         }
                     }
 
@@ -575,8 +575,16 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
-                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
-                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + distance.distance
+                        if (includeWarmUps) {
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + distance.getTotalDistance()
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile + distance.getTotalTimeSeconds()
+                        } else {
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + distance.distance
+                            trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.avgSecondsPerMile + distance.getTimeSeconds()
+                        }
+
                     }
 
         }
@@ -637,8 +645,15 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
-                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
-                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + distance.distance
+                        if (includeWarmUps) {
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + distance.getTotalDistance()
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + distance.getTotalTimeSeconds()
+                        } else {
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + distance.distance
+                            trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + distance.getTimeSeconds()
+                        }
                     }
 
         }
@@ -709,16 +724,21 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
-                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
-                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + distance.distance
+                        if (includeWarmUps) {
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + distance.getTotalDistance()
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile + distance.getTotalTimeSeconds()
+                        } else {
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + distance.distance
+                            trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.avgSecondsPerMile + distance.getTimeSeconds()
+                        }
                     }
-
         }
 
         return trainingSummaryDates.map {
             val start = LocalDate.of(season.toInt(), it.key, 1)
                     .with(firstDayOfMonth())
-
 
             val end = start.with(lastDayOfMonth())
 
