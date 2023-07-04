@@ -41,6 +41,29 @@ class TimeTrialService (@field: Autowired
 
     }
 
+    fun createTimeTrialResult(season: String, runnerId: Int, time: String, place: Int): TimeTrialDTO {
+
+       val runner = runnerRepository.findById(runnerId).get()
+       val results = timeTrialRepository.findByRunnerIdAndSeason(runnerId, season)
+
+        return if (results.isEmpty()) {
+            // create new result
+
+            val newResult = TimeTrial(runnerId, time, place, season)
+            timeTrialRepository.save(newResult)
+
+            TimeTrialDTO(runner, newResult.time, newResult.place, newResult.season)
+
+        } else {
+            val updatedRecord = results.first()
+            updatedRecord.time = time
+            updatedRecord.place = place
+            timeTrialRepository.save(updatedRecord)
+            TimeTrialDTO(runner, updatedRecord.time, updatedRecord.place, season)
+        }
+
+    }
+
     fun getTimeTrialComparisonsBetweenYearsForSameRunners(startDate: Date, endDate: Date): List<TimeTrialDifferenceDTO> {
         val timeTrialResultsInputYear = timeTrialRepository.findBySeason(startDate.getYearString())
 

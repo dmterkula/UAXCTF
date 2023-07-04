@@ -8,8 +8,8 @@ import javax.persistence.*
 class TimeTrial(
         @Column(name = "runner_id")
         val runnerId: Int,
-        val time: String,
-        val place: Int,
+        var time: String,
+        var place: Int,
         val season: String) {
 
     @Id
