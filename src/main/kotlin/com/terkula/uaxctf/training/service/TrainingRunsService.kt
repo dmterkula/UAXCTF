@@ -595,7 +595,7 @@ class TrainingRunsService(
 
             val avgPace =
                     if (it.value.trainingCount != 0) {
-                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                        (it.value.avgSecondsPerMile / it.value.totalDistance)
                     } else {
                         0.0
                     }
@@ -675,7 +675,7 @@ class TrainingRunsService(
 
             val avgPace =
                     if (it.value.trainingCount != 0) {
-                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                        (it.value.avgSecondsPerMile / it.value.totalDistance)
                     } else {
                         0.0
                     }
@@ -745,7 +745,7 @@ class TrainingRunsService(
 
             val avgPace =
                     if (it.value.trainingCount != 0) {
-                        (it.value.avgSecondsPerMile / it.value.trainingRunDistance)
+                        (it.value.avgSecondsPerMile / it.value.totalDistance)
                     } else {
                         0.0
                     }
