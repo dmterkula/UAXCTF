@@ -154,4 +154,15 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.runTTestBetweenTimeTrialDifferencesForReturningRunners(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
+
+    @ApiOperation("Creates or updates a time trial result for a runner in a given year")
+    @RequestMapping(value = ["xc/timeTrial/result/create"], method = [RequestMethod.POST])
+    fun createTimeTrialResult( @ApiParam("specifies the season")
+                                  @RequestParam("season", defaultValue = "") season: String,
+                               @RequestParam("runnerId") runnerId: Int,
+                               @RequestParam("time") time: String,
+                               @RequestParam("place") place: Int
+    ): TimeTrialDTO {
+        return timeTrialService.createTimeTrialResult(season, runnerId, time, place)
+    }
 }
