@@ -227,7 +227,7 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom() * distanceRatio) + paceAdjustment).toMinuteSecondString())),
+                                            listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom()  + paceAdjustment) * distanceRatio).toMinuteSecondString())),
                                             workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         )
                                     )
@@ -268,7 +268,7 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (it.pr.first().time.calculateSecondsFrom() * (distanceRatio) + paceAdjustment).round(2).toMinuteSecondString())),
+                                            listOf(TargetedPace("split", ((it.pr.first().time.calculateSecondsFrom() + paceAdjustment) * (distanceRatio)).round(2).toMinuteSecondString())),
                                             workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                     )
                                 )
@@ -288,7 +288,7 @@ class WorkoutService (
                                             distance,
                                             component.duration,
                                             (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (distanceRatio * it.value.first() + paceAdjustment).toMinuteSecondString())),
+                                            listOf(TargetedPace("split", (distanceRatio * (it.value.first() + paceAdjustment)).toMinuteSecondString())),
                                             workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                     )
                                 )
