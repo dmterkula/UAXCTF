@@ -5,6 +5,7 @@ import com.terkula.uaxctf.statistics.dto.RankedRunnerConsistencyDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedMeetResultDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedTryoutDTO
 import com.terkula.uaxctf.statistics.service.LeaderBoardService
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import io.swagger.annotations.ApiOperation
@@ -25,6 +26,16 @@ class LeaderboardController(val leaderBoardService: LeaderBoardService) {
     ): List<RankedPRDTO> {
 
         return leaderBoardService.getPRLeaderBoard(pageSize)
+    }
+
+    @ApiOperation("Get Tryout leaderboard")
+    @RequestMapping(value = ["xc/leaderboard/tryouts"], method = [RequestMethod.GET])
+    fun getTryoutLeaderBoard(
+            @RequestParam(name = "page.size") pageSize: Int,
+            @RequestParam(name = "adjustTo5k", required = false) adjustTo5k: Boolean = false
+    ): List<RankedTryoutDTO> {
+
+        return leaderBoardService.getTryoutLeaderBoard(pageSize, adjustTo5k)
     }
 
     @ApiOperation("Get SB leaderboard")

@@ -20,6 +20,21 @@ class TimeTrialService (@field: Autowired
                                    internal val seasonBestService: SeasonBestService) {
 
 
+    fun getAllTimeTrialResults(adjustTo5k: Boolean): List<TimeTrialDTO> {
+
+        val runners = runnerRepository.findAll()
+                .map { it.id to it }
+                .toMap()
+
+        return timeTrialRepository.findAll().map {
+            if (!adjustTo5k) {
+                TimeTrialDTO(runners[it.runnerId]!!, it.time, it.place, it.season)
+            } else {
+                TimeTrialDTO(runners[it.runnerId]!!, it.time.calculateSecondsFrom().scaleTimeTo5k(4827.0).toMinuteSecondString(), it.place, it.season)
+            }
+        }
+    }
+
     fun getTimeTrialResults(startDate: Date, endDate: Date, scaleTo5k: Boolean): List<TimeTrialDTO> {
 
         var season = startDate.getYearString();

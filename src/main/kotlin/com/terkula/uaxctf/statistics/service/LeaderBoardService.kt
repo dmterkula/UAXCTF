@@ -4,11 +4,13 @@ import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedMeetResultDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.leaderboard.RankedTryoutDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.service.TrainingRunsService
 import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
 import org.springframework.stereotype.Service
 
@@ -33,6 +35,24 @@ class LeaderBoardService(
         return allPRs.mapIndexed { index, it ->
             RankedPRDTO(it.runner, it.pr.first(), index + 1)
         }
+
+    }
+
+    fun getTryoutLeaderBoard(pageSize: Int, adjustTo5k: Boolean): List<RankedTryoutDTO> {
+
+        val allTimeTrials = timeTrialService.getAllTimeTrialResults(adjustTo5k)
+                .groupBy { it.runner }
+                .map {
+                    it.key to it.value.sortedBy { it.time.calculateSecondsFrom() }.firstOrNull()
+                }
+                .filter { it.second != null }
+                .map { it.first to it.second!!}
+                .sortedBy { it.second.time.calculateSecondsFrom() }
+                .mapIndexed { index, it ->
+                    RankedTryoutDTO(it.first, index + 1, it.second)
+                }
+
+        return allTimeTrials
 
     }
 
