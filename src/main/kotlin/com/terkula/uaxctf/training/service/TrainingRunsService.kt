@@ -3,6 +3,7 @@ package com.terkula.uaxctf.training.service
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.training.model.*
 import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
 import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
@@ -32,7 +33,8 @@ class TrainingRunsService(
     val runnersTrainingRunRepository: RunnersTrainingRunRepository,
     val runnerRepository: RunnerRepository,
     val workoutRepository: WorkoutRepository,
-    val workoutDistanceRepository: RunnerWorkoutDistanceRepository
+    val workoutDistanceRepository: RunnerWorkoutDistanceRepository,
+    val meetLogService: MeetLogService
 ) {
 
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
@@ -540,6 +542,7 @@ class TrainingRunsService(
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
+        val meetLogDatePairs: List<Pair<MeetLog, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, season)
 
         val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
 
@@ -586,7 +589,19 @@ class TrainingRunsService(
                         }
 
                     }
+        }
 
+
+        meetLogDatePairs.forEach {
+            if (includeWarmUps) {
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.getTotalDistance()
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.getTotalTimeSeconds()
+            } else {
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.getOnlyMeetDistance()
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.time.calculateSecondsFrom()
+            }
         }
 
         return trainingSummaryDates.map {
@@ -610,6 +625,8 @@ class TrainingRunsService(
         val allTrainingRuns = trainingRunRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        val meetLogDatePairs: List<Pair<MeetLog, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, season)
 
 
         val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
@@ -655,7 +672,18 @@ class TrainingRunsService(
                             trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + distance.getTimeSeconds()
                         }
                     }
+        }
 
+        meetLogDatePairs.forEach {
+            if (includeWarmUps) {
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.getTotalDistance()
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.getTotalTimeSeconds()
+            } else {
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.getOnlyMeetDistance()
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.time.calculateSecondsFrom()
+            }
         }
 
         return trainingSummaryDates.map {
@@ -689,6 +717,7 @@ class TrainingRunsService(
 
         val workouts = workoutRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
 
+        val meetLogDatePairs: List<Pair<MeetLog, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, season)
 
         val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
 
@@ -735,6 +764,20 @@ class TrainingRunsService(
                         }
                     }
         }
+
+        meetLogDatePairs.forEach {
+            if (includeWarmUps) {
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.getTotalDistance()
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.getTotalTimeSeconds()
+            } else {
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.getOnlyMeetDistance()
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.time.calculateSecondsFrom()
+            }
+        }
+
+
 
         return trainingSummaryDates.map {
             val start = LocalDate.of(season.toInt(), it.key, 1)
