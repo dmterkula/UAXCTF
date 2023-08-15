@@ -238,16 +238,16 @@ class WorkoutService (
                     }
                     "SB" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+                        val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
                         val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
-                            RunnerWorkoutPlanDTOV2(it.runner,
+                            RunnerWorkoutPlanDTOV2(it.first,
                                     listOf(WorkoutComponentPlanElement(
                                             distance,
                                             component.duration,
-                                            (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString())),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                            (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                            listOf(TargetedPace("split", ((it.second.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString())),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
 
                                     )
                                 )
@@ -330,16 +330,16 @@ class WorkoutService (
                     }
                     "SB" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+                        val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
                         val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
-                            RunnerWorkoutPlanDTOV2(it.runner,
+                            RunnerWorkoutPlanDTOV2(it.first,
                                     listOf(WorkoutComponentPlanElement(
                                             distance,
                                             component.duration,
-                                            (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("perMile", ((it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString()))),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                            (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                            listOf(TargetedPace("perMile", ((it.second.calculateSecondsFrom() * distanceRatio + tempoScale + paceAdjustment).round(2).toMinuteSecondString()))),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
                                     )
                                 )
                             )
@@ -423,17 +423,17 @@ class WorkoutService (
                     }
                     "SB" -> {
 
-                        val seasonBests = seasonBestService.getAllSeasonBests(startDate, endDate, false)
+                        val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
                         val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
-                            val baseTimePerMile = it.seasonBest.first().time.calculateSecondsFrom() * distanceRatio + paceAdjustment
-                            RunnerWorkoutPlanDTOV2(it.runner,
+                            val baseTimePerMile = it.second.calculateSecondsFrom() * distanceRatio + paceAdjustment
+                            RunnerWorkoutPlanDTOV2(it.first,
                                     listOf(WorkoutComponentPlanElement(
                                             distance,
                                             component.duration,
-                                            (it.seasonBest.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                            (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
                                             constructProgressionTargetedPaces(baseTimePerMile),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
                                     )
                                 )
                             )
@@ -535,7 +535,7 @@ class WorkoutService (
 
     companion object {
         const val fiveK: Int = 5000
-        const val tempoScale = 45.0
+        const val tempoScale = 30
     }
 
 }

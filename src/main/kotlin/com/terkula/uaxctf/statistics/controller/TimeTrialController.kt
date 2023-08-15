@@ -119,7 +119,7 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.runTTestBetweenPreviousSBsToTimeTrial(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
-    @ApiOperation("Returns T Test between mean difference in two given year's time trial improvements from the previous year (returning runers only).  Intent is to use as indicator for relative summer conditioning levels. " +
+    @ApiOperation("Returns T Test between mean difference in two given year's time trial improvements from the previous year (returning runners only).  Intent is to use as indicator for relative summer conditioning levels. " +
             "can be used to get data for multiple years, or just one")
     @RequestMapping(value = ["xc/timeTrial/yearToYearImprovementTTest"], method = [RequestMethod.GET])
     fun runTTestBetweenTimeTrialImprovementsYearToYear( @ApiParam("use time trial data from this season and SBs from season prior")
