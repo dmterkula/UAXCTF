@@ -9,7 +9,8 @@ import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
-import com.terkula.uaxctf.util.getImprovedUpon
+import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
+import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
@@ -20,6 +21,8 @@ class SeasonBestService(@field:Autowired
                         private val meetPerformanceRepository: MeetPerformanceRepository,
                         @field:Autowired
                         private val runnerRepository: RunnerRepository,
+                        @field:Autowired
+                        private val timeTrialRepository: TimeTrialRepository,
                         @field: Autowired
                         private val performanceAdjusterService: PerformanceAdjusterService) {
 
@@ -49,6 +52,46 @@ class SeasonBestService(@field:Autowired
                 }
 
         return seasonBestDTOs
+
+    }
+
+    fun getSeasonBestTimeOrTrout(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<Pair<Runner, String>> {
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+
+        // look up map for meet id to meet
+        val meetMap = meets.map { it.id to it }.toMap()
+
+        // give all performances for the meets
+        val performances = meets.map { meetPerformanceRepository.findByMeetId(it.id)}.flatten()
+
+        val runners = runnerRepository.findAll().map {
+            it.id to it
+        }.toMap()
+
+        val tryouts: List<Pair<Runner, String>> = timeTrialRepository.findBySeason(startDate.getYearString()).map { runners[it.runnerId]!! to it.time.calculateSecondsFrom().scaleTimeTo5k(4827.0).toMinuteSecondString() }
+
+        val seasonBests = performances.groupBy { it.runnerId }
+                .map { runners[it.key]!! to (it.value.toMutableList().sortedBy { performance -> performance.time }.take(2)) }.toMutableList()
+                .map { it.first to performanceAdjusterService.adjustMeetPerformances(it.second.toMeetPerformanceDTO(meetMap), adjustForDistance) }.toMutableList()
+                .sortedBy { it.second.first().time }
+                .map {
+                    val improvedUponMeetDTO = getImprovedUpon(it.second)
+                    SeasonBestDTO(it.first, it.second.take(1), ImprovedUponDTO(it.second.getTimeDifferencesAsStrings()[0], improvedUponMeetDTO))
+                }
+                .map {
+                    it.runner.id to it
+                }.toMap()
+
+
+       tryouts.map {
+           if(seasonBests[it.first.id] != null && seasonBests[it.first.id]!!.seasonBest.firstOrNull() != null && seasonBests[it.first.id]!!.seasonBest.first().time.calculateSecondsFrom() < it.second.calculateSecondsFrom()) {
+               it.first to seasonBests[it.first.id]!!.seasonBest.first().time.calculateSecondsFrom()
+           } else {
+               it.first to it.second
+           }
+       }
+
+        return tryouts
 
     }
 

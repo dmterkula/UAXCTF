@@ -169,15 +169,15 @@ class TimeTrialService (@field: Autowired
         val timeTrialDataYear1 = getTimeTrialComparisonsBetweenYearsForSameRunners(startDate1, endDate1)
         val timeTrialDataYear2 = getTimeTrialComparisonsBetweenYearsForSameRunners(startDate2, endDate2)
 
-        val statistcalDistributionYear1 = StatisticalComparisonDTO.from("${startDate1.getYearString()} - ${startDate1.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear1.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
-        val statistcalDistributionYear2 = StatisticalComparisonDTO.from("${startDate2.getYearString()} - ${startDate2.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear2.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
+        val statisticalDistributionYear1 = StatisticalComparisonDTO.from("${startDate1.getYearString()} - ${startDate1.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear1.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
+        val statisticalDistributionYear2 = StatisticalComparisonDTO.from("${startDate2.getYearString()} - ${startDate2.subtractYear(1).getYearString()} time trial improvement for returning runners. Positive numbers = faster", timeTrialDataYear2.map { it.timeDifference.calculateSecondsFrom() }, "time", 4)
 
         val tStat = TStatDTO("2 sample T test for mean difference in previous SB times to following year's Time Trial",
                 TestUtils.tTest(timeTrialDataYear1.map{ it.timeDifference.calculateSecondsFrom()}.toDoubleArray(),
                         timeTrialDataYear2.map{ it.timeDifference.calculateSecondsFrom()}.toDoubleArray())
                         .round(4))
 
-        return TTestResponse(listOf(statistcalDistributionYear1), listOf(statistcalDistributionYear2), listOf(tStat))
+        return TTestResponse(listOf(statisticalDistributionYear1), listOf(statisticalDistributionYear2), listOf(tStat))
 
     }
 
@@ -229,7 +229,7 @@ class TimeTrialService (@field: Autowired
                 .map { runners[it.runner.id]!!.id to it }
                 .toMap()
 
-        return adjustedTimeTrialResults
+        val test = adjustedTimeTrialResults
                 .map { it to seasonBests[it.runnerId] }
                 .toMap()
                 .filter { it.value != null }
@@ -238,8 +238,10 @@ class TimeTrialService (@field: Autowired
                     SeasonBestToTimeTrialDTO(it.value!!, it.key.time)
                 }
                 .map {
-                    it.getDifference()
-                }
+                    it.getRunner() to it.getDifference()
+                }.sortedBy { it.second }
+
+        return test.map{it.second}
     }
 
     fun getMeanDifferenceBetweenTimeTrialAndSB(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<Double> {
