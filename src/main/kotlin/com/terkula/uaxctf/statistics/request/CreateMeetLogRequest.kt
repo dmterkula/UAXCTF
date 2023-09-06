@@ -4,7 +4,7 @@ import com.terkula.uaxctf.training.request.ComponentsSplitsRequest
 
 class CreateMeetLogRequest(
     val runnerId: Int,
-    val meetId: Int,
+    val meetId: String,
     val notes: String?,
     var time: String,
     var warmUpTime: String?,

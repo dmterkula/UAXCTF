@@ -9,8 +9,8 @@ import javax.persistence.*
 @Entity
 @Table(name = "meet_log", schema = "uaxc")
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
-class MeetLog( @Column(name = "meet_id")
-               var meetId: Int,
+class MeetLog( @Column(name = "meet_uuid")
+               var meetId: String,
                @Column(name = "runner_id")
                var runnerId: Int,
                var time: String,
@@ -36,7 +36,7 @@ class MeetLog( @Column(name = "meet_id")
 
     fun getTotalDistance(): Double {
 
-        var totalDistance =3.1
+        var totalDistance = 3.1
 
         if (warmUpDistance != null) {
             totalDistance += warmUpDistance!!

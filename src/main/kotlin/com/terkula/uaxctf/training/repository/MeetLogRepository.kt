@@ -7,10 +7,10 @@ import org.springframework.stereotype.Repository
 @Repository
 interface MeetLogRepository: CrudRepository<MeetLog, Int> {
 
-    fun findByMeetId(meetId: Int): List<MeetLog>
+    fun findByMeetId(meetId: String): List<MeetLog>
 
     fun findByRunnerId(runnerId: Int): List<MeetLog>
 
-    fun findByMeetIdAndRunnerId(meetId: Int, runnerId: Int): List<MeetLog>
+    fun findByMeetIdAndRunnerId(meetId: String, runnerId: Int): List<MeetLog>
 
 }

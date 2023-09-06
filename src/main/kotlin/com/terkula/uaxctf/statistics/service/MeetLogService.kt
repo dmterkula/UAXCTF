@@ -4,6 +4,7 @@ import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.request.CreateMeetLogRequest
 import com.terkula.uaxctf.training.model.MeetLog
 import com.terkula.uaxctf.training.repository.MeetLogRepository
+import com.terkula.uaxctf.training.response.MeetLogResponse
 import com.terkula.uaxctf.util.TimeUtilities
 import org.springframework.stereotype.Service
 import java.sql.Date
@@ -13,14 +14,26 @@ class MeetLogService (
         val meetLogRepository: MeetLogRepository,
         val meetRepository: MeetRepository) {
 
-    fun getMeetLog(meetId: Int, runnerId: Int): MeetLog? {
+    fun getMeetLog(meetId: String, runnerId: Int): MeetLogResponse {
 
+        val meets = meetRepository.findByUuid(meetId)
         val log = meetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId)
-        return log.firstOrNull()
+
+        return MeetLogResponse(log.firstOrNull(), meets.first())
     }
 
-    fun createMeetLog(createMeetLogRequest: CreateMeetLogRequest): MeetLog {
+    fun getMeetLogsAtMeet(meetId: String): List<MeetLogResponse> {
 
+        val meets = meetRepository.findByUuid(meetId)
+
+        return meetLogRepository.findByMeetId(meetId).map{
+            MeetLogResponse(it, meets.first())
+        }
+    }
+
+    fun createMeetLog(createMeetLogRequest: CreateMeetLogRequest): MeetLogResponse {
+
+        val meet = meetRepository.findByUuid(createMeetLogRequest.meetId).first()
         val existingLog = meetLogRepository.findByMeetIdAndRunnerId(createMeetLogRequest.meetId, createMeetLogRequest.runnerId)
 
         if (existingLog.firstOrNull() == null) {
@@ -31,7 +44,7 @@ class MeetLogService (
 
             meetLogRepository.save(newMeetLog)
 
-            return newMeetLog
+            return MeetLogResponse(newMeetLog, meet)
 
         } else {
             val log = existingLog.first()
@@ -47,15 +60,15 @@ class MeetLogService (
 
             meetLogRepository.save(log)
 
-            return log
+            return MeetLogResponse(log, meet)
 
         }
     }
 
-    fun getAllMeetLogsForRunnerInSeason(runnerId: Int, season: String): List<Pair<MeetLog, Date>> {
+    fun getAllMeetLogsForRunnerInSeason(runnerId: Int, season: String): List<Pair<MeetLogResponse, Date>> {
         return meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season)).map {
-            getMeetLog(it.id, runnerId) to it.date
-        }.filter {it.first != null}
+            getMeetLog(it.uuid, runnerId) to it.date
+        }.filter {it.first.meetLog != null}
         .map {
             it.first!! to it.second
         }
