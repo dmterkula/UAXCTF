@@ -1,7 +1,5 @@
 package com.terkula.uaxctf.training.controller
 
-import com.terkula.uaxctf.training.model.Workout
-import com.terkula.uaxctf.training.model.WorkoutSplitV2
 import com.terkula.uaxctf.training.request.CreateSplitsRequest
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
 import com.terkula.uaxctf.training.request.LogWorkoutResultsRequest
@@ -11,12 +9,10 @@ import com.terkula.uaxctf.training.service.WorkoutGroupBuilderService
 import com.terkula.uaxctf.training.service.WorkoutSplitService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
 import javax.validation.Valid
-import javax.validation.constraints.Pattern
 
 @RestController
 @Validated
