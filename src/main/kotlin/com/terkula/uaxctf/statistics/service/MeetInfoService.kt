@@ -31,7 +31,7 @@ class MeetInfoService(
         }
     }
 
-    fun getTrackMeetInfo(): List<MeetToDatesRunDTO>  {
+    fun  getTrackMeetInfo(): List<MeetToDatesRunDTO>  {
 
         var meets = trackMeetRepository.findAll()
 
