@@ -7,6 +7,7 @@ import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.track.CreateTrackMeetResultRequest
+import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
 import org.springframework.stereotype.Component
 
@@ -138,6 +139,26 @@ class TrackMeetPerformanceService(
                    .map { TrackMeetPerformanceDTO(
                            meet.get(), runners[it.key]!!, it.value
                    ) }
+        }
+    }
+
+    fun getTrackMeetResults(meetName: String, season: String): List<TrackMeetPerformanceDTO> {
+
+        val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        val endDate = TimeUtilities.getLastDayOfGivenYear(season)
+
+        val meet = meetRepository.findByNameContainingAndDateBetween(meetName, startDate, endDate
+        )
+        if (!meet.isEmpty()) {
+            return emptyList()
+        } else {
+
+            val runners = runnerRepository.findByGraduatingClassGreaterThanEqual(meet.first().date.getYearString()).map { it.id to it }.toMap()
+            return trackMeetPerformanceRepository.findByMeetId(meet.first().uuid)
+                    .groupBy { it.runnerId }
+                    .map { TrackMeetPerformanceDTO(
+                            meet.first(), runners[it.key]!!, it.value
+                    ) }
         }
     }
 
