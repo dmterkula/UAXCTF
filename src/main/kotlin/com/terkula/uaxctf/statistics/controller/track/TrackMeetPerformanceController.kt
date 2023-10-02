@@ -151,7 +151,7 @@ class TrackMeetPerformanceController(
     }
 
     @ApiOperation("Returns all the meet results at a given meet given a season and meet name")
-    @RequestMapping(value = ["track/meetResults"], method = [RequestMethod.GET])
+    @RequestMapping(value = ["track/meetResultsByName"], method = [RequestMethod.GET])
     fun getMeetResults(@RequestParam(value = "meetName") meetName: String,
                        @RequestParam(value = "season") season: String)
             : List<TrackMeetPerformanceDTO>  {
