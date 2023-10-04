@@ -13,7 +13,8 @@ class LogWorkoutResultsRequest(
     var coolDownTime: String?,
     var coolDownDistance: Double?,
     var coolDownPace: String?,
-    val componentsSplits: List<ComponentsSplitsRequest>
+    val componentsSplits: List<ComponentsSplitsRequest>,
+    val coachNotes: String?
 )
 
 

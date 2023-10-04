@@ -23,6 +23,7 @@ class CreateRunnersTrainingRunRequest(
     val notes: String?,
     val warmUpTime: String?,
     val warmUpPace: String?,
-    val warmUpDistance: Double?
+    val warmUpDistance: Double?,
+    val coachNotes: String?
 
 )

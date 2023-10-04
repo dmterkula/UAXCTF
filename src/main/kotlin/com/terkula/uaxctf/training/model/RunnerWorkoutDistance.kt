@@ -29,7 +29,9 @@ class RunnerWorkoutDistance(
         var coolDownTime: String?,
         @Column(name = "cool_down_pace")
         var coolDownPace: String?,
-        var notes: String?
+        var notes: String?,
+        @Column(name = "coach_notes")
+        var coachNotes: String?
 ) {
 
     @JsonIgnore

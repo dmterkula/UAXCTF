@@ -9,4 +9,4 @@ class RunnerWorkoutResultResponse(val runner: Runner, val workout: WorkoutRespon
                                   val totalDistance: Double, val time: String, val pace: String, val warmUpDistance: Double?,
                                   val warmUpTime: String?, val warmUpPace: String?,
                                   val coolDownDistance: Double?, val coolDownTime: String?, val coolDownPace: String?,
-                                  val notes: String?)
+                                  val notes: String?, val coachNotes: String?)
