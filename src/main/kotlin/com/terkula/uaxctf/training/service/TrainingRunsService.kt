@@ -155,7 +155,7 @@ class TrainingRunsService(
         return RunnersTrainingRunResponse(results.map {
             RunnerTrainingRunDTO(
                     runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                    it.warmUpTime, it.warmUpDistance, it.warmUpPace
+                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
             )
         })
 
@@ -174,7 +174,7 @@ class TrainingRunsService(
         val runnersTrainingRuns = trainingRuns.map {
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance,
-                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace) })
+                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace, result.coachNotes) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -192,7 +192,7 @@ class TrainingRunsService(
         return RunnersTrainingRunResponse(results.map {
             RunnerTrainingRunDTO(
                     runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                    it.warmUpTime, it.warmUpDistance, it.warmUpPace
+                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
             )
         })
 
@@ -222,13 +222,14 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.notes,
                     createRunnersTrainingRunRequest.warmUpTime,
                     createRunnersTrainingRunRequest.warmUpDistance,
-                    createRunnersTrainingRunRequest.warmUpPace
+                    createRunnersTrainingRunRequest.warmUpPace,
+                    createRunnersTrainingRunRequest.coachNotes
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
-                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace
+                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace, insertMe.coachNotes
             )))
 
         } else {
@@ -240,12 +241,14 @@ class TrainingRunsService(
             runnerRecord.warmUpTime = createRunnersTrainingRunRequest.warmUpTime
             runnerRecord.warmUpDistance = createRunnersTrainingRunRequest.warmUpDistance
             runnerRecord.warmUpPace = createRunnersTrainingRunRequest.warmUpPace
+            runnerRecord.coachNotes = createRunnersTrainingRunRequest.coachNotes
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance,
-                    runnerRecord.avgPace, runnerRecord.notes, runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace
+                    runnerRecord.avgPace, runnerRecord.notes, runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
+                    runnerRecord.coachNotes
             )))
 
         }
@@ -275,13 +278,15 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.notes,
                     createRunnersTrainingRunRequest.warmUpTime,
                     createRunnersTrainingRunRequest.warmUpDistance,
-                    createRunnersTrainingRunRequest.warmUpPace
+                    createRunnersTrainingRunRequest.warmUpPace,
+                    createRunnersTrainingRunRequest.coachNotes
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
-                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace
+                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
+                    insertMe.coachNotes
             )))
 
         } else {
@@ -289,13 +294,15 @@ class TrainingRunsService(
             runnerRecord.distance = createRunnersTrainingRunRequest.distance
             runnerRecord.time = createRunnersTrainingRunRequest.time
             runnerRecord.notes = createRunnersTrainingRunRequest.notes
+            runnerRecord.coachNotes = createRunnersTrainingRunRequest.coachNotes
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time,
                     runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes,
-                    runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace
+                    runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
+                    runnerRecord.coachNotes
             )))
 
         }
@@ -319,7 +326,7 @@ class TrainingRunsService(
                 return RunnersTrainingRunResponse(runnerRecords.map {
                     RunnerTrainingRunDTO(
                             runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                            it.warmUpTime, it.warmUpDistance, it.warmUpPace
+                            it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
                     )
                 })
             }

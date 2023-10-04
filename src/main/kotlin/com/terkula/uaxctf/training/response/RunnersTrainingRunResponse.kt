@@ -17,5 +17,6 @@ class RunnerTrainingRunDTO(
     val notes: String?,
     val warmUpTime: String?,
     val warmUpDistance: Double?,
-    val warmUpPace: String?
+    val warmUpPace: String?,
+    val coachNotes: String?
 )
