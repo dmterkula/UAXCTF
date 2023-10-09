@@ -1,11 +1,16 @@
 package com.terkula.uaxctf.statisitcs.model.track
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
+import com.terkula.uaxctf.statistics.response.track.TrackSplit
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
 import javax.persistence.Table
+import javax.sound.midi.Track
 
 @Entity
 @Table(name = "track_meet_results", schema = "uaxc")
@@ -37,4 +42,15 @@ fun TrackMeetPerformance.eventDistance(): Int {
 
     return acceptedDistances.firstOrNull { this.event.contains(it) }?.toInt() ?: 0
 
+}
+
+fun TrackMeetPerformance.toTrackMeetPerformanceResponse(): TrackMeetPerformanceResponse {
+
+    val splits: List<TrackSplit> = ObjectMapper().readValue(this.splits)
+
+    return TrackMeetPerformanceResponse(this.meetId, this.uuid, this.runnerId, this.time, this.place, this.event, this.isSplit, splits)
+}
+
+fun List<TrackMeetPerformance>.toTrackMeetPerformancesResponses(): List<TrackMeetPerformanceResponse> {
+    return this.map { it.toTrackMeetPerformanceResponse() }
 }

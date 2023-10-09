@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeet
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformance
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformanceDTO
+import com.terkula.uaxctf.statisitcs.model.track.toTrackMeetPerformancesResponses
 import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
@@ -29,7 +30,7 @@ class TrackMeetPerformanceService(
             return trackMeetPerformanceRepository.findByMeetId(meetUUID)
                     .groupBy { it.runnerId }
                    .map { TrackMeetPerformanceDTO(
-                           meet.get(), runners[it.key]!!, it.value
+                           meet.get(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses()
                    ) }
         }
     }
@@ -39,9 +40,8 @@ class TrackMeetPerformanceService(
         val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
         val endDate = TimeUtilities.getLastDayOfGivenYear(season)
 
-        val meet = meetRepository.findByNameContainingAndDateBetween(meetName, startDate, endDate
-        )
-        if (!meet.isEmpty()) {
+        val meet = meetRepository.findByNameContainingAndDateBetween(meetName, startDate, endDate)
+        if (meet.isEmpty()) {
             return emptyList()
         } else {
 
@@ -49,7 +49,7 @@ class TrackMeetPerformanceService(
             return trackMeetPerformanceRepository.findByMeetId(meet.first().uuid)
                     .groupBy { it.runnerId }
                     .map { TrackMeetPerformanceDTO(
-                            meet.first(), runners[it.key]!!, it.value
+                            meet.first(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses()
                     ) }
         }
     }
@@ -79,7 +79,7 @@ class TrackMeetPerformanceService(
 
         val meet = meets.first()
 
-        val performances = trackMeetPerformanceRepository.findByUuidAndRunnerId(meet.uuid, runner.id)
+        val performances = trackMeetPerformanceRepository.findByMeetIdAndRunnerId(meet.uuid, runner.id)
 
         if (performances.isEmpty()) {
 
@@ -91,7 +91,7 @@ class TrackMeetPerformanceService(
                 createdResults.add(newPerformance)
             }
 
-            return TrackMeetPerformanceDTO(meet, runner, createdResults)
+            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses())
 
         } else {
             val createdResults: MutableList<TrackMeetPerformance> = mutableListOf()
@@ -116,7 +116,7 @@ class TrackMeetPerformanceService(
                 }
             }
 
-            return TrackMeetPerformanceDTO(meet, runner, createdResults)
+            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses())
 
         }
 

@@ -57,6 +57,7 @@ class MeetLogService (
             log.coolDownTime = createMeetLogRequest.coolDownTime
             log.coolDownPace = createMeetLogRequest.coolDownPace
             log.notes = createMeetLogRequest.notes
+            log.coachNotes = createMeetLogRequest.coachNotes
 
             meetLogRepository.save(log)
 

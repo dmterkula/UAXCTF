@@ -11,7 +11,7 @@ interface TrackMeetPerformanceRepository : CrudRepository<TrackMeetPerformance, 
 
     fun findByMeetId(meetId: String): MutableList<TrackMeetPerformance>
 
-    fun findByUuidAndRunnerId(uuid: String, runnerId: Int): List<TrackMeetPerformance>
+    fun findByMeetIdAndRunnerId(meetId: String, runnerId: Int): List<TrackMeetPerformance>
 
     fun deleteAllByRunnerId(runnerId: Int)
 

@@ -201,6 +201,7 @@ class WorkoutSplitService(
             workoutDistanceRepository.save(runnerWorkoutDistance)
             distance = runnerWorkoutDistance.distance
             runnerWorkoutDistance.notes = logWorkoutResultsRequest.notes
+            runnerWorkoutDistance.coachNotes = logWorkoutResultsRequest.coachNotes
 
         } else {
             val existingRecord = workoutDistance.first()
@@ -220,6 +221,7 @@ class WorkoutSplitService(
             distance = existingRecord.distance
 
             existingRecord.notes = logWorkoutResultsRequest.notes
+            existingRecord.coachNotes = logWorkoutResultsRequest.coachNotes
             workoutDistanceRepository.save(existingRecord)
         }
 
