@@ -33,6 +33,30 @@ data class TrackMeetPerformance(
     val id: Int = 0
 }
 
+fun TrackMeetPerformance.getLogicalEvent(): String {
+   val sameGroup = listOf("60m, 60h, 100h, 110h, 300h, 2k Steeple", "5000", "3200", "2 Mile")
+
+    return if (this.event in sameGroup) {
+        this.event
+    } else if (this.event == "4x100m" || this.event == "100m") {
+       "100m"
+    } else if (this.event == "4x200m" || this.event == "200m") {
+        "200m"
+    } else if (this.event == "4x400m" || this.event == "400m") {
+        "400m"
+    } else if (this.event == "4x800m" || this.event == "800m") {
+        "800m"
+    } else if (this.event == "4x1600m" || this.event == "1600m") {
+        "1600m"
+    } else if (this.event == "4xMile" || this.event == "Mile") {
+        "Mile"
+    } else if (this.event == "4x100m" || this.event == "100m") {
+        "100m"
+    }else {
+        this.event
+    }
+}
+
 //fun List<TrackMeetPerformance>.toTrackMeetPerformanceDTO(meet: TrackMeet, runner: Runner): List<TrackMeetPerformanceDTO> {
 //    return this.map { TrackMeetPerformanceDTO(meet: meet }
 //}

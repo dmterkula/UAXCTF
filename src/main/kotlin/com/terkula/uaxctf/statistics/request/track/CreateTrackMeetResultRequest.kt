@@ -11,6 +11,7 @@ class CreateTrackMeetResultRequest(
 class TrackResult(
     var uuid: String,
     var event: String,
+    var distance: Int,
     var time: String,
     var place: Int,
     var splits: List<MeetSplit>,

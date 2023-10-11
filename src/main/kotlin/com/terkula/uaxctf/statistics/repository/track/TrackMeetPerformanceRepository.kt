@@ -9,6 +9,8 @@ interface TrackMeetPerformanceRepository : CrudRepository<TrackMeetPerformance, 
 
     fun findByRunnerId(runnerId: Int?): MutableList<TrackMeetPerformance>
 
+    fun findByRunnerIdAndEvent(runnerId: Int?, event: String): MutableList<TrackMeetPerformance>
+
     fun findByMeetId(meetId: String): MutableList<TrackMeetPerformance>
 
     fun findByMeetIdAndRunnerId(meetId: String, runnerId: Int): List<TrackMeetPerformance>
