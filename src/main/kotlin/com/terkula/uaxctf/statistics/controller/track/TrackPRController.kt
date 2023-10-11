@@ -1,5 +1,7 @@
 package com.terkula.uaxctf.statistics.controller.track
 
+import com.terkula.uaxctf.statistics.dto.track.TrackPRPerformance
+import com.terkula.uaxctf.statistics.dto.track.TrackPRsDTO
 import com.terkula.uaxctf.statistics.exception.UnsupportedAPIOperationException
 import com.terkula.uaxctf.statistics.response.track.TrackSortingMethodContainer
 import com.terkula.uaxctf.statistics.response.track.TrackPRResponse
@@ -65,6 +67,21 @@ class TrackPRController(@field:Autowired
 //        return TrackPRResponse(prs.size, prs)
         return TrackPRResponse(1, emptyList())
 
+    }
+
+    @ApiOperation("Returns a singular Runner's PR")
+    @RequestMapping(value = ["track/PRs/forRunnerById"], method = [RequestMethod.GET])
+    fun getRunnerPRsByName(
+            @ApiParam("Filters results for runners with the given runnerId")
+            @RequestParam(value = "filter.runnerId") runnerId: Int,
+            @ApiParam("Controls whether relay splits are included")
+            @RequestParam(value = "filter.includeSplits") includeSplits: Boolean,
+            @ApiParam("filters prs for a given event")
+            @RequestParam(value = "filter.event", required = false) filterEvent: String? = ""): TrackPRsDTO {
+
+            val eventFilter = filterEvent ?: ""
+
+            return personalRecordService.getARunnersPRs(runnerId, includeSplits, eventFilter)
     }
 
     @ApiOperation("Returns PRs for all runners in the last meet")

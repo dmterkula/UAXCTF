@@ -80,6 +80,24 @@ fun Double.toMinuteSecondString(): String {
 
 }
 
+fun Double.toMinuteSecondMillisString(): String {
+    val minutes: Int = (this / 60).toInt()
+    var seconds = (this % 60)
+
+    return if (this < 0) {
+        seconds *= -1
+        var secondsString = seconds.toPaddedString()
+        secondsString = secondsString.substring(0, secondsString.indexOf('.'))
+        "-" + minutes *-1 + ":" + secondsString
+    } else {
+        var indexOfDec = this.toString().indexOf('.')
+        var secondsString = seconds.toPaddedString()
+        secondsString = secondsString.substring(0, secondsString.indexOf('.'))
+        minutes.toString() + ":" + secondsString + this.toString().substring(indexOfDec).take(3)
+    }
+
+}
+
 fun Double.formatedTo(format: String): String {
     return if (format == "time") {
         this.toMinuteSecondString()
