@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statisitcs.model.track
 
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.toMinuteSecondString
 import java.sql.Date
@@ -8,7 +9,7 @@ import java.sql.Date
 class TrackMeetPerformanceDTO(
         val meet: TrackMeet,
         val runner: Runner,
-        val results: List<TrackMeetPerformance>
+        val results: List<TrackMeetPerformanceResponse>
 )
 
 //fun List<TrackMeetPerformanceDTO>.getTimeDifferencesAsStrings(): MutableList<String> {
