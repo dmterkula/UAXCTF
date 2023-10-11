@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statisitcs.model.track
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
 import com.terkula.uaxctf.statistics.response.track.TrackSplit
 import javax.persistence.Column
@@ -46,7 +47,9 @@ fun TrackMeetPerformance.eventDistance(): Int {
 
 fun TrackMeetPerformance.toTrackMeetPerformanceResponse(): TrackMeetPerformanceResponse {
 
-    val splits: List<TrackSplit> = ObjectMapper().readValue(this.splits)
+    val splits: List<TrackSplit> = ObjectMapper()
+            .registerKotlinModule()
+            .readValue(this.splits)
 
     return TrackMeetPerformanceResponse(this.meetId, this.uuid, this.runnerId, this.time, this.place, this.event, this.isSplit, splits)
 }

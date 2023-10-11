@@ -11,4 +11,4 @@ class TrackMeetPerformanceResponse (
         var splits: List<TrackSplit>
 )
 
-class TrackSplit(var splitName: String, var splitValue: String)
+data class TrackSplit(var splitName: String, var splitValue: String)
