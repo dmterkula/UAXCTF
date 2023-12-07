@@ -151,7 +151,7 @@ class TimeTrialController (@field:Autowired
         val startDate2 = Date.valueOf("$comparisonSeason-01-01")
         val endDate2 = Date.valueOf("$comparisonSeason-12-31")
 
-        return timeTrialService.runTTestBetweenTimeTrialDifferencesForReturningRunners(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
+        return timeTrialService.runTTestBetweenTimeTrialAndSB(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
 

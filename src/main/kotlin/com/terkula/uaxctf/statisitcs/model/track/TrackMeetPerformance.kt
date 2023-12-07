@@ -34,26 +34,34 @@ data class TrackMeetPerformance(
 }
 
 fun TrackMeetPerformance.getLogicalEvent(): String {
-   val sameGroup = listOf("60m, 60h, 100h, 110h, 300h, 2k Steeple", "5000", "3200", "2 Mile")
+    return this.event.getLogicalEvent()
+}
 
-    return if (this.event in sameGroup) {
-        this.event
-    } else if (this.event == "4x100m" || this.event == "100m") {
-       "100m"
-    } else if (this.event == "4x200m" || this.event == "200m") {
-        "200m"
-    } else if (this.event == "4x400m" || this.event == "400m") {
-        "400m"
-    } else if (this.event == "4x800m" || this.event == "800m") {
-        "800m"
-    } else if (this.event == "4x1600m" || this.event == "1600m") {
-        "1600m"
-    } else if (this.event == "4xMile" || this.event == "Mile") {
-        "Mile"
-    } else if (this.event == "4x100m" || this.event == "100m") {
+fun Int.toLogicalEvent(): String {
+    return this.toString() + "m"
+}
+
+fun String.getLogicalEvent(): String {
+    val sameGroup = listOf("60m, 60h, 100h, 110h, 300h, 2k Steeple", "5000m")
+
+    return if (this in sameGroup) {
+        this
+    } else if (this == "4x100m" || this == "100m" || this == "100") {
         "100m"
+    } else if (this == "4x200m" || this == "200m" || this == "200") {
+        "200m"
+    } else if (this == "4x400m" || this == "400m" || this == "400") {
+        "400m"
+    } else if (this == "4x800m" || this == "800m" || this == "800") {
+        "800m"
+    } else if (this == "4x1600m" || this == "1600m" || this == "1600") {
+        "1600m"
+    } else if (this == "4xMile" || this == "Mile" || this == "1609") {
+        "Mile"
+    } else if (this == "3200m" || this == "2 Mile" || this == "3218") {
+        "3200m"
     }else {
-        this.event
+        this
     }
 }
 

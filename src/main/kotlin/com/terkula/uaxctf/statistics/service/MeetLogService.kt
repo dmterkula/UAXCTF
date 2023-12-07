@@ -1,6 +1,8 @@
 package com.terkula.uaxctf.statistics.service
 
+import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.repository.MeetRepository
+import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.CreateMeetLogRequest
 import com.terkula.uaxctf.training.model.MeetLog
 import com.terkula.uaxctf.training.repository.MeetLogRepository
@@ -12,11 +14,20 @@ import java.sql.Date
 @Service
 class MeetLogService (
         val meetLogRepository: MeetLogRepository,
-        val meetRepository: MeetRepository) {
+        val meetRepository: MeetRepository,
+        val trackMeetRepository: TrackMeetRepository
+) {
 
     fun getMeetLog(meetId: String, runnerId: Int): MeetLogResponse {
 
         val meets = meetRepository.findByUuid(meetId)
+
+        val trackMeet = trackMeetRepository.findByUuid(meetId)
+        if (trackMeet.isPresent) {
+            val result = trackMeet.get()
+            meets.add(Meet(result.name, result.date, result.uuid, result.icon))
+        }
+
         val log = meetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId)
 
         return MeetLogResponse(log.firstOrNull(), meets.first())
@@ -25,6 +36,11 @@ class MeetLogService (
     fun getMeetLogsAtMeet(meetId: String): List<MeetLogResponse> {
 
         val meets = meetRepository.findByUuid(meetId)
+        val trackMeet = trackMeetRepository.findByUuid(meetId)
+        if (trackMeet.isPresent) {
+            val result = trackMeet.get()
+            meets.add(Meet(result.name, result.date, result.uuid, result.icon))
+        }
 
         return meetLogRepository.findByMeetId(meetId).map{
             MeetLogResponse(it, meets.first())
@@ -39,8 +55,8 @@ class MeetLogService (
         if (existingLog.firstOrNull() == null) {
 
             val newMeetLog = MeetLog(createMeetLogRequest.meetId, createMeetLogRequest.runnerId, createMeetLogRequest.time,
-            createMeetLogRequest.warmUpDistance, createMeetLogRequest.warmUpTime, createMeetLogRequest.warmUpPace, createMeetLogRequest.coolDownDistance,
-            createMeetLogRequest.coolDownTime, createMeetLogRequest.coolDownPace, createMeetLogRequest.notes, createMeetLogRequest.coachNotes)
+                    createMeetLogRequest.warmUpDistance, createMeetLogRequest.warmUpTime, createMeetLogRequest.warmUpPace, createMeetLogRequest.coolDownDistance,
+                    createMeetLogRequest.coolDownTime, createMeetLogRequest.coolDownPace, createMeetLogRequest.notes, createMeetLogRequest.coachNotes, createMeetLogRequest.season)
 
             meetLogRepository.save(newMeetLog)
 
@@ -58,6 +74,7 @@ class MeetLogService (
             log.coolDownPace = createMeetLogRequest.coolDownPace
             log.notes = createMeetLogRequest.notes
             log.coachNotes = createMeetLogRequest.coachNotes
+            log.season = createMeetLogRequest.season
 
             meetLogRepository.save(log)
 
@@ -66,12 +83,23 @@ class MeetLogService (
         }
     }
 
-    fun getAllMeetLogsForRunnerInSeason(runnerId: Int, season: String): List<Pair<MeetLogResponse, Date>> {
-        return meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season)).map {
-            getMeetLog(it.uuid, runnerId) to it.date
-        }.filter {it.first.meetLog != null}
-        .map {
-            it.first!! to it.second
+    fun getAllMeetLogsForRunnerInSeason(runnerId: Int, startDate: Date, endDate: Date, type: String): List<Pair<MeetLogResponse, Date>> {
+
+        return if (type.equals("track", ignoreCase = true)) {
+            trackMeetRepository.findByDateBetween(startDate, endDate).map {
+                getMeetLog(it.uuid, runnerId) to it.date
+            }.filter {it.first.meetLog != null}
+                    .map {
+                        it.first!! to it.second
+                    }
+        } else {
+            meetRepository.findByDateBetween(startDate, endDate).map {
+                getMeetLog(it.uuid, runnerId) to it.date
+            }.filter {it.first.meetLog != null}
+                    .map {
+                        it.first!! to it.second
+                    }
         }
+
     }
 }

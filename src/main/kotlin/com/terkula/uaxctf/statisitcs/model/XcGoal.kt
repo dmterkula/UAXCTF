@@ -28,7 +28,10 @@ class XcGoal (
     var type: String,
     var value: String,
     @Column(name = "is_met")
-    var isMet: Boolean
+    var isMet: Boolean,
+    @Column(name = "track_goal")
+    var trackGoal: Boolean,
+    var event: String?,
     ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -7,7 +7,6 @@ import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
 import io.swagger.annotations.ApiOperation
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -55,11 +54,26 @@ class RunnerController(
             @RequestParam(value = "filter.season", required = false, defaultValue = "")
             season: String,
             @RequestParam(value = "filter.active", required = false, defaultValue = "false")
-            active: Boolean
+            active: Boolean,
+            @RequestParam(value = "filter.xcRoster", required = false, defaultValue = "true")
+            xcRoster: Boolean? = true,
+            @RequestParam(value = "filter.getAll", required = false)
+            getAll: Boolean?,
 
     ): List<Runner> {
 
-        return runnerService.getRoster(active, season)
+        val useXcRoster = xcRoster ?: true
+
+        if (getAll != null && getAll) {
+            return runnerService.getRoster(active, season)
+        }
+
+        return if (useXcRoster) {
+            runnerService.getXcRoster(active, season)
+        } else {
+            runnerService.getTrackRoster(active, season)
+        }
+
     }
 
     @ApiOperation("Create Runner")

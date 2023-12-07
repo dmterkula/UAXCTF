@@ -9,7 +9,11 @@ class Runner(
          @Column(name = "graduating_class")
          var graduatingClass: String,
          @Column(name = "is_active")
-         var isActive: Boolean = true
+         var isActive: Boolean = true,
+         @Column(name = "xc")
+         var doesXc: Boolean = true,
+         @Column(name = "track")
+         var doesTrack: Boolean = true
 ) {
 
     @Id

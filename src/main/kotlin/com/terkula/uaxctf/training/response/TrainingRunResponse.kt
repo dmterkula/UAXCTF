@@ -14,5 +14,6 @@ class TrainingRunDTO(
     val uuid: String,
     val name: String,
     val minTime: String?,
-    val minDistance: Double?
+    val minDistance: Double?,
+    val season: String
 )

@@ -5,6 +5,6 @@ import com.terkula.uaxctf.training.model.MeetLog
 
 class MeetLogResponse(
         val meetLog: MeetLog?,
-        val meet: Meet
+        val meet: Meet?
 ) {
 }

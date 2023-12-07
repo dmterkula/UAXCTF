@@ -1,7 +1,9 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.response.SeasonBestResponse
+import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.statistics.service.SeasonBestService
+import com.terkula.uaxctf.statistics.service.TimeTrialService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,7 +14,8 @@ import kotlin.streams.toList
 
 @RestController
 class SeasonBestController(@field:Autowired
-                   internal var seasonBestService: SeasonBestService) {
+                   internal var seasonBestService: SeasonBestService,
+                   var timeTrialService: TimeTrialService) {
 
 
     @ApiOperation("Returns Season Bests for all runners in the given season(s)")
@@ -92,5 +95,21 @@ class SeasonBestController(@field:Autowired
 
     }
 
+    @ApiOperation("Returns T Test between two difference in runners SBs times between consecutive years. Intent is to use as indicator training of a given season")
+    @RequestMapping(value = ["xc/seasonBests/yearToYearTTest"], method = [RequestMethod.GET])
+    fun runTTestBetweenSBAndPreviousSB( @ApiParam("use time trial and SB data from this season")
+                                                    @RequestParam("filter.baseSeason") baseSeason: String,
+                                                    @RequestParam("filter.comparisonSeason") comparisonSeason: String,
+                                                    @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
+    ): TTestResponse {
+
+        val startDate1 = Date.valueOf("$baseSeason-01-01")
+        val endDate1 = Date.valueOf("$baseSeason-12-31")
+
+        val startDate2 = Date.valueOf("$comparisonSeason-01-01")
+        val endDate2 = Date.valueOf("$comparisonSeason-12-31")
+
+        return timeTrialService.runTTestBetweenSBAndPreviusYearSB(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
+    }
 
 }

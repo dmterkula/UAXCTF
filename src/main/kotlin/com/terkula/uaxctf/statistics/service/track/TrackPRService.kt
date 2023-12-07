@@ -3,8 +3,9 @@ package com.terkula.uaxctf.statistics.service.track
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeet
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformance
 import com.terkula.uaxctf.statisitcs.model.track.getLogicalEvent
-import com.terkula.uaxctf.statistics.dto.track.TrackPRPerformance
-import com.terkula.uaxctf.statistics.dto.track.TrackPRsDTO
+import com.terkula.uaxctf.statisitcs.model.track.toTrackMeetPerformanceResponse
+import com.terkula.uaxctf.statistics.dto.track.TrackTopResult
+import com.terkula.uaxctf.statistics.dto.track.TrackPerformancesDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
@@ -19,29 +20,27 @@ class TrackPRService(
     private val runnerRepository: RunnerRepository
 ) {
 
-    fun getARunnersPRs(runnerId: Int, includeSplits: Boolean, filterEvent: String): TrackPRsDTO {
+    fun getARunnersPRs(runnerId: Int, includeSplits: Boolean, filterEvent: String): TrackPerformancesDTO {
 
         val meetMap = meetRepository.findAll().map { it.uuid to it }.toMap()
         val runner = runnerRepository.findById(runnerId)
 
-        val results = if (filterEvent.isEmpty()) {
-            val r = meetPerformanceRepository.findByRunnerId(runnerId)
-            if (!includeSplits) {
-                r.filter { !it.isSplit }.toMutableList()
-            } else {
-                r
-            }
-        } else {
-            val r = meetPerformanceRepository.findByRunnerIdAndEvent(runnerId, filterEvent)
-            if (!includeSplits) {
-                r.filter { !it.isSplit }.toMutableList()
-            } else {
-                r
-            }
+
+        var results = meetPerformanceRepository.findByRunnerId(runnerId)
+        if (!includeSplits) {
+            results = results .filter { !it.isSplit }.toMutableList()
         }
 
-        val prs = results
+
+        var prs: Map<String, List<TrackMeetPerformance>> = results
                 .groupBy { it.getLogicalEvent() }
+
+        if (!filterEvent.isEmpty())   {
+            prs = prs.filter { it.key == filterEvent.getLogicalEvent() }
+        }
+
+        val prDTOs =
+                prs
                 .map { Triple(it.key, it.value, it.value.sortedBy { perf-> perf.time.calculateSecondsFrom() }.firstOrNull())
         }.filter { it.third != null }
                 .map {
@@ -50,10 +49,10 @@ class TrackPRService(
                     if (previousBest != null) {
                         timeDifference = (previousBest.time.calculateSecondsFrom() - it.third!!.time.calculateSecondsFrom()).toMinuteSecondMillisString()
                     }
-                TrackPRPerformance(it.first, meetMap[it.third!!.meetId]!!, it.third!!, previousBest, timeDifference)
+                TrackTopResult(it.first, meetMap[it.third!!.meetId]!!, it.third!!.toTrackMeetPerformanceResponse(), previousBest?.toTrackMeetPerformanceResponse(), timeDifference)
              }.sortedBy { it.event }
 
-            return TrackPRsDTO(runner.get(), prs)
+            return TrackPerformancesDTO(runner.get(), prDTOs)
         }
 
     fun findPreviousBest(
@@ -71,34 +70,19 @@ class TrackPRService(
     }
 
 
-//    fun getAllPRs(startingGradClass: String, filterClass: String, sortingMethodContainer: TrackSortingMethodContainer): List<TrackPRsDTO> {
-//
-//        // find all runners whose graduating class is > current year | find by given grad class
-//        val eligibleRunners = if (filterClass.isNotEmpty()) {
-//            runnerRepository.findByGraduatingClass(filterClass)
-//        } else {
-//            runnerRepository.findByGraduatingClassGreaterThanEqual(startingGradClass)
-//        }.map { it.id to it }.toMap()
-//
-//        // find all performances for those runners this year
-//
-//        val meets = meetRepository.findAll().toMutableList()
-//
-//        val meetMap = meets.map { it.id to it }.toMap()
-//
-//        return eligibleRunners.map { meetPerformanceRepository.findByRunnerId(it.key) }
-//                .flatten().groupBy { it.runnerId }
-//                .map {
-//                    it.key to it.value.filter { perf -> perf.meetId in meetMap }
-//                }.toMap()
-//                .map { eligibleRunners[it.key]!! to it.value.toTrackMeetPerformanceDTO(meetMap) }
-//                .filter { it.second.isNotEmpty() }
-//                .groupAndSort(1)
-//                .map {
-//                    TrackPRsDTO(it.first, it.second)
-//                }
-//
-//    }
+    fun getAllPRsForWorkoutPlan(startingGradClass: String, includeSplits: Boolean, filterEvent: String): List<TrackPerformancesDTO> {
+
+        var equiv1600 = listOf("1600", "1600m", "1609", "1609m", "Mile")
+        var equiv3200 = listOf("3200", "3200m", "3218m", "3218", "2 Mile")
+
+        // find all runners whose graduating class is > current year | find by given grad class
+        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThanEqual(startingGradClass)
+
+        return eligibleRunners.map {
+            getARunnersPRs(it.id, includeSplits, filterEvent)
+        }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
+
+    }
 
 //    fun getPRsByName(partialName: String): List<TrackPRsDTO?> {
 //

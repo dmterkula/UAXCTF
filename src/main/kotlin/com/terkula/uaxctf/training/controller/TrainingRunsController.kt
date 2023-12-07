@@ -8,6 +8,8 @@ import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnersTrainingRunResponse
 import com.terkula.uaxctf.training.response.TrainingRunResponse
 import com.terkula.uaxctf.training.service.TrainingRunsService
+import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.subtractDays
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.validation.annotation.Validated
@@ -167,16 +169,32 @@ class TrainingRunsController(
             @ApiParam("timeFrame")
             @Pattern(regexp = "daily|weekly|monthly", message = "only supported timeFrame values are 'daily', 'weekly', or 'monthly'")
             @RequestParam(value = "timeFrame", required = false) timeFrame: String? = "weekly",
-            @RequestParam(value = "includeWarmUps", required = false) includeWarmUps: Boolean = false
+            @RequestParam(value = "includeWarmUps", required = false) includeWarmUps: Boolean = false,
+            @ApiParam("type")
+            @RequestParam(value = "type", required = false) type: String?,
 
             ): List<DateRangeRunSummaryDTO> {
 
+        var xcOrTrack = "xc"
+        if (type != null) {
+            xcOrTrack = type
+        }
+
+
+        var startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        var endDate = TimeUtilities.getLastDayOfGivenYear(season)
+
+        if (xcOrTrack.equals("track", ignoreCase = true)) {
+            startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90)
+            endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150)
+        }
+
         return if (timeFrame == null || timeFrame == "weekly") {
-            trainingRunsService.getTotalDistancePerWeek(season, runnerId, includeWarmUps)
+            trainingRunsService.getTotalDistancePerWeek(startDate, endDate, runnerId, includeWarmUps, xcOrTrack)
         } else if (timeFrame == "monthly") {
-            trainingRunsService.getTotalDistancePerMonth(season, runnerId, includeWarmUps)
+            trainingRunsService.getTotalDistancePerMonth(startDate, endDate, runnerId, includeWarmUps, xcOrTrack)
         } else {
-            trainingRunsService.getTotalDistancePerDay(season, runnerId, includeWarmUps)
+            trainingRunsService.getTotalDistancePerDay(startDate, endDate, runnerId, includeWarmUps, xcOrTrack)
         }
 
     }

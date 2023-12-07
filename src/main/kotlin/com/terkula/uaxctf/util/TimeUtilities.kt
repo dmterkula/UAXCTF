@@ -187,6 +187,10 @@ fun Date.subtractDay(): Date {
     return Date.valueOf(this.toLocalDate().minusDays(1))
 }
 
+fun Date.subtractDays(numDays: Long): Date {
+    return Date.valueOf(this.toLocalDate().minusDays(numDays))
+}
+
 fun Date.subtractYear(sub: Long): Date {
     return Date.valueOf(this.toLocalDate().minusYears(sub))
 }

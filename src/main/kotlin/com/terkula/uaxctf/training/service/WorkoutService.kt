@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
+import com.terkula.uaxctf.statisitcs.model.track.toLogicalEvent
 import com.terkula.uaxctf.statistics.dto.RunnerGoalDTO
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
@@ -11,6 +12,8 @@ import com.terkula.uaxctf.statistics.service.PersonalRecordService
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.statistics.service.SeasonBestService
 import com.terkula.uaxctf.statistics.service.XcGoalService
+import com.terkula.uaxctf.statistics.service.track.TrackPRService
+import com.terkula.uaxctf.statistics.service.track.TrackSBService
 import com.terkula.uaxctf.training.dto.ComponentToRunnerWorkoutPlans
 import com.terkula.uaxctf.training.dto.RunnerWorkoutPlanDTOV2
 import com.terkula.uaxctf.training.dto.WorkoutComponentPlanElement
@@ -38,7 +41,9 @@ class WorkoutService (
      var workoutRepositoryV2: WorkoutRepository,
      var workoutComponentRepository: WorkoutComponentRepository,
      var workoutSplitService: WorkoutSplitService,
-     var runnerService: RunnerService
+     var runnerService: RunnerService,
+     var trackPRService: TrackPRService,
+     val trackSBService: TrackSBService
 ) {
 
     fun getWorkoutsV2(startDate: Date, endDate: Date): List<WorkoutResponseDTO> {
@@ -55,7 +60,9 @@ class WorkoutService (
                     it.title,
                     it.icon,
                     it.uuid,
-                    workoutComponentRepository.findByWorkoutUuid(it.uuid))
+                    workoutComponentRepository.findByWorkoutUuid(it.uuid),
+                    it.season
+            )
         }
 
     }
@@ -68,11 +75,12 @@ class WorkoutService (
             throw RuntimeException("Workout with that date and title already exists")
         } else {
            val workoutV2 = Workout(createWorkoutRequest.date, createWorkoutRequest.description, createWorkoutRequest.title,
-           createWorkoutRequest.icon, createWorkoutRequest.uuid)
+           createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season)
 
            val workoutComponents: List<WorkoutComponent> = createWorkoutRequest.components.map {
                WorkoutComponent(it.uuid, workoutV2.uuid, it.type, it.description, it.targetDistance,
-                       it.targetCount, it.pace, it.duration, it.targetPaceAdjustment)
+                       it.targetCount, it.pace, it.duration, it.targetPaceAdjustment, it.ratio, it.sets, it.recovery, it.setRecovery,
+                       it.targetEvent, it.recoveryType, it.recoveryDistance)
            }
 
             workoutRepositoryV2.save(workoutV2)
@@ -84,7 +92,8 @@ class WorkoutService (
                     workoutV2.title,
                     workoutV2.icon,
                     workoutV2.uuid,
-                    workoutComponents)
+                    workoutComponents,
+                    workoutV2.season)
         }
 
     }
@@ -102,6 +111,7 @@ class WorkoutService (
             workoutToUpdate.title = createWorkoutRequest.title
             workoutToUpdate.description = createWorkoutRequest.description
             workoutToUpdate.icon = createWorkoutRequest.icon
+            workoutToUpdate.season = createWorkoutRequest.season
             workoutRepositoryV2.save(workoutToUpdate)
 
 
@@ -116,6 +126,13 @@ class WorkoutService (
                     component.targetDistance = it.targetDistance
                     component.type =  it.type
                     component.targetPaceAdjustment = it.targetPaceAdjustment
+                    component.ratio = it.ratio
+                    component.targetEvent = it.targetEvent
+                    component.sets = it.sets
+                    component.recovery = it.recovery
+                    component.setRecovery = it.setRecovery
+                    component.recoveryType = it.recoveryType
+                    component.recoveryDistance = it.recoveryDistance
                 }
 
                 return@map component
@@ -130,7 +147,8 @@ class WorkoutService (
                    workoutToUpdate.title,
                    workoutToUpdate.icon,
                    workoutToUpdate.uuid,
-                   updatedComponents.filterNotNull()
+                   updatedComponents.filterNotNull(),
+                   workoutToUpdate.season
            )
         } else {
             throw (RuntimeException("Workout not found"))
@@ -154,7 +172,9 @@ class WorkoutService (
                     workoutToDelete.title,
                     workoutToDelete.icon,
                     workoutToDelete.uuid,
-                    components)
+                    components,
+                    workoutToDelete.season
+                )
         } else {
             null
         }
@@ -187,6 +207,28 @@ class WorkoutService (
         return WorkoutPlanResponseV2(componentPlans, runnerWorkoutPlans)
     }
 
+    fun calculateTargetPace(component: WorkoutComponent, timeToAdjust: String): String {
+
+        val distanceRatio: Double = if (component.duration != null && component.duration!!.calculateSecondsFrom() != 0.0) {
+             1609.34 / component.targetEvent // if duration based, just scale to pace per mile
+        } else {
+            component.targetDistance.toDouble() / component.targetEvent
+        }
+
+        if (component.ratio != null && component.ratio!! != 1.0) {
+            return (timeToAdjust.calculateSecondsFrom() * component.ratio!! * distanceRatio).round(2).toMinuteSecondString()
+        } else {
+            var paceAdjustment: Int = if (component.targetPaceAdjustment.isEmpty()) {
+                0
+            } else {
+                component.targetPaceAdjustment.calculateSecondsFrom().toInt()
+            }
+
+            return  ((timeToAdjust.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString()
+        }
+
+    }
+
     fun buildComponentPlan(
             workout: Workout,
             component: WorkoutComponent
@@ -203,31 +245,45 @@ class WorkoutService (
             targetPaceAdjustment.calculateSecondsFrom().toInt()
         }
 
-        val distance = component.targetDistance
+        var distance = component.targetDistance
+        var duration = component.duration
         val startDate = Date.valueOf("${date.getYearString()}-01-01")
         val endDate = Date.valueOf((date.getYearString()) + "-12-31")
 
         when (type) {
             "Interval" -> {
-                val distanceRatio = distance.toDouble() / fiveK.toDouble()
                 when (pace) {
                     "Goal" -> {
+                          val seasonGoals =
+                                  if (component.targetEvent == 5000) {
+                                        xcGoalService.getGoalsForSeason(date.getYearString(), xcOnly = true, null)
+                                    } else {
+                                        val trackSeason = if (date.toLocalDate().month.value >= 10) {
+                                            (date.getYearString().toInt() + 1).toString()
+                                        } else {
+                                            date.getYearString()
+                                        }
+                                        xcGoalService.getGoalsForSeason(trackSeason, xcOnly = null, true)
+                                    }
+                                    .map {
+                                        RunnerGoalDTO(it.runner, it.goals.filter{ goal-> goal.type.equals("time", ignoreCase = true) && goal.event == component.targetEvent.toLogicalEvent() }.sortedBy{goal->goal.value})
+                                    }
+                                    .filter {
+                                        it.goals.isNotEmpty()
+                                    }
 
-                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
-                                .map {
-                                    RunnerGoalDTO(it.runner, it.goals.filter{ goal-> goal.type.equals("time", ignoreCase = true) }.sortedBy{goal->goal.value})
-                                }
-                                .filter {
-                                    it.goals.isNotEmpty()
-                                }
+                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> =
+                                seasonGoals.map {
+                                    var time = calculateTargetPace(component, (it.goals.first().value))
+                                    if (component.duration != null && component.duration!!.calculateSecondsFrom() != 0.0) {
 
-                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonGoals.map {
+                                    }
                             RunnerWorkoutPlanDTOV2(it.runner,
                                     listOf(WorkoutComponentPlanElement(
                                             distance,
                                             component.duration,
                                             (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.goals.first().value.calculateSecondsFrom()  + paceAdjustment) * distanceRatio).toMinuteSecondString())),
+                                            listOf(TargetedPace("split", time)),
                                             workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         )
                                     )
@@ -238,64 +294,141 @@ class WorkoutService (
                     }
                     "SB" -> {
 
-                        val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
+                        if (component.targetEvent == 5000) {
 
-                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
-                            RunnerWorkoutPlanDTOV2(it.first,
-                                    listOf(WorkoutComponentPlanElement(
-                                            distance,
-                                            component.duration,
-                                            (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.second.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString())),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
+                            val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
-                                    )
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
+                                RunnerWorkoutPlanDTOV2(it.first,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, it.second))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
+
+                                        )
+                                        )
                                 )
-                            )
-                        }
+                            }
 
-                        return runnerWorkoutPlanDTOV2
+                            return runnerWorkoutPlanDTOV2
+                        } else {
+                            val seasonBests = trackSBService.getAllSBs(true, component.targetEvent.toString(), workout.date.getYearString())
+                                    .filter {
+                                        it.bestResults.isNotEmpty()
+                                    }
+
+
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
+                                RunnerWorkoutPlanDTOV2(
+                                        it.runner,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.bestResults.first().best.time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, (it.bestResults.first().best.time)))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                        ))
+                                )
+                            }
+
+                            return runnerWorkoutPlanDTOV2
+
+                        }
 
                     }
                     "PR" -> {
-                        val gradClass = date.getYearString().toInt().toString()
+                        if (component.targetEvent == 5000) {
 
-                        val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
 
-                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = prs.map {
-                            RunnerWorkoutPlanDTOV2(it.runner,
-                                    listOf(WorkoutComponentPlanElement(
-                                            distance,
-                                            component.duration,
-                                            (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", ((it.pr.first().time.calculateSecondsFrom() + paceAdjustment) * (distanceRatio)).round(2).toMinuteSecondString())),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
-                                    )
+                            val gradClass = date.getYearString().toInt().toString()
+
+                            val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
+
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = prs.map {
+                                RunnerWorkoutPlanDTOV2(it.runner,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, it.pr.first().time))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                        )
+                                        )
                                 )
-                            )
-                        }
+                            }
 
-                        return runnerWorkoutPlanDTOV2
+                            return runnerWorkoutPlanDTOV2
+                        } else {
+                            val prs = trackPRService.getAllPRsForWorkoutPlan(workout.date.getYearString(), includeSplits = true, component.targetEvent.toString())
+                                    .filter {
+                                        it.bestResults.isNotEmpty()
+                                    }
+
+                            // this leaves gaps in workout plan for those without Prs
+
+                            //todo handle pace adjustment by ratio if present
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = prs.map {
+                                RunnerWorkoutPlanDTOV2(
+                                        it.runner,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.bestResults.first().best.time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, (it.bestResults.first().best.time)))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
+                                        ))
+                                )
+                            }
+                            return runnerWorkoutPlanDTOV2
+                        }
                     }
                     "Season Avg" -> {
 
-                        // find all runners whose graduating class is > current year
-                        val eligibleRunners = runnerService.getRoster(true, workout.date.getYearString()).map { it.id to it }.toMap()
+                        if (component.targetEvent == 5000) {
+                            // find all runners whose graduating class is > current year
+                            val eligibleRunners = runnerService.getRoster(true, workout.date.getYearString()).map { it.id to it }.toMap()
 
-                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = getSeasonAverages(eligibleRunners, startDate, endDate).map {
-                            RunnerWorkoutPlanDTOV2(eligibleRunners[it.key]!!,
-                                    listOf(WorkoutComponentPlanElement(
-                                            distance,
-                                            component.duration,
-                                            (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
-                                            listOf(TargetedPace("split", (distanceRatio * (it.value.first() + paceAdjustment)).toMinuteSecondString())),
-                                            workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
-                                    )
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = getSeasonAverages(eligibleRunners, startDate, endDate).map {
+                                RunnerWorkoutPlanDTOV2(eligibleRunners[it.key]!!,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, it.value.first().toMinuteSecondString()))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
+                                        )
+                                        )
                                 )
-                            )
+                            }
+
+                            return runnerWorkoutPlanDTOV2
+                        } else {
+                            val trackSeason = if (date.toLocalDate().month.value >= 10) {
+                                (date.getYearString().toInt() + 1).toString()
+                            } else {
+                                date.getYearString()
+                            }
+                            val eligibleRunners = runnerService.getTrackRoster(true, trackSeason).map { it.id to it }.toMap()
+
+                            val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = trackSBService.getSeasonAverages(eligibleRunners, component.targetEvent.toLogicalEvent(),
+                                    TimeUtilities.getFirstDayOfGivenYear(trackSeason), TimeUtilities.getLastDayOfGivenYear(trackSeason)).map {
+                                RunnerWorkoutPlanDTOV2(eligibleRunners[it.key]!!,
+                                        listOf(WorkoutComponentPlanElement(
+                                                distance,
+                                                component.duration,
+                                                (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                listOf(TargetedPace("split", calculateTargetPace(component, it.value.first().toMinuteSecondString()))),
+                                                workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
+                                        )
+                                        )
+                                )
+                            }
+                            return runnerWorkoutPlanDTOV2
                         }
 
-                        return runnerWorkoutPlanDTOV2
+
                     }
                 }
 
@@ -305,7 +438,7 @@ class WorkoutService (
                 when (pace) {
                     "Goal" -> {
 
-                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
+                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString(), xcOnly = true, trackOnly = null)
                                 .map {
                                     RunnerGoalDTO(it.runner, it.goals.filter{ goal-> goal.value.equals("time", ignoreCase = true) }.sortedBy{goal->goal.value})
                                 }
@@ -394,7 +527,7 @@ class WorkoutService (
                 when (pace) {
                     "Goal" -> {
 
-                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString())
+                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString(), xcOnly = true, trackOnly = null)
                                 .map {
                                     RunnerGoalDTO(it.runner, it.goals.filter{ goal-> goal.value.equals("time", ignoreCase = true) }.sortedBy{goal->goal.value})
                                 }
@@ -522,6 +655,8 @@ class WorkoutService (
                     it.key to listOf(it.value.map { perf -> perf.time.calculateSecondsFrom() }.sum()/numMeets)
                 }.toMutableList().sortedBy { it.second.first() }.toMap()
     }
+
+
 
     fun constructProgressionTargetedPaces(basePacePerMile: Double): List<TargetedPace> {
         val controlledTempoScale = tempoScale + 25

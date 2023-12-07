@@ -3,6 +3,8 @@ package com.terkula.uaxctf.statistics.controller
 import com.terkula.uaxctf.statistics.request.CreateMeetLogRequest
 import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.training.response.MeetLogResponse
+import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.subtractDays
 
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
@@ -45,10 +47,24 @@ class MeetLogController(val meetLogService: MeetLogService) {
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
             @ApiParam("season")
             @RequestParam(value = "season", required = true) season: String,
+            @RequestParam(value = "type", required = false) type: String?
 
             ): List<MeetLogResponse> {
 
-        return meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, season).map { it.first }
+        var xcOrTrack = "xc"
+        if (type != null) {
+            xcOrTrack = type
+        }
+
+        var startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        var endDate = TimeUtilities.getLastDayOfGivenYear(season)
+
+        if (xcOrTrack.equals("track", ignoreCase = true)) {
+            startDate = startDate.subtractDays(90)
+            endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150)
+        }
+
+        return meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, startDate, endDate, xcOrTrack).map { it.first }
     }
 
     @ApiOperation("Create Meet Log Entry")

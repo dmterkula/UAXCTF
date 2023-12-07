@@ -9,6 +9,10 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
 import com.terkula.uaxctf.training.dto.RunnerWorkoutResultsDTO
+import com.terkula.uaxctf.training.repository.MeetLogRepository
+import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
+import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
+import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.service.WorkoutResultService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.toMinuteSecondString
@@ -32,10 +36,14 @@ class RunnerProfileService (
         @field: Autowired
         internal val workoutResultService: WorkoutResultService,
         @field: Autowired
-        internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper) {
+        internal val runnerProfileAsyncHelper: RunnerProfileAsyncHelper,
+        var runnersTrainingRunRepository: RunnersTrainingRunRepository,
+        var meetLogRepository: MeetLogRepository,
+        var runnerWorkoutDistanceRepository: RunnerWorkoutDistanceRepository
+        ) {
 
 
-    fun buildRunnerProfileV2(runnerId: Int, season: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
+    fun buildRunnerProfileV2(runnerId: Int, season: String, type: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
         val runner = runnerRepository.findById(runnerId).get()
 
 
@@ -46,12 +54,17 @@ class RunnerProfileService (
         val sbRanksFuture = runnerProfileAsyncHelper.getSBLeaderboard(season)
         val meetSplitConsistencyRanksFuture = runnerProfileAsyncHelper.getRaceConsistencyLeaderboard(season)
         val timeTrialProgressionRanksFuture = runnerProfileAsyncHelper.getTimeTrialProgressionLeaderboard(season)
-        val distanceRunRanksFuture = runnerProfileAsyncHelper.getDistanceRunLeaderBoard(season)
-        val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season)
-        val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season)
-        val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season)
+        val distanceRunRanksFuture = runnerProfileAsyncHelper.getDistanceRunLeaderBoard(season, type)
+        val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season, type)
+        val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season, type)
+        val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season, type)
         val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20)
-        var trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season, includeWarmUps)
+        val trackResultsFuture = runnerProfileAsyncHelper.getTrackMeetPerformances(runnerId, season)
+        val trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season, includeWarmUps, type)
+        val trackPRsFuture = runnerProfileAsyncHelper.getTrackPRs(runnerId)
+        val trackSBsFuture = runnerProfileAsyncHelper.getTrackSBs(runnerId, season)
+        val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
+
 
 
         //////// end async operations /////////
@@ -68,13 +81,17 @@ class RunnerProfileService (
         val workoutResults = workoutResultsFuture.get()
         val goals = goalsFuture.get()
         val meetResults = meetResultsFuture.get().map { it.performance }.flatten()
-        var trainingRunSummary = trainingRunSummaryFuture.get()
+        val trackResults = trackResultsFuture.get()
+        val trainingRunSummary = trainingRunSummaryFuture.get()
+        val trackPRs = trackPRsFuture.get()
+        val trackSBs = trackSBsFuture.get()
+        val achievements = achievementsFuture.get()
 
-        val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
+
 
         return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
-                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trainingRunSummary,
-                achievementsFuture.get()
+                goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trackResults.sortedBy { it.meet.date }, trainingRunSummary,
+                achievements, trackPRs, trackSBs
         )
 
 
@@ -253,5 +270,64 @@ class RunnerProfileService (
         }
 
         return splits
+    }
+
+    fun getRunnerWordCount(runnerId: Int, season: String): Int {
+
+        var meetLogsWordCount = meetLogRepository.findByRunnerId(runnerId)
+                .map {
+                    var coachNotesWords = if (it.coachNotes != null) {
+                        it.coachNotes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    var runnerNotes = if (it.notes != null) {
+                        it.notes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    return@map coachNotesWords + runnerNotes
+
+                }.sum()
+
+        var trainingRunNotesCount  = runnersTrainingRunRepository.findByRunnerId(runnerId)
+                .map {
+                    var coachNotesWords = if (it.coachNotes != null) {
+                        it.coachNotes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    var runnerNotes = if (it.notes != null) {
+                        it.notes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    return@map coachNotesWords + runnerNotes
+                }.sum()
+
+        var workoutNotesCount = runnerWorkoutDistanceRepository.findByRunnerId(runnerId)
+                .map {
+                    var coachNotesWords = if (it.coachNotes != null) {
+                        it.coachNotes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    var runnerNotes = if (it.notes != null) {
+                        it.notes!!.split(" ").size
+                    } else {
+                        0
+                    }
+
+                    return@map coachNotesWords + runnerNotes
+                }
+                .sum()
+
+        return workoutNotesCount + trainingRunNotesCount + meetLogsWordCount
+
     }
 }
