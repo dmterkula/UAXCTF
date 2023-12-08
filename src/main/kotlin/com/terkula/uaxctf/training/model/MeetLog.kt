@@ -28,7 +28,9 @@ class MeetLog( @Column(name = "meet_uuid")
                var coolDownPace: String?,
                var notes: String?,
                @Column(name = "coach_notes")
-               var coachNotes: String?
+               var coachNotes: String?,
+               @Column(name = "season")
+               var season: String
 ) {
 
     @JsonIgnore

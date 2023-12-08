@@ -79,15 +79,15 @@ class AchievementService(
         val description = "Total PRs Set"
 
         if (prs.size >= 5) {
-            achievements.add(Achievement(5.0, prs.size.toDouble(), true, buildImageName(imagePrefix, 5), true, description))
+            achievements.add(Achievement(5.0, prs.size.toDouble(), true, buildImageName(imagePrefix, 5), true, description, "all"))
         } else {
-            achievements.add(Achievement(5.0, prs.size.toDouble(), false, buildImageName(imagePrefix, 5), true, description))
+            achievements.add(Achievement(5.0, prs.size.toDouble(), false, buildImageName(imagePrefix, 5), true, description, "all"))
         }
 
         if (prs.size >= 10) {
-            achievements.add(Achievement(10.0, prs.size.toDouble(), true, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, prs.size.toDouble(), true, buildImageName(imagePrefix, 10), true, description, "all"))
         } else {
-            achievements.add(Achievement(10.0, prs.size.toDouble(), false, buildImageName(imagePrefix, 5), true, description))
+            achievements.add(Achievement(10.0, prs.size.toDouble(), false, buildImageName(imagePrefix, 5), true, description, "all"))
         }
 
         return achievements
@@ -101,27 +101,27 @@ class AchievementService(
         val description = "Total Passes 3rd Mi."
 
         if (passes >= 10) {
-            achievements.add(Achievement(10.0, passes.toDouble(), true, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, passes.toDouble(), true, buildImageName(imagePrefix, 10), true, description, "xc"))
         } else {
-            achievements.add(Achievement(10.0, passes.toDouble(), false, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, passes.toDouble(), false, buildImageName(imagePrefix, 10), true, description, "xc"))
         }
 
         if (passes >= 25) {
-            achievements.add(Achievement(25.0, passes.toDouble(), true, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, passes.toDouble(), true, buildImageName(imagePrefix, 25), true, description, "xc"))
         } else {
-            achievements.add(Achievement(25.0, passes.toDouble(), false, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, passes.toDouble(), false, buildImageName(imagePrefix, 25), true, description, "xc"))
         }
 
         if (passes >= 50) {
-            achievements.add(Achievement(50.0, passes.toDouble(), true, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, passes.toDouble(), true, buildImageName(imagePrefix, 50), true, description, "xc"))
         } else {
-            achievements.add(Achievement(50.0, passes.toDouble(), false, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, passes.toDouble(), false, buildImageName(imagePrefix, 50), true, description, "xc"))
         }
 
         if (passes >= 100) {
-            achievements.add(Achievement(100.0, passes.toDouble(), true, buildImageName(imagePrefix, 100), true, description))
+            achievements.add(Achievement(100.0, passes.toDouble(), true, buildImageName(imagePrefix, 100), true, description, "xc"))
         } else {
-            achievements.add(Achievement(100.0, passes.toDouble(), false, buildImageName(imagePrefix, 100), true, description))
+            achievements.add(Achievement(100.0, passes.toDouble(), false, buildImageName(imagePrefix, 100), true, description, "xc"))
         }
 
         return achievements
@@ -134,9 +134,9 @@ class AchievementService(
         val description = "Total number of races won"
 
         if (wonRaces >= 1) {
-            achievements.add(Achievement(1.0, wonRaces.toDouble(), true, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, wonRaces.toDouble(), true, buildImageName(imagePrefix, 1), true, description, "all"))
         } else {
-            achievements.add(Achievement(1.0, wonRaces.toDouble(), false, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, wonRaces.toDouble(), false, buildImageName(imagePrefix, 1), true, description, "all"))
         }
 
         return achievements
@@ -152,21 +152,21 @@ class AchievementService(
         val description = "Races where mile splits are within 20s of each other"
 
         if (races >= 1) {
-            achievements.add(Achievement(1.0, races.toDouble(), true, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, races.toDouble(), true, buildImageName(imagePrefix, 1), true, description, "xc"))
         } else {
-            achievements.add(Achievement(1.0, races.toDouble(), false, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, races.toDouble(), false, buildImageName(imagePrefix, 1), true, description, "xc"))
         }
 
         if (races >= 5) {
-            achievements.add(Achievement(5.0, races.toDouble(), true, buildImageName(imagePrefix, 5),true, description))
+            achievements.add(Achievement(5.0, races.toDouble(), true, buildImageName(imagePrefix, 5),true, description, "xc"))
         } else {
-            achievements.add(Achievement(5.0, races.toDouble(), false, buildImageName(imagePrefix, 5),true, description))
+            achievements.add(Achievement(5.0, races.toDouble(), false, buildImageName(imagePrefix, 5),true, description, "xc"))
         }
 
         if (races >= 10) {
-            achievements.add(Achievement(10.0, races.toDouble(), true, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, races.toDouble(), true, buildImageName(imagePrefix, 10), true, description, "xc"))
         } else {
-            achievements.add(Achievement(10.0, races.toDouble(), false, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, races.toDouble(), false, buildImageName(imagePrefix, 10), true, description, "xc"))
         }
 
         return achievements
@@ -181,27 +181,27 @@ class AchievementService(
         val achievements = mutableListOf<Achievement>()
 
         if (distance >= 50) {
-            achievements.add(Achievement(50.0, distance, true, buildImageName(imagePrefix, 50), false, description))
+            achievements.add(Achievement(50.0, distance, true, buildImageName(imagePrefix, 50), false, description, "all"))
         } else {
-            achievements.add(Achievement(50.0, distance, false, buildImageName(imagePrefix, 50), false, description))
+            achievements.add(Achievement(50.0, distance, false, buildImageName(imagePrefix, 50), false, description, "all"))
         }
 
         if (distance >= 100) {
-            achievements.add(Achievement(100.0, distance, true, buildImageName(imagePrefix, 100), false, description))
+            achievements.add(Achievement(100.0, distance, true, buildImageName(imagePrefix, 100), false, description, "all"))
         } else {
-            achievements.add(Achievement(100.0, distance, false, buildImageName(imagePrefix, 100), false, description))
+            achievements.add(Achievement(100.0, distance, false, buildImageName(imagePrefix, 100), false, description, "all"))
         }
 
         if (distance >= 250) {
-            achievements.add(Achievement(250.0, distance, true, buildImageName(imagePrefix, 250), false, description))
+            achievements.add(Achievement(250.0, distance, true, buildImageName(imagePrefix, 250), false, description, "all"))
         } else {
-            achievements.add(Achievement(250.0, distance, false, buildImageName(imagePrefix, 250), false, description))
+            achievements.add(Achievement(250.0, distance, false, buildImageName(imagePrefix, 250), false, description, "all"))
         }
 
         if (distance >= 500) {
-            achievements.add(Achievement(500.0, distance, true, buildImageName(imagePrefix, 500), false, description))
+            achievements.add(Achievement(500.0, distance, true, buildImageName(imagePrefix, 500), false, description, "all"))
         } else {
-            achievements.add(Achievement(500.0, distance, false, buildImageName(imagePrefix, 500), false, description))
+            achievements.add(Achievement(500.0, distance, false, buildImageName(imagePrefix, 500), false, description, "all"))
         }
 
         return achievements
@@ -215,27 +215,27 @@ class AchievementService(
         val description = "Total runs logged"
 
         if (runs >= 25) {
-            achievements.add(Achievement(25.0, runs.toDouble(), true, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, runs.toDouble(), true, buildImageName(imagePrefix, 25), true, description, "all"))
         } else {
-            achievements.add(Achievement(25.0, runs.toDouble(), false, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, runs.toDouble(), false, buildImageName(imagePrefix, 25), true, description, "all"))
         }
 
         if (runs >= 50) {
-            achievements.add(Achievement(50.0, runs.toDouble(), true, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, runs.toDouble(), true, buildImageName(imagePrefix, 50), true, description, "all"))
         } else {
-            achievements.add(Achievement(50.0, runs.toDouble(), false, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, runs.toDouble(), false, buildImageName(imagePrefix, 50), true, description, "all"))
         }
 
         if (runs >= 75) {
-            achievements.add(Achievement(75.0, runs.toDouble(), true, buildImageName(imagePrefix, 75), true, description))
+            achievements.add(Achievement(75.0, runs.toDouble(), true, buildImageName(imagePrefix, 75), true, description, "all"))
         } else {
-            achievements.add(Achievement(75.0, runs.toDouble(), false, buildImageName(imagePrefix, 75), true, description))
+            achievements.add(Achievement(75.0, runs.toDouble(), false, buildImageName(imagePrefix, 75), true, description, "all"))
         }
 
         if (runs >= 100) {
-            achievements.add(Achievement(100.0, runs.toDouble(), true, buildImageName(imagePrefix, 100), true, description))
+            achievements.add(Achievement(100.0, runs.toDouble(), true, buildImageName(imagePrefix, 100), true, description, "all"))
         } else {
-            achievements.add(Achievement(100.0, runs.toDouble(), false, buildImageName(imagePrefix, 100), true, description))
+            achievements.add(Achievement(100.0, runs.toDouble(), false, buildImageName(imagePrefix, 100), true, description, "all"))
         }
 
         return achievements
@@ -251,21 +251,21 @@ class AchievementService(
         val description = "Consecutive races with a skull earned"
 
         if (streak >= 3) {
-            achievements.add(Achievement(3.0, streak.toDouble(), true, buildImageName(imagePrefix, 3), true, description))
+            achievements.add(Achievement(3.0, streak.toDouble(), true, buildImageName(imagePrefix, 3), true, description, "xc"))
         } else {
-            achievements.add(Achievement(3.0, streak.toDouble(), false, buildImageName(imagePrefix, 3), true, description))
+            achievements.add(Achievement(3.0, streak.toDouble(), false, buildImageName(imagePrefix, 3), true, description, "xc"))
         }
 
         if (streak >= 7) {
-            achievements.add(Achievement(7.0, streak.toDouble(), true, buildImageName(imagePrefix, 7), true, description))
+            achievements.add(Achievement(7.0, streak.toDouble(), true, buildImageName(imagePrefix, 7), true, description, "xc"))
         } else {
-            achievements.add(Achievement(7.0, streak.toDouble(), false, buildImageName(imagePrefix, 7), true, description))
+            achievements.add(Achievement(7.0, streak.toDouble(), false, buildImageName(imagePrefix, 7), true, description, "xc"))
         }
 
         if (streak >= 10) {
-            achievements.add(Achievement(10.0, streak.toDouble(), true, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, streak.toDouble(), true, buildImageName(imagePrefix, 10), true, description, "xc"))
         } else {
-            achievements.add(Achievement(10.0, streak.toDouble(), false, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, streak.toDouble(), false, buildImageName(imagePrefix, 10), true, description, "xc"))
         }
 
         return achievements
@@ -281,33 +281,33 @@ class AchievementService(
         val description = "Total skull beads earned"
 
         if (skulls >= 1) {
-            achievements.add(Achievement(1.0, skulls.toDouble(), true, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, skulls.toDouble(), true, buildImageName(imagePrefix, 1), true, description, "xc"))
         } else {
-            achievements.add(Achievement(1.0, skulls.toDouble(), false, buildImageName(imagePrefix, 1), true, description))
+            achievements.add(Achievement(1.0, skulls.toDouble(), false, buildImageName(imagePrefix, 1), true, description, "xc"))
         }
 
         if (skulls >= 5) {
-            achievements.add(Achievement(5.0, skulls.toDouble(), true, buildImageName(imagePrefix, 5), true, description))
+            achievements.add(Achievement(5.0, skulls.toDouble(), true, buildImageName(imagePrefix, 5), true, description, "xc"))
         } else {
-            achievements.add(Achievement(5.0, skulls.toDouble(), false, buildImageName(imagePrefix, 5), true, description))
+            achievements.add(Achievement(5.0, skulls.toDouble(), false, buildImageName(imagePrefix, 5), true, description, "xc"))
         }
 
         if (skulls >= 10) {
-            achievements.add(Achievement(10.0, skulls.toDouble(), true, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, skulls.toDouble(), true, buildImageName(imagePrefix, 10), true, description, "xc"))
         } else {
-            achievements.add(Achievement(10.0, skulls.toDouble(), false, buildImageName(imagePrefix, 10), true, description))
+            achievements.add(Achievement(10.0, skulls.toDouble(), false, buildImageName(imagePrefix, 10), true, description, "xc"))
         }
 
         if (skulls >= 25) {
-            achievements.add(Achievement(25.0, skulls.toDouble(), true, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, skulls.toDouble(), true, buildImageName(imagePrefix, 25), true, description, "xc"))
         } else {
-            achievements.add(Achievement(25.0, skulls.toDouble(), false, buildImageName(imagePrefix, 25), true, description))
+            achievements.add(Achievement(25.0, skulls.toDouble(), false, buildImageName(imagePrefix, 25), true, description, "xc"))
         }
 
         if (skulls >= 50) {
-            achievements.add(Achievement(50.0, skulls.toDouble(), true, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, skulls.toDouble(), true, buildImageName(imagePrefix, 50), true, description, "xc"))
         } else {
-            achievements.add(Achievement(50.0, skulls.toDouble(), false, buildImageName(imagePrefix, 50), true, description))
+            achievements.add(Achievement(50.0, skulls.toDouble(), false, buildImageName(imagePrefix, 50), true, description, "xc"))
         }
 
         return achievements

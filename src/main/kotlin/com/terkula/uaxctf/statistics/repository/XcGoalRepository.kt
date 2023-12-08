@@ -11,4 +11,8 @@ interface XcGoalRepository: CrudRepository<XcGoal, Int> {
 
     fun findByRunnerIdAndSeasonAndTypeAndValue(runnerId: Int, season: String, type: String, value: String): List<XcGoal>
 
+    fun findBySeasonAndTrackGoal(season: String, trackGoal: Boolean): List<XcGoal>
+
+    fun findBySeasonAndEvent(season: String, event: String): List<XcGoal>
+
 }

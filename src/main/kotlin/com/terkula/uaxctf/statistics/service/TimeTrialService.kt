@@ -7,6 +7,7 @@ import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
 import org.apache.commons.math3.stat.inference.TestUtils
+import org.nield.kotlinstatistics.averageBy
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.sql.Date
@@ -96,6 +97,7 @@ class TimeTrialService (@field: Autowired
                 }.sortedBy { it.timeDifference.calculateSecondsFrom() }
 
     }
+
 
     fun getRankedProgressionSinceTimeTrial(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<TimeTrialImprovementDTO> {
 
@@ -209,6 +211,14 @@ class TimeTrialService (@field: Autowired
                 2)
     }
 
+    fun getSBToPreviousSBDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonDTO {
+
+        return StatisticalComparisonDTO.from(startDate.getYearString(),
+                getMeanDifferenceBetweenSBPreviousYearSB(startDate, endDate, adjustForMeetDistance),
+                "time",
+                2)
+    }
+
     fun getTimeTrialToSBDifference(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): StatisticalComparisonDTO {
 
         return StatisticalComparisonDTO.from(startDate.getYearString(),
@@ -242,6 +252,56 @@ class TimeTrialService (@field: Autowired
                 }.sortedBy { it.second }
 
         return test.map{it.second}
+    }
+
+    fun getMeanDifferenceBetweenSBPreviousYearSB(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<Double> {
+
+        // negative means current SB faster than last year
+
+        var seasonBestsPreviousYear = seasonBestService.getAllSeasonBests(startDate.subtractYear(1), endDate.subtractYear(1), adjustForMeetDistance)
+                .filter { it.seasonBest.isNotEmpty() }
+
+          var runners = seasonBestsPreviousYear .map {
+                it.runner.id to it.runner
+            }.toMap()
+
+
+
+        val seasonBests= seasonBestService.getAllSeasonBests(startDate, endDate, adjustForMeetDistance)
+                .filter { it.seasonBest.isNotEmpty() }
+                .filter { it.runner.id in runners.keys }
+                .map { runners[it.runner.id]!!.id to it }
+                .toMap()
+
+        val test = seasonBestsPreviousYear
+                .map { it to seasonBests[it.runner.id] }
+                .toMap()
+                .filter { it.value != null }
+                .map {
+                    it.value!!.seasonBest.first().time.calculateSecondsFrom() - it.key.seasonBest.first().time.calculateSecondsFrom()
+                }.sorted()
+
+        return test
+    }
+
+    fun runTTestBetweenSBAndPreviusYearSB(
+            startDate1: Date,
+            endDate1: Date,
+            startDate2: Date,
+            endDate2: Date,
+            adjustForMeetDistance: Boolean
+    ): TTestResponse {
+
+        val statistcalDistributionYear1 = getSBToPreviousSBDifference(startDate1, endDate1, adjustForMeetDistance)
+        val statistcalDistributionYear2 = getSBToPreviousSBDifference(startDate2, endDate2, adjustForMeetDistance)
+
+        val tStat = TStatDTO("2 sample T test for mean difference between SBs for a runners between the two years",
+                TestUtils.tTest(getMeanDifferenceBetweenSBPreviousYearSB(startDate1, endDate1, adjustForMeetDistance).toDoubleArray(),
+                        getMeanDifferenceBetweenSBPreviousYearSB(startDate2, endDate2, adjustForMeetDistance).toDoubleArray())
+                        .round(4))
+
+        return TTestResponse(listOf(statistcalDistributionYear1), listOf(statistcalDistributionYear2), listOf(tStat))
+
     }
 
     fun getMeanDifferenceBetweenTimeTrialAndSB(startDate: Date, endDate: Date, adjustForMeetDistance: Boolean): List<Double> {

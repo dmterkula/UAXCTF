@@ -2,7 +2,6 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.request.CreateMeetRequest
-import com.terkula.uaxctf.statistics.request.CreateRunnerRequest
 import com.terkula.uaxctf.statistics.response.MeetResponse
 import com.terkula.uaxctf.statistics.service.MeetInfoService
 import io.swagger.annotations.ApiOperation
@@ -10,7 +9,6 @@ import io.swagger.annotations.ApiParam
 import org.springframework.web.bind.annotation.*
 
 import java.sql.Date
-import java.util.*
 
 @RestController
 class MeetInfoController(var meetInfoService: MeetInfoService) {

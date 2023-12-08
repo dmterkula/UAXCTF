@@ -1,13 +1,19 @@
 package com.terkula.uaxctf.statistics.service
 
 import com.terkula.uaxctf.statisitcs.model.*
+import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformance
+import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedSeasonBestDTO
 import com.terkula.uaxctf.statistics.dto.leaderboard.SeasonBestDTO
+import com.terkula.uaxctf.statistics.dto.track.TrackPerformancesDTO
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.achievement.RunnerAchievementsDTO
+import com.terkula.uaxctf.statistics.service.track.TrackMeetPerformanceService
+import com.terkula.uaxctf.statistics.service.track.TrackPRService
+import com.terkula.uaxctf.statistics.service.track.TrackSBService
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
@@ -16,6 +22,8 @@ import com.terkula.uaxctf.training.service.AchievementService
 import com.terkula.uaxctf.training.service.TrainingRunsService
 import com.terkula.uaxctf.training.service.WorkoutSplitService
 import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.subtractDay
+import com.terkula.uaxctf.util.subtractDays
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.AsyncResult
 import org.springframework.stereotype.Component
@@ -36,7 +44,10 @@ open class RunnerProfileAsyncHelper (
     val leaderBoardService: LeaderBoardService,
     val trainingRunsService: TrainingRunsService,
     val workoutSplitService: WorkoutSplitService,
-    val achievementService: AchievementService
+    val achievementService: AchievementService,
+    val trackMeetPerformanceService: TrackMeetPerformanceService,
+    val trackPRService: TrackPRService,
+    val trackSBService: TrackSBService,
 ) {
 
 
@@ -90,6 +101,11 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
+    open fun getTrackMeetPerformances(runnerId: Int, season: String): Future<List<TrackMeetPerformanceDTO>> {
+        return AsyncResult(trackMeetPerformanceService.getTrackMeetResultsForRunner(runnerId, season))
+    }
+
+    @Async
     open fun getAllSeasonBests(startDate: Date, endDate: Date): Future<List<SeasonBestDTO>> {
         return AsyncResult(seasonBestService.getAllSeasonBests(startDate, endDate, false))
     }
@@ -129,8 +145,8 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
-    open fun getDistanceRunLeaderBoard(season: String): Future<List<RankedRunnerDistanceRunDTO>>  {
-        return AsyncResult(leaderBoardService.getDistanceRunRankLeaderBoard(season))
+    open fun getDistanceRunLeaderBoard(season: String, type: String): Future<List<RankedRunnerDistanceRunDTO>>  {
+        return AsyncResult(leaderBoardService.getDistanceRunRankLeaderBoard(season, type))
     }
 
     @Async
@@ -139,18 +155,31 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
-    open fun getTrainingRuns(runnerId: Int, season: String): Future<TrainingRunResults>  {
-        return AsyncResult(trainingRunsService.getARunnersTrainingRunsWithinDates(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season)))
+    open fun getTrainingRuns(runnerId: Int, season: String, type: String): Future<TrainingRunResults>  {
+        if (type.equals("xc", ignoreCase = true)) {
+            return AsyncResult(trainingRunsService.getARunnersTrainingRunsByTypeWithinDates(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), type))
+        } else {
+            val startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90) // start in roughly october of previous year looking for track records
+            val endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150) // stop looking for track records in august
+            return AsyncResult(trainingRunsService.getARunnersTrainingRunsByTypeWithinDates(runnerId, startDate, endDate, type))
+        }
     }
 
     @Async
-    open fun getWorkoutResults(runnerId: Int, season: String): Future<List<RunnerWorkoutResultResponse>>  {
-        return AsyncResult(workoutSplitService.getAllARunnersWorkoutResults(runnerId, season))
+    open fun getWorkoutResults(runnerId: Int, season: String, type: String): Future<List<RunnerWorkoutResultResponse>>  {
+        if (type.equals("xc", ignoreCase = true)) {
+            return AsyncResult(workoutSplitService.getAllARunnersWorkoutResultsBySeason(runnerId, season, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), type))
+        } else {
+            val startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90) // start in roughly october of previous year looking for track records
+            val endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150) // stop looking for track records in august
+            return AsyncResult(workoutSplitService.getAllARunnersWorkoutResultsBySeason(runnerId, season, startDate, endDate, type))
+        }
+
     }
 
     @Async
-    open fun getGoalForRunner(runnerId: Int, year: String): Future<RunnerGoalDTO> {
-        return AsyncResult(goalService.getRunnersGoalForSeason(runnerId, year))
+    open fun getGoalForRunner(runnerId: Int, year: String, season: String): Future<RunnerGoalDTO> {
+        return AsyncResult(goalService.getRunnersGoalForYearAndSeason(runnerId, year, season))
     }
 
     @Async
@@ -161,8 +190,17 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
-    open fun getTrainingRunSummary(runnerId: Int, season: String, includeWarmUps: Boolean): Future<List<DateRangeRunSummaryDTO>> {
-        return AsyncResult(trainingRunsService.getTotalDistancePerWeek(season, runnerId, includeWarmUps))
+    open fun getTrainingRunSummary(runnerId: Int, season: String, includeWarmUps: Boolean, type: String): Future<List<DateRangeRunSummaryDTO>> {
+
+        var startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        var endDate = TimeUtilities.getLastDayOfGivenYear(season)
+
+        if (type.equals("track", ignoreCase = true)) {
+            startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90)
+            endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150)
+        }
+
+        return AsyncResult(trainingRunsService.getTotalDistancePerWeek(startDate, endDate, runnerId, includeWarmUps, type))
     }
 
     @Async
@@ -170,5 +208,14 @@ open class RunnerProfileAsyncHelper (
         return AsyncResult(achievementService.getRunnersAchievements(runnerId))
     }
 
+    @Async
+    open fun getTrackPRs(runnerId: Int): Future<TrackPerformancesDTO> {
+        return AsyncResult(trackPRService.getARunnersPRs(runnerId, false, ""))
+    }
+
+    @Async
+    open fun getTrackSBs(runnerId: Int, season: String): Future<TrackPerformancesDTO> {
+        return AsyncResult(trackSBService.getARunnersSBs(runnerId, false, "", season))
+    }
 
 }

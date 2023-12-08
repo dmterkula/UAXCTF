@@ -1,7 +1,6 @@
 package com.terkula.uaxctf.statistics.controller.track
 
-import com.terkula.uaxctf.statistics.dto.track.TrackPRPerformance
-import com.terkula.uaxctf.statistics.dto.track.TrackPRsDTO
+import com.terkula.uaxctf.statistics.dto.track.TrackPerformancesDTO
 import com.terkula.uaxctf.statistics.exception.UnsupportedAPIOperationException
 import com.terkula.uaxctf.statistics.response.track.TrackSortingMethodContainer
 import com.terkula.uaxctf.statistics.response.track.TrackPRResponse
@@ -77,7 +76,7 @@ class TrackPRController(@field:Autowired
             @ApiParam("Controls whether relay splits are included")
             @RequestParam(value = "filter.includeSplits") includeSplits: Boolean,
             @ApiParam("filters prs for a given event")
-            @RequestParam(value = "filter.event", required = false) filterEvent: String? = ""): TrackPRsDTO {
+            @RequestParam(value = "filter.event", required = false) filterEvent: String? = ""): TrackPerformancesDTO {
 
             val eventFilter = filterEvent ?: ""
 

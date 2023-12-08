@@ -6,6 +6,7 @@ import com.terkula.uaxctf.statisitcs.model.XcGoal
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.controller.MeetPerformanceController
 import com.terkula.uaxctf.statistics.dto.*
+import com.terkula.uaxctf.statistics.dto.track.TrackPerformancesDTO
 import com.terkula.uaxctf.statistics.exception.GoalNotFoundException
 import com.terkula.uaxctf.statistics.exception.MeetNotFoundException
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
@@ -15,6 +16,7 @@ import com.terkula.uaxctf.statistics.repository.XcGoalRepository
 import com.terkula.uaxctf.statistics.request.GoalsRequest
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.request.UpdateGoalRequest
+import com.terkula.uaxctf.statistics.service.track.TrackSBService
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
 import com.terkula.uaxctf.util.calculateSecondsFrom
@@ -27,21 +29,80 @@ import java.sql.Date
 import kotlin.math.truncate
 
 @Component
-class XcGoalService (@field:Autowired
-                     private val runnerRepository: RunnerRepository,
-                     @field:Autowired
-                     private val xcGoalRepository: XcGoalRepository,
-                     @field: Autowired
-                     internal var meetRepository: MeetRepository,
-                     @field: Autowired
-                     internal var meetPerformanceService: MeetPerformanceService,
-                     @field: Autowired
-                     internal var seasonBestService: SeasonBestService) {
+class XcGoalService (
+    val runnerRepository: RunnerRepository,
+    val xcGoalRepository: XcGoalRepository,
+    var meetRepository: MeetRepository,
+    var meetPerformanceService: MeetPerformanceService,
+    var seasonBestService: SeasonBestService,
+    var trackSBService: TrackSBService
+) {
 
 
-    fun getGoalsForSeason(season: String): List<RunnerGoalDTO> {
+    fun getGoalsForSeason(season: String, xcOnly: Boolean?, trackOnly: Boolean?): List<RunnerGoalDTO> {
 
-        val goals: List<XcGoal> = xcGoalRepository.findBySeason(season)
+        val goals: List<XcGoal> = if (xcOnly == null && trackOnly == null) {
+            xcGoalRepository.findBySeason(season)
+        } else if (xcOnly == null && trackOnly != null) {
+            xcGoalRepository.findBySeasonAndTrackGoal(season, trackOnly)
+        } else if (xcOnly != null && trackOnly == null) {
+            xcGoalRepository.findBySeasonAndTrackGoal(season, !xcOnly)
+        } else {
+            // if both provided just get XC goals
+            xcGoalRepository.findBySeasonAndTrackGoal(season, !xcOnly!!)
+        }
+
+        var runners = runnerRepository.findAll().map { it.id to it }.toMap()
+
+        val runnerMap = goals.map {
+            val runner = runnerRepository.findById(it.runnerId)
+            runner.get().id to runner
+        }.toMap()
+
+        return goals.map { runnerMap[it.runnerId]!!.get() to it }
+                .groupBy { it.first }
+                .map {
+                    it.key to it.value.map { pair -> pair.second }
+                }
+                .map {
+                    RunnerGoalDTO(it.first, it.second.map{ goal ->
+
+                        if (goal.type.equals("Time", ignoreCase = true) && goal.event != null) {
+
+                            if (goal.event == "5000m" || goal.event == "5000") {
+                                var sb = seasonBestService.getSeasonBestsByName(runners[it.first.id]!!.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
+
+                                var goalMet = false
+
+                                if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && goal.value.calculateSecondsFrom() <= sb.first().seasonBest.first().time.calculateSecondsFrom()) {
+                                    goalMet = true
+                                }
+
+                                return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet, goal.trackGoal, goal.event)
+                            } else {
+                                var sb = trackSBService.getARunnersSBs(it.first.id, false, goal.event!!, season)
+
+                                var goalMet = false
+
+                                if (sb.bestResults.isNotEmpty() && goal.value.calculateSecondsFrom() <= sb.bestResults.first().best.time.calculateSecondsFrom() ) {
+                                    goalMet = true
+                                }
+
+                                return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet, goal.trackGoal, goal.event)
+                            }
+
+
+                        } else {
+                            return@map goal
+                        }
+                    })
+                }
+
+    }
+
+    fun getEventSpecificGoalsForSeason(season: String, event: String): List<RunnerGoalDTO> {
+
+        val goals: List<XcGoal> = xcGoalRepository.findBySeasonAndEvent(season, event)
 
         var runners = runnerRepository.findAll().map { it.id to it }.toMap()
 
@@ -60,6 +121,8 @@ class XcGoalService (@field:Autowired
 
                         if (goal.type.equals("Time", ignoreCase = true)) {
 
+                            // todo, this needs to get SB from track if event is not 5000m
+
                             var sb = seasonBestService.getSeasonBestsByName(runners[it.first.id]!!.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
 
                             var goalMet = false
@@ -68,7 +131,7 @@ class XcGoalService (@field:Autowired
                                 goalMet = true
                             }
 
-                            return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet)
+                            return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet, goal.trackGoal, goal.event)
                         } else {
                             return@map goal
                         }
@@ -89,7 +152,7 @@ class XcGoalService (@field:Autowired
                 .filter { it.season == season }.map {
             if (it.type.equals("Time", true)) {
                 if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && sb.first().seasonBest.first().time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
-                    return@map XcGoal(it.id, it.season, it.type, it.value, true)
+                    return@map XcGoal(it.id, it.season, it.type, it.value, true, it.trackGoal, it.event)
                 }
                 else {
                     return@map it
@@ -104,29 +167,49 @@ class XcGoalService (@field:Autowired
 
     }
 
-    fun getRunnersGoalForSeason(runnerId: Int, season: String): RunnerGoalDTO {
+    fun getRunnersGoalForYearAndSeason(runnerId: Int, year: String, season: String): RunnerGoalDTO {
 
+        if (season.equals("xc", ignoreCase = true)) {
+            val runner = runnerRepository.findById(runnerId).get()
 
-        val runner = runnerRepository.findById(runnerId).get()
+            val sb = seasonBestService.getSeasonBestsByName(runner.name, listOf(Pair(getFirstDayOfGivenYear(year), getLastDayOfGivenYear(year))), false)
 
-        val sb = seasonBestService.getSeasonBestsByName(runner.name, listOf(Pair(getFirstDayOfGivenYear(season), getLastDayOfGivenYear(season))), false)
-
-        val goals = xcGoalRepository.findByRunnerId(runner.id)
-                .filter { it.season == season }.map {
-                    if (it.type.equals("Time", true)) {
-                        if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && sb.first().seasonBest.first().time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
-                            return@map XcGoal(it.id, it.season, it.type, it.value, true)
-                        }
-                        else {
+            val goals = xcGoalRepository.findByRunnerId(runner.id)
+                    .filter { it.season == year }.map {
+                        if (it.type.equals("Time", true)) {
+                            if (sb.isNotEmpty() && sb.first().seasonBest.isNotEmpty() && sb.first().seasonBest.first().time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
+                                return@map XcGoal(it.id, it.season, it.type, it.value, true, it.trackGoal, it.event)
+                            }
+                            else {
+                                return@map it
+                            }
+                        } else {
                             return@map it
                         }
-                    } else {
-                        return@map it
                     }
-                }
 
 
-        return RunnerGoalDTO(runner, goals)
+            return RunnerGoalDTO(runner, goals)
+        } else {
+            val runner = runnerRepository.findById(runnerId).get()
+
+            val seasonBests: TrackPerformancesDTO = trackSBService.getARunnersSBs(runner.id, true, "", year)
+            val goals = xcGoalRepository.findByRunnerId(runnerId).filter { it.season == year && it.trackGoal == true }
+                    .map {
+                        if (it.type.equals("Time", true)) {
+                            if (seasonBests.bestResults.isNotEmpty() && seasonBests.bestResults.filter { sb -> sb.event == it.event}.isNotEmpty() && seasonBests.bestResults.filter { sb -> sb.event == it.event}.first().best.time.calculateSecondsFrom() <= it.value.calculateSecondsFrom()) {
+                                return@map XcGoal(it.id, it.season, it.type, it.value, true, it.trackGoal, it.event)
+                            }
+                            else {
+                                return@map it
+                            }
+                        } else {
+                            return@map it
+                        }
+                    }
+            return RunnerGoalDTO(runner, goals)
+
+        }
 
     }
 
@@ -136,7 +219,7 @@ class XcGoalService (@field:Autowired
         val runner = runnerRepository.findById(runnerId).get()
 
         val goals = createGoalsRequest.goals.map {
-            XcGoal(runner.id, season, it.type, it.value, it.isMet)
+            XcGoal(runner.id, season, it.type, it.value, it.isMet, it.trackGoal, it.event)
         }
 
         goals.forEach {
@@ -144,13 +227,15 @@ class XcGoalService (@field:Autowired
             val existingGoal = xcGoalRepository.findByRunnerIdAndSeasonAndTypeAndValue(runner.id, season, it.type, it.value)
 
             if (existingGoal.isEmpty()) {
-                xcGoalRepository.save(XcGoal(runner.id, season, it.type, it.value, it.isMet))
+                xcGoalRepository.save(XcGoal(runner.id, season, it.type, it.value, it.isMet, it.trackGoal, it.event))
             } else {
                 // update
                 existingGoal[0].season = it.season
                 existingGoal[0].type = it.type
                 existingGoal[0].value = it.value
                 existingGoal[0].isMet = it.isMet
+                existingGoal[0].trackGoal = it.trackGoal
+                existingGoal[0].event = it.event
                 xcGoalRepository.save(existingGoal[0])
             }
         }

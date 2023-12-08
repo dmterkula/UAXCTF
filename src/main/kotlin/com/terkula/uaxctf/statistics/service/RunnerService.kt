@@ -10,7 +10,13 @@ class RunnerService (val runnerRepository: RunnerRepository) {
 
     fun createRunner(createRunnerRequest: CreateRunnerRequest): Runner {
 
-        val runner = Runner(createRunnerRequest.name, createRunnerRequest.graduatingClass, createRunnerRequest.isActive)
+        val runner = Runner(
+                createRunnerRequest.name,
+                createRunnerRequest.graduatingClass,
+                createRunnerRequest.isActive,
+                createRunnerRequest.doesXc,
+                createRunnerRequest.doesTrack
+        )
 
         runnerRepository.save(runner)
 
@@ -27,6 +33,9 @@ class RunnerService (val runnerRepository: RunnerRepository) {
             foundRunner.name = createRunnerRequest.name
             foundRunner.graduatingClass = createRunnerRequest.graduatingClass
             foundRunner.isActive = createRunnerRequest.isActive
+            foundRunner.doesXc = createRunnerRequest.doesXc
+            foundRunner.doesTrack = createRunnerRequest.doesTrack
+
 
             runnerRepository.save(foundRunner)
 
@@ -37,8 +46,46 @@ class RunnerService (val runnerRepository: RunnerRepository) {
     }
 
     fun getRoster(active: Boolean, season: String): List<Runner> {
+
         var runners = runnerRepository.findAll()
                 .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+
+        if (active) {
+            runners = runners.filter { it.isActive }
+        }
+
+        return runners
+                .groupBy { it.graduatingClass }.map {
+                    it.key to it.value.sortedBy { runner -> runner.name }
+                }
+                .sortedBy { it.first }
+                .map { it.second }
+                .flatten()
+
+    }
+
+    fun getXcRoster(active: Boolean, season: String): List<Runner> {
+
+        var runners = runnerRepository.findByDoesXc(true)
+                .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+
+        if (active) {
+            runners = runners.filter { it.isActive }
+        }
+
+        return runners
+                .groupBy { it.graduatingClass }.map {
+                    it.key to it.value.sortedBy { runner -> runner.name }
+                }
+                .sortedBy { it.first }
+                .map { it.second }
+                .flatten()
+
+    }
+
+    fun getTrackRoster(active: Boolean, season: String): List<Runner> {
+        var runners = runnerRepository.findByDoesTrack(true)
+                .filter { it.graduatingClass.toInt() >= season.toInt() && it.graduatingClass.toInt() < season.toInt() + 4 }
 
         if (active) {
             runners = runners.filter { it.isActive }

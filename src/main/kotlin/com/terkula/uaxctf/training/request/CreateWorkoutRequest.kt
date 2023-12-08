@@ -11,7 +11,8 @@ class CreateWorkoutRequest (
     var icon: String,
     var uuid: String,
     @Valid
-    var components: List<ComponentCreationElement>
+    var components: List<ComponentCreationElement>,
+    var season: String
     )
 
 class ComponentCreationElement(
@@ -28,5 +29,12 @@ class ComponentCreationElement(
     var targetCount: Int,
     var duration: String?,
     var targetPaceAdjustment: String = "",
-    var uuid: String
+    var uuid: String,
+    var ratio: Double?,
+    var sets: Int?,
+    var recovery: String?,
+    var recoveryType: String?,
+    var recoveryDistance: Int?,
+    var setRecovery: String?,
+    var targetEvent: Int = 5000
 )

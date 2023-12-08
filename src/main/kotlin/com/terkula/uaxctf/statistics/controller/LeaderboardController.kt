@@ -89,14 +89,21 @@ class LeaderboardController(val leaderBoardService: LeaderBoardService) {
     @RequestMapping(value = ["xc/leaderboard/distance-run"], method = [RequestMethod.GET])
     fun getDistanceRunLeaderBoard(
             @RequestParam(name = "season", required = false) season: String?,
-            @RequestParam(name = "page.size", required = false) pageSize: Int?
+            @RequestParam(name = "page.size", required = false) pageSize: Int?,
+            @RequestParam(name = "type", required = false) type: String?
     ): List<RankedRunnerDistanceRunDTO> {
+
+        var xcOrTrack: String = "xc"
+
+        if (type != null) {
+            xcOrTrack = type
+        }
 
         return if (season != null) {
             if (pageSize == null) {
-                leaderBoardService.getDistanceRunRankLeaderBoard(season!!)
+                leaderBoardService.getDistanceRunRankLeaderBoard(season!!, xcOrTrack)
             } else {
-                leaderBoardService.getDistanceRunRankLeaderBoard(season!!).take(pageSize!!)
+                leaderBoardService.getDistanceRunRankLeaderBoard(season!!, xcOrTrack).take(pageSize!!)
             }
 
         } else {

@@ -15,4 +15,8 @@ interface RunnerRepository : CrudRepository<Runner, Int> {
 
     fun findByGraduatingClass(gradClass: String): MutableList<Runner>
 
+    fun findByDoesTrack(track: Boolean): MutableList<Runner>
+
+    fun findByDoesXc(xc: Boolean): MutableList<Runner>
+
 }

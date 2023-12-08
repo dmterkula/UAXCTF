@@ -13,5 +13,6 @@ class CreateMeetLogRequest(
     var coolDownTime: String?,
     var coolDownDistance: Double?,
     var coolDownPace: String?,
-    var coachNotes: String?
+    var coachNotes: String?,
+    var season: String = "xc"
 )

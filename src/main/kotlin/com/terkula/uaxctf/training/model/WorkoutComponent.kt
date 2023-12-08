@@ -22,7 +22,21 @@ class WorkoutComponent(
         @Column(name = "target_duration")
         var duration: String?,
         @Column(name = "target_pace_adjustment")
-        var targetPaceAdjustment: String = ""
+        var targetPaceAdjustment: String = "",
+        @Column(name = "ratio")
+        var ratio: Double?,
+        @Column(name = "sets")
+        var sets: Int?,
+        @Column(name = "recovery")
+        var recovery: String?,
+        @Column(name = "set_recovery")
+        var setRecovery: String?,
+        @Column(name = "target_event")
+        var targetEvent: Int,
+        @Column(name="recovery_type")
+        var recoveryType: String?,
+        @Column(name = "recovery_distance")
+        var recoveryDistance: Int?
 ) {
 
     @JsonIgnore

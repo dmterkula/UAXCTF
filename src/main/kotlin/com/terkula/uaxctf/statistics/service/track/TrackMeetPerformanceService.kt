@@ -1,17 +1,17 @@
 package com.terkula.uaxctf.statistics.service.track
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.terkula.uaxctf.statisitcs.model.track.TrackMeet
-import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformance
-import com.terkula.uaxctf.statisitcs.model.track.TrackMeetPerformanceDTO
-import com.terkula.uaxctf.statisitcs.model.track.toTrackMeetPerformancesResponses
+import com.terkula.uaxctf.statisitcs.model.track.*
 import com.terkula.uaxctf.statistics.repository.*
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.track.CreateTrackMeetResultRequest
+import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
+import com.terkula.uaxctf.util.subtractDays
 import org.springframework.stereotype.Component
+import java.sql.Time
 
 @Component
 class TrackMeetPerformanceService(
@@ -33,6 +33,24 @@ class TrackMeetPerformanceService(
                            meet.get(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses()
                    ) }
         }
+    }
+
+    fun getTrackMeetResultsForRunner(runnerId: Int, season: String): List<TrackMeetPerformanceDTO> {
+
+        val startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90)
+        val endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150)
+
+        val meets = meetRepository.findByDateBetween(startDate, endDate)
+        val runner = runnerRepository.findById(runnerId).get()
+
+         return meets.map {
+             TrackMeetPerformanceDTO(it, runner,
+                     trackMeetPerformanceRepository.findByMeetIdAndRunnerId(it.uuid, runnerId).map { result ->
+                         result.toTrackMeetPerformanceResponse()
+                     }
+             )
+        }.filter { it.results.isNotEmpty() }
+
     }
 
     fun getTrackMeetResults(meetName: String, season: String): List<TrackMeetPerformanceDTO> {

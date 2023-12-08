@@ -23,5 +23,6 @@ class Achievement(
     val met: Boolean,
     val imageName: String,
     val valueIsInt: Boolean,
-    val description: String
+    val description: String,
+    val season: String
 )

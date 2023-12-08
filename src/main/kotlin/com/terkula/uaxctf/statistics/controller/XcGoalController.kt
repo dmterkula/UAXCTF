@@ -22,8 +22,13 @@ class XcGoalController(@field:Autowired
     @RequestMapping(value = ["xc/goals/forSeason"], method = [RequestMethod.GET])
     fun getRunnerGoals(
             @ApiParam("Filters results for the season in the given year.")
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String
-            ): RunnerGoalResponse {
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+            @ApiParam("Optional filter for XC only goal")
+            @RequestParam(value = "filter.xcOnly", required = false
+            ) xcOnly: Boolean?,
+            @ApiParam("Optional filter for track only goal")
+            @RequestParam(value = "filter.trackOnly", required = false)
+            trackOnly: Boolean?): RunnerGoalResponse {
 
         var filterSeason = season
 
@@ -31,7 +36,7 @@ class XcGoalController(@field:Autowired
             filterSeason = MeetPerformanceController.CURRENT_YEAR
         }
 
-        return RunnerGoalResponse(xcGoalService.getGoalsForSeason(filterSeason))
+        return RunnerGoalResponse(xcGoalService.getGoalsForSeason(filterSeason, xcOnly, trackOnly))
 
     }
 
@@ -128,7 +133,9 @@ class XcGoalController(@field:Autowired
             @ApiParam("Filters results for athlete with the given name. ")
             @RequestParam(value = "filter.runnerId", required = true) runnerId: Int,
             @ApiParam("Filters results for the season in the given year.")
-            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String): RunnerGoalDTO {
+            @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
+            @RequestParam(value = "filter.type", required = false, defaultValue = "xc") type: String = "xc"
+    ): RunnerGoalDTO {
 
         var filterSeason = season
 
@@ -136,7 +143,7 @@ class XcGoalController(@field:Autowired
             filterSeason = MeetPerformanceController.CURRENT_YEAR
         }
 
-        return xcGoalService.getRunnersGoalForSeason(runnerId, filterSeason)
+        return xcGoalService.getRunnersGoalForYearAndSeason(runnerId, filterSeason, type)
 
     }
 

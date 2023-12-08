@@ -13,6 +13,7 @@ import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
 import java.lang.RuntimeException
+import java.sql.Date
 
 @Service
 class WorkoutSplitService(
@@ -130,7 +131,8 @@ class WorkoutSplitService(
             getSplitsForRunnerAndComponent(runnerId, it.uuid)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponses, totalDistance,
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season),
+                splitsResponses, totalDistance,
                 workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                 workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
@@ -166,7 +168,45 @@ class WorkoutSplitService(
             }
                     .filter { splits -> splits.splits.isNotEmpty() }
 
-            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components), splitsResponses, totalDistance,
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season), splitsResponses, totalDistance,
+                    workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
+                    workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
+                    workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
+                    notes, coachNotes)
+        }
+
+        return results.filter { it.componentResults.isNotEmpty()  }
+    }
+
+    fun getAllARunnersWorkoutResultsBySeason(runnerId: Int, season: String, startDate: Date, endDate: Date, type: String): List<RunnerWorkoutResultResponse> {
+
+        val workouts = workoutRepositoryV2.findByDateBetweenAndSeason(startDate, endDate, type)
+        val runner = runnerService.runnerRepository.findById(runnerId).get()
+
+        val results = workouts.map {
+            val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
+            val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+            var totalDistance = 0.0
+            if (workoutDistance.isNotEmpty()) {
+                totalDistance = workoutDistance.sumOf {dist-> dist.distance }
+            }
+
+            var workoutTime = "00:00"
+            var workoutPace = "00:00"
+            if (workoutDistance.isNotEmpty()) {
+                workoutTime = workoutDistance.sumOf { it.getTimeSeconds() }.toMinuteSecondString()
+                workoutPace = workoutDistance.first().pace
+            }
+
+            val notes: String? = workoutDistance.firstOrNull()?.notes
+            val coachNotes: String? = workoutDistance.firstOrNull()?.coachNotes
+
+            val splitsResponses = components.map { comp->
+                getSplitsForRunnerAndComponent(runnerId, comp.uuid)
+            }
+                    .filter { splits -> splits.splits.isNotEmpty() }
+
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season), splitsResponses, totalDistance,
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
@@ -225,7 +265,7 @@ class WorkoutSplitService(
             workoutDistanceRepository.save(existingRecord)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components), splitsResponse, distance,
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season), splitsResponse, distance,
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
                 logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes)
