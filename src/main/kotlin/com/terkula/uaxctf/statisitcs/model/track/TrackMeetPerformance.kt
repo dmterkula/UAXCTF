@@ -5,6 +5,8 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
 import com.terkula.uaxctf.statistics.response.track.TrackSplit
+import java.sql.Date
+import java.util.*
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -77,15 +79,15 @@ fun TrackMeetPerformance.eventDistance(): Int {
 
 }
 
-fun TrackMeetPerformance.toTrackMeetPerformanceResponse(): TrackMeetPerformanceResponse {
+fun TrackMeetPerformance.toTrackMeetPerformanceResponse(meetName: String, meetDate: Date): TrackMeetPerformanceResponse {
 
     val splits: List<TrackSplit> = ObjectMapper()
             .registerKotlinModule()
             .readValue(this.splits)
 
-    return TrackMeetPerformanceResponse(this.meetId, this.uuid, this.runnerId, this.time, this.place, this.event, this.isSplit, splits)
+    return TrackMeetPerformanceResponse(this.meetId, meetName, meetDate, this.uuid, this.runnerId, this.time, this.place, this.event, this.isSplit, splits)
 }
 
-fun List<TrackMeetPerformance>.toTrackMeetPerformancesResponses(): List<TrackMeetPerformanceResponse> {
-    return this.map { it.toTrackMeetPerformanceResponse() }
+fun List<TrackMeetPerformance>.toTrackMeetPerformancesResponses(meetName: String, meetDate: Date): List<TrackMeetPerformanceResponse> {
+    return this.map { it.toTrackMeetPerformanceResponse(meetName, meetDate) }
 }

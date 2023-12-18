@@ -7,6 +7,7 @@ import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceReposi
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.track.CreateTrackMeetResultRequest
 import com.terkula.uaxctf.statistics.response.track.TrackMeetPerformanceResponse
+import com.terkula.uaxctf.statistics.response.track.TrackMeetSummaryResponse
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
 import com.terkula.uaxctf.util.subtractDays
@@ -17,7 +18,8 @@ import java.sql.Time
 class TrackMeetPerformanceService(
     private val meetRepository: TrackMeetRepository,
     private val trackMeetPerformanceRepository: TrackMeetPerformanceRepository,
-    private val runnerRepository: RunnerRepository
+    private val runnerRepository: RunnerRepository,
+    private val trackMeetSummaryAsyncHelper: TrackMeetSummaryAsyncHelper
 ) {
     fun getTrackMeetResults(meetUUID: String): List<TrackMeetPerformanceDTO> {
 
@@ -30,7 +32,7 @@ class TrackMeetPerformanceService(
             return trackMeetPerformanceRepository.findByMeetId(meetUUID)
                     .groupBy { it.runnerId }
                    .map { TrackMeetPerformanceDTO(
-                           meet.get(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses()
+                           meet.get(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses(meet.get().name, meet.get().date)
                    ) }
         }
     }
@@ -46,7 +48,7 @@ class TrackMeetPerformanceService(
          return meets.map {
              TrackMeetPerformanceDTO(it, runner,
                      trackMeetPerformanceRepository.findByMeetIdAndRunnerId(it.uuid, runnerId).map { result ->
-                         result.toTrackMeetPerformanceResponse()
+                         result.toTrackMeetPerformanceResponse(it.name, it.date)
                      }
              )
         }.filter { it.results.isNotEmpty() }
@@ -67,7 +69,7 @@ class TrackMeetPerformanceService(
             return trackMeetPerformanceRepository.findByMeetId(meet.first().uuid)
                     .groupBy { it.runnerId }
                     .map { TrackMeetPerformanceDTO(
-                            meet.first(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses()
+                            meet.first(), runners[it.key]!!, it.value.toTrackMeetPerformancesResponses(meet.first().name, meet.first().date)
                     ) }
         }
     }
@@ -109,7 +111,7 @@ class TrackMeetPerformanceService(
                 createdResults.add(newPerformance)
             }
 
-            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses())
+            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses(meet.name, meet.date))
 
         } else {
             val createdResults: MutableList<TrackMeetPerformance> = mutableListOf()
@@ -134,9 +136,35 @@ class TrackMeetPerformanceService(
                 }
             }
 
-            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses())
+            return TrackMeetPerformanceDTO(meet, runner, createdResults.toTrackMeetPerformancesResponses(meet.name, meet.date))
 
         }
+
+    }
+
+    fun getTrackMeetSummaryForMeetNameAndSeason(meetName: String, season: String, includeSplits: Boolean): TrackMeetSummaryResponse {
+
+        val meet = meetRepository.findByNameContainingAndDateBetween(meetName, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
+
+        return getTrackMeetSummary(meet.first().uuid, includeSplits)
+
+    }
+
+    fun getTrackMeetSummary(meetUUID: String, includeSplits: Boolean): TrackMeetSummaryResponse {
+
+        val seasonBest = trackMeetSummaryAsyncHelper.getSeasonBestsAtMeet(meetUUID, includeSplits)
+        val prs = trackMeetSummaryAsyncHelper.getPRsAtMeet(meetUUID, includeSplits)
+
+
+        ////// END ASYNC OPS //////////
+
+        val blockedSeasonBests = seasonBest.get()
+        val blockedPrs = prs.get()
+
+        val metGoals = trackMeetSummaryAsyncHelper.getGoalsMetAtMeet(meetUUID, blockedSeasonBests)
+
+
+        return TrackMeetSummaryResponse(blockedPrs, blockedSeasonBests, metGoals)
 
     }
 }
