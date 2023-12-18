@@ -4,14 +4,19 @@ import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statisitcs.model.track.TrackMeet
 import com.terkula.uaxctf.statistics.request.CreateMeetRequest
 import com.terkula.uaxctf.statistics.response.MeetResponse
+import com.terkula.uaxctf.statistics.response.track.TrackMeetSummaryResponse
 import com.terkula.uaxctf.statistics.service.MeetInfoService
+import com.terkula.uaxctf.statistics.service.track.TrackMeetPerformanceService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
 
 @RestController
-class TrackMeetController(var meetInfoService: MeetInfoService) {
+class TrackMeetController(
+    var meetInfoService: MeetInfoService,
+    var trackMeetPerformanceService: TrackMeetPerformanceService
+    ) {
 
     @ApiOperation("Create a meet")
     @RequestMapping(value = ["track/meets/create"], method = [RequestMethod.POST])
@@ -55,6 +60,42 @@ class TrackMeetController(var meetInfoService: MeetInfoService) {
     fun getMeets() : MeetResponse {
 
         return MeetResponse(meetInfoService.getTrackMeetInfo())
+    }
+
+    @ApiOperation("Returns Meet Summary For Track Meet ")
+    @RequestMapping(value = ["track/getMeetSummary"], method = [RequestMethod.GET])
+    fun getMeetSummary(
+        @ApiParam("meetUUID")
+        @RequestParam(value = "meetUUID", required = true) meetUUID: String,
+        @ApiParam("includeSplits")
+        @RequestParam(value = "includeSplits", required = false) includeSplits: Boolean? = false
+    ): TrackMeetSummaryResponse {
+
+        var useSplits = false;
+        if (includeSplits != null) {
+            useSplits = includeSplits
+        }
+
+        return trackMeetPerformanceService.getTrackMeetSummary(meetUUID, useSplits)
+    }
+
+    @ApiOperation("Returns Meet Summary For Track Meet ")
+    @RequestMapping(value = ["track/getMeetSummaryByNameAndDate"], method = [RequestMethod.GET])
+    fun getMeetSummaryByNameAndSeason(
+            @ApiParam("meetName")
+            @RequestParam(value = "meetName", required = true) meetName: String,
+            @ApiParam("season")
+            @RequestParam(value = "season", required = true) season: String,
+            @ApiParam("includeSplits")
+            @RequestParam(value = "includeSplits", required = false) includeSplits: Boolean? = false
+    ): TrackMeetSummaryResponse {
+
+        var useSplits = false;
+        if (includeSplits != null) {
+            useSplits = includeSplits
+        }
+
+        return trackMeetPerformanceService.getTrackMeetSummaryForMeetNameAndSeason(meetName, season, useSplits)
     }
 
 }

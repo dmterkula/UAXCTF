@@ -12,6 +12,7 @@ import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.util.TimeUtilities
+import com.terkula.uaxctf.util.addDay
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.toMinuteSecondMillisString
 import org.springframework.stereotype.Service
@@ -58,7 +59,46 @@ class TrackSBService(
                             if (previousBest != null) {
                                 timeDifference = (previousBest.time.calculateSecondsFrom() - it.third!!.time.calculateSecondsFrom()).toMinuteSecondMillisString()
                             }
-                            TrackTopResult(it.first, meetMap[it.third!!.meetId]!!, it.third!!.toTrackMeetPerformanceResponse(), previousBest?.toTrackMeetPerformanceResponse(), timeDifference)
+                            TrackTopResult(it.first, meetMap[it.third!!.meetId]!!, it.third!!.toTrackMeetPerformanceResponse(meetMap[it.third!!.meetId]!!.name, meetMap[it.third!!.meetId]!!.date), previousBest?.toTrackMeetPerformanceResponse(meetMap[previousBest.meetId]!!.name, meetMap[previousBest.meetId]!!.date), timeDifference)
+                        }.sortedBy { it.event }
+
+        return TrackPerformancesDTO(runner.get(), sbDTOs)
+    }
+
+    fun getARunnersSBsAsOfDate(date: Date, runnerId: Int, includeSplits: Boolean, filterEvent: String, season: String): TrackPerformancesDTO {
+
+        val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        val endDate = date.addDay()
+
+
+        val meetMap = meetRepository.findByDateBetween(startDate, endDate).map { it.uuid to it }.toMap()
+        val runner = runnerRepository.findById(runnerId)
+
+        var results = meetPerformanceRepository.findByRunnerId(runnerId)
+                .filter { meetMap.containsKey(it.meetId) }
+
+        if (!includeSplits) {
+            results = results .filter { !it.isSplit }.toMutableList()
+        }
+
+        var sbs: Map<String, List<TrackMeetPerformance>> = results
+                .groupBy { it.getLogicalEvent() }
+
+        if (!filterEvent.isEmpty())   {
+            sbs = sbs.filter { it.key == filterEvent.getLogicalEvent() }
+        }
+
+        val sbDTOs =
+                sbs
+                        .map { Triple(it.key, it.value, it.value.sortedBy { perf-> perf.time.calculateSecondsFrom() }.firstOrNull())
+                        }.filter { it.third != null }
+                        .map {
+                            val previousBest = findPreviousBest(it.third, it.second, meetMap)
+                            var timeDifference = "0:00.00"
+                            if (previousBest != null) {
+                                timeDifference = (previousBest.time.calculateSecondsFrom() - it.third!!.time.calculateSecondsFrom()).toMinuteSecondMillisString()
+                            }
+                            TrackTopResult(it.first, meetMap[it.third!!.meetId]!!, it.third!!.toTrackMeetPerformanceResponse(meetMap[it.third!!.meetId]!!.name, meetMap[it.third!!.meetId]!!.date), previousBest?.toTrackMeetPerformanceResponse(meetMap[previousBest.meetId]!!.name, meetMap[previousBest.meetId]!!.date), timeDifference)
                         }.sortedBy { it.event }
 
         return TrackPerformancesDTO(runner.get(), sbDTOs)
@@ -87,6 +127,18 @@ class TrackSBService(
 
         return eligibleRunners.map {
             getARunnersSBs(it.id, includeSplits, filterEvent, season)
+        }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
+
+    }
+
+    fun getAllSBsAsOfDate(date: Date, includeSplits: Boolean, filterEvent: String, season: String): List<TrackPerformancesDTO> {
+
+        // find all runners whose graduating class is > current year | find by given grad class
+
+        val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThanEqualAndDoesTrack(season, true)
+
+        return eligibleRunners.map {
+            getARunnersSBsAsOfDate(date, it.id, includeSplits, filterEvent, season)
         }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
 
     }

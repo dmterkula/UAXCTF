@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.controller
 import com.terkula.uaxctf.statisitcs.model.Meet
 import com.terkula.uaxctf.statistics.request.CreateMeetRequest
 import com.terkula.uaxctf.statistics.response.MeetResponse
+import com.terkula.uaxctf.statistics.response.track.TrackAndXcMeetResponse
 import com.terkula.uaxctf.statistics.service.MeetInfoService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
@@ -18,6 +19,12 @@ class MeetInfoController(var meetInfoService: MeetInfoService) {
     fun getMeets() : MeetResponse {
 
        return MeetResponse(meetInfoService.getMeetInfo())
+    }
+
+    @ApiOperation("Returns a List of meet names to select for results for both XC and track")
+    @RequestMapping(value = ["/getAllMeetNames"], method = [RequestMethod.GET])
+    fun getAllMeets() : TrackAndXcMeetResponse {
+        return TrackAndXcMeetResponse(meetInfoService.getMeetInfo(), meetInfoService.getTrackMeetInfo())
     }
 
     @ApiOperation("Returns a List of meet names to select for results ")

@@ -1,7 +1,11 @@
 package com.terkula.uaxctf.statistics.response.track
 
+import java.sql.Date
+
 class TrackMeetPerformanceResponse (
         val meetId: String,
+        val meetName: String,
+        val meetDate: Date,
         val uuid: String,
         val runnerId: Int,
         var time: String,
