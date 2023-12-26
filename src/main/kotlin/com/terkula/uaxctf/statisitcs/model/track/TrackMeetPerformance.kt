@@ -67,6 +67,19 @@ fun String.getLogicalEvent(): String {
     }
 }
 
+fun String.getMilesDistanceFromLogicalEvent(): Double {
+
+    if (this.equals("2k Steeple", ignoreCase = true)) {
+        return 2000.0/1609
+    }
+
+    if (this.equals("Mile", ignoreCase = true)) {
+        return 1.0
+    }
+
+    return this.filter{ it.isDigit() }.toDouble() / 1609
+}
+
 //fun List<TrackMeetPerformance>.toTrackMeetPerformanceDTO(meet: TrackMeet, runner: Runner): List<TrackMeetPerformanceDTO> {
 //    return this.map { TrackMeetPerformanceDTO(meet: meet }
 //}

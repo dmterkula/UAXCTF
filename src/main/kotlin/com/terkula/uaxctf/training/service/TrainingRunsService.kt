@@ -12,6 +12,7 @@ import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
 import com.terkula.uaxctf.training.response.*
+import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
 import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
 import java.sql.Date
@@ -588,8 +589,13 @@ class TrainingRunsService(
         val workouts = workoutRepository.findByDateBetweenAndSeason(startDate, endDate, type)
 
         val meetLogDatePairs: List<Pair<MeetLogResponse, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
+        val trackMeetLogDatePairs: List<Pair<TrackMeetLogResponse, Date>> = meetLogService.getAllTrackMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
 
-        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+        val dates = workouts.map { it.date }
+                .plus(allTrainingRuns.map { it.date })
+                .plus(meetLogDatePairs.map { it.second })
+                .plus(trackMeetLogDatePairs.map { it.second })
+                .sorted()
 
         if (dates.isEmpty()) {
             return emptyList()
@@ -598,7 +604,7 @@ class TrainingRunsService(
         val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
                 .groupBy { it.dayOfYear }
                 .toList().sortedBy { it.first }
-                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0, it.second.first()) }
                 .toMap()
 
 
@@ -623,6 +629,7 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.trainingCount + 1
                         if (includeWarmUps) {
                             trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.count + 1
                             trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().dayOfYear]!!.totalDistance + distance.getTotalDistance()
@@ -637,21 +644,41 @@ class TrainingRunsService(
         }
 
 
-        meetLogDatePairs.forEach {
-            if (includeWarmUps) {
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
-            } else {
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
-                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+        if (type == "xc") {
+            meetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+                }
             }
         }
 
+
+        if (type == "track") {
+            trackMeetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getTotalDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{ it.getTotalTimeSeconds() }
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getRaceOnlyDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{it.time.calculateSecondsFrom()}
+                }
+            }
+        }
+
+
         return trainingSummaryDates.map {
 
-            val start = LocalDate.ofYearDay(startDate.getYearString().toInt(), it.key)
+            val start = LocalDate.ofYearDay(it.value.startDate.getYearString().toInt(), it.key)
 
             val avgPace =
                     if (it.value.trainingCount != 0) {
@@ -672,9 +699,13 @@ class TrainingRunsService(
         val workouts = workoutRepository.findByDateBetweenAndSeason(startDate, endDate, type)
 
         val meetLogDatePairs: List<Pair<MeetLogResponse, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
+        val trackMeetLogDatePairs: List<Pair<TrackMeetLogResponse, Date>> = meetLogService.getAllTrackMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
 
-
-        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+        val dates = workouts.map { it.date }
+                .plus(allTrainingRuns.map { it.date })
+                .plus(meetLogDatePairs.map { it.second })
+                .plus(trackMeetLogDatePairs.map { it.second })
+                .sorted()
 
         if (dates.isEmpty()) {
             return emptyList()
@@ -683,7 +714,7 @@ class TrainingRunsService(
         val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
                 .groupBy { it.get(weekOfYear) }
                 .toList().sortedBy { it.first }
-                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0, it.second.first()) }
                 .toMap()
 
 
@@ -707,6 +738,7 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
                         if (includeWarmUps) {
                             trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.count + 1
                             trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().get(weekOfYear)]!!.totalDistance + distance.getTotalDistance()
@@ -719,15 +751,34 @@ class TrainingRunsService(
                     }
         }
 
-        meetLogDatePairs.forEach {
-            if (includeWarmUps) {
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
-            } else {
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
-                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+        if (type == "xc") {
+            meetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+                }
+            }
+        }
+
+
+        if (type == "track") {
+            trackMeetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getTotalDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{ it.getTotalTimeSeconds() }
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getRaceOnlyDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{it.time.calculateSecondsFrom()}
+                }
             }
         }
 
@@ -736,7 +787,7 @@ class TrainingRunsService(
             val calendar = Calendar.getInstance();
             calendar.clear();
             calendar.set(Calendar.WEEK_OF_YEAR, it.key);
-            calendar.set(Calendar.YEAR, startDate.getYearString().toInt());
+            calendar.set(Calendar.YEAR, it.value.startDate.getYearString().toInt());
 
             // Now get the first day of week.
             val calendarStart = calendar.time;
@@ -763,8 +814,13 @@ class TrainingRunsService(
         val workouts = workoutRepository.findByDateBetweenAndSeason(startDate, endDate, type)
 
         val meetLogDatePairs: List<Pair<MeetLogResponse, Date>> = meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
+        val trackMeetLogDatePairs: List<Pair<TrackMeetLogResponse, Date>> = meetLogService.getAllTrackMeetLogsForRunnerInSeason(runnerId, startDate, endDate, type)
 
-        val dates = workouts.map { it.date }.plus(allTrainingRuns.map { it.date }).sorted()
+        val dates = workouts.map { it.date }
+                .plus(allTrainingRuns.map { it.date })
+                .plus(meetLogDatePairs.map { it.second })
+                .plus(trackMeetLogDatePairs.map { it.second })
+                .sorted()
 
         if (dates.isEmpty()) {
             // return emp
@@ -774,7 +830,7 @@ class TrainingRunsService(
         val trainingSummaryDates: Map<Int, TrainingRunDistanceSummaryDTO> = TimeUtilities.getDatesBetween(dates.first().toLocalDate(), dates.last().toLocalDate())
                 .groupBy { it.monthValue }
                 .toList().sortedBy { it.first }
-                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0) }
+                .map { it.first to TrainingRunDistanceSummaryDTO(0.0, 0, 0, 0.0, 0.0, it.second.first()) }
                 .toMap()
 
 
@@ -798,6 +854,7 @@ class TrainingRunsService(
         workouts.forEach {
             workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
                     .forEach { distance ->
+                        trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingCount = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.trainingCount + 1
                         if (includeWarmUps) {
                             trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.count + 1
                             trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.date.toLocalDate().monthValue]!!.totalDistance + distance.getTotalDistance()
@@ -810,22 +867,43 @@ class TrainingRunsService(
                     }
         }
 
-        meetLogDatePairs.forEach {
-            if (includeWarmUps) {
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
-            } else {
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
-                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+        if (type == "xc") {
+            meetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.meetLog!!.getTotalDistance()
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.meetLog!!.getTotalTimeSeconds()
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.meetLog!!.getOnlyMeetDistance()
+                    trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.meetLog!!.time.calculateSecondsFrom()
+                }
+            }
+        }
+
+
+        if (type == "track") {
+            trackMeetLogDatePairs.forEach {
+                trainingSummaryDates[it.second.toLocalDate().monthValue]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.trainingCount + 1
+                if (includeWarmUps) {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getTotalDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{ it.getTotalTimeSeconds() }
+                } else {
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.count = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.count + 1
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.totalDistance = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.totalDistance + it.first.trackMeetLogs.sumOf { it.getRaceOnlyDistance() }
+                    trainingSummaryDates[it.second.toLocalDate().dayOfYear]!!.avgSecondsPerMile = trainingSummaryDates[it.second.toLocalDate().monthValue]!!.avgSecondsPerMile + it.first.trackMeetLogs.sumOf{it.time.calculateSecondsFrom()}
+                }
             }
         }
 
 
 
         return trainingSummaryDates.map {
-            val start = LocalDate.of(startDate.getYearString().toInt(), it.key, 1)
+
+
+            val start = LocalDate.of(it.value.startDate.getYearString().toInt(), it.key, 1)
                     .with(firstDayOfMonth())
 
             val end = start.with(lastDayOfMonth())
