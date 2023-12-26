@@ -136,6 +136,10 @@ fun Date.getYearString(): String {
     return this.toLocalDate().year.toString()
 }
 
+fun LocalDate.getYearString(): String {
+    return this.year.toString()
+}
+
 fun scaleTo5k(distance: Double, time: Double): Double {
 
     // time1/dist1 = time2/dist2
