@@ -13,7 +13,10 @@ class Runner(
          @Column(name = "xc")
          var doesXc: Boolean = true,
          @Column(name = "track")
-         var doesTrack: Boolean = true
+         var doesTrack: Boolean = true,
+         @Column(name = "device_id")
+         var deviceId: String?,
+
 ) {
 
     @Id

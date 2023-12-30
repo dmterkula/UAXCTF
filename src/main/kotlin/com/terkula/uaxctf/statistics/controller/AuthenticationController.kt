@@ -25,9 +25,12 @@ class AuthenticationController(val authenticationService: AuthenticationService)
             @ApiParam("Password")
             @RequestParam(value = "password", required = true) password: String,
 
+            @ApiParam("deviceId")
+            @RequestParam(value = "deviceId", required = false) deviceId: String?
+
             ): AuthenticationResponse {
 
-        return authenticationService.authenticate(username, password)
+        return authenticationService.authenticate(username, password, deviceId)
     }
 
     @ApiOperation("Changes password for user")

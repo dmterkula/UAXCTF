@@ -18,7 +18,7 @@ class AuthenticationService(
         val runnerService: RunnerService
 ) {
 
-    fun authenticate(username: String, password: String): AuthenticationResponse {
+    fun authenticate(username: String, password: String, deviceId: String?): AuthenticationResponse {
 
         val user = authenticationRepository.findByUsernameAndPassword(username, password)
 
@@ -27,6 +27,16 @@ class AuthenticationService(
             if (user.role == "runner" && user.runnerId != null) {
                 runner = runnerRepository.findById(user.runnerId).orElse(null)
             }
+
+            if (deviceId != null) {
+                if (runner != null) {
+                    runner.deviceId = deviceId
+                    runnerRepository.save(runner)
+                }
+                user.deviceId = deviceId
+                authenticationRepository.save(user)
+            }
+
             AuthenticationResponse(true, user, runner)
 
         } else {
@@ -75,7 +85,7 @@ class AuthenticationService(
 
         if (user == null) {
 
-            val newUser = AppUser(createAppUser.username, createAppUser.password, createAppUser.role, createAppUser.runnerId)
+            val newUser = AppUser(createAppUser.username, createAppUser.password, createAppUser.role, createAppUser.runnerId, deviceId = null, subRole = null)
 
             authenticationRepository.save(newUser)
             return newUser

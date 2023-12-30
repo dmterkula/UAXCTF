@@ -10,7 +10,11 @@ data class AppUser(
         var password: String,
         var role: String,
         @Column(name = "runner_id")
-        val runnerId: Int?
+        val runnerId: Int?,
+        @Column(name = "device_id")
+        var deviceId: String?,
+        @Column(name = "sub_role")
+        var subRole: String?
         ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
