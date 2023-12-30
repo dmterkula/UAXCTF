@@ -1,5 +1,10 @@
 package com.terkula.uaxctf
 
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseAuthService.Companion.FIREBASE_KEY
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseAuthService.Companion.FIREBASE_MESSAGING_SCOPES
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -17,6 +22,7 @@ import springfox.documentation.spring.web.plugins.Docket
 import springfox.documentation.swagger.web.UiConfiguration
 import springfox.documentation.swagger.web.UiConfigurationBuilder
 import springfox.documentation.swagger2.annotations.EnableSwagger2
+import java.io.ByteArrayInputStream
 import java.util.concurrent.Executor
 
 @SpringBootApplication
@@ -74,5 +80,19 @@ fun asyncExecutor(): Executor {
 
 
 fun main(args: Array<String>) {
+
+	var inputStream = ByteArrayInputStream(FIREBASE_KEY.toByteArray())
+
+	val googleCredentials: GoogleCredentials = GoogleCredentials
+			.fromStream(inputStream)
+			.createScoped(FIREBASE_MESSAGING_SCOPES)
+
+	googleCredentials.refresh()
+
+	var options: FirebaseOptions = FirebaseOptions.builder()
+			.setCredentials(googleCredentials)
+			.build()
+
+	FirebaseApp.initializeApp(options)
 	runApplication<UaxctfApplication>(*args)
 }

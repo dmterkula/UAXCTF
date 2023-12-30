@@ -15,7 +15,8 @@ class RunnerService (val runnerRepository: RunnerRepository) {
                 createRunnerRequest.graduatingClass,
                 createRunnerRequest.isActive,
                 createRunnerRequest.doesXc,
-                createRunnerRequest.doesTrack
+                createRunnerRequest.doesTrack,
+                createRunnerRequest.deviceId
         )
 
         runnerRepository.save(runner)
