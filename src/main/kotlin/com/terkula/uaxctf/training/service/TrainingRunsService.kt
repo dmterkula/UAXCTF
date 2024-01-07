@@ -687,7 +687,7 @@ class TrainingRunsService(
                         0.0
                     }
             DateRangeRunSummaryDTO(start, start, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
-        }
+        }.sortedBy { it.startDate }
     }
 
     fun getTotalDistancePerWeek(startDate: Date, endDate: Date, runnerId: Int, includeWarmUps: Boolean, type: String): List<DateRangeRunSummaryDTO> {
@@ -803,8 +803,21 @@ class TrainingRunsService(
                     } else {
                         0.0
                     }
-            DateRangeRunSummaryDTO(startDate, endDate, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
-        }
+            DateRangeRunSummaryDTO(startDate, endDate, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString(), it.value.avgSecondsPerMile)
+        }.groupBy { it.startDate }
+                .map {
+                    var trainingCount = it.value.map{it.totalCount}.sum()
+                    var totalDistance = it.value.map { it.totalDistance }.sum()
+                    var totalSeconds = it.value.map {it.totalSeconds}.sum()
+
+                    val avgPace =
+                            if (trainingCount != 0) {
+                                (totalSeconds / totalDistance)
+                            } else {
+                                0.0
+                            }
+                    DateRangeRunSummaryDTO(it.key, it.value.first().endDate, totalDistance.round(2), trainingCount, avgPace.toMinuteSecondString())
+                }.sortedBy { it.startDate }
     }
 
     fun getTotalDistancePerMonth(startDate: Date, endDate: Date, runnerId: Int, includeWarmUps: Boolean, type: String): List<DateRangeRunSummaryDTO> {
@@ -916,6 +929,6 @@ class TrainingRunsService(
                         0.0
                     }
             DateRangeRunSummaryDTO(start, end, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
-        }
+        }.sortedBy { it.startDate }
     }
 }

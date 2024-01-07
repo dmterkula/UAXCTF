@@ -17,5 +17,7 @@ class DateRangeRunSummaryDTO(
         var endDate: LocalDate,
         var totalDistance: Double,
         var totalCount: Int,
-        var trainingAvgPace: String
+        var trainingAvgPace: String,
+        @JsonIgnore
+        var totalSeconds: Double = 0.0
 )
