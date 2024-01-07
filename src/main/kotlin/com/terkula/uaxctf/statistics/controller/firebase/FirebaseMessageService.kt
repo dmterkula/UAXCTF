@@ -8,6 +8,10 @@ import org.springframework.stereotype.Service
 @Service
 class FirebaseMessageService {
 
+    companion object {
+        const val DAVIDS_DEVICE_TOKEN = "eHgXoMfVw05sta4UZwt76o:APA91bEsINy_vYQ31PlvpAjiAKXyYgTFABt-rPCp84rdzks4Ov-Kz0EDhMVQM_Ir7hWsN_HXbu2btbbyMEXfcHqY4aBk_pzg-q9qyxsaXAbxsGesPh-jpfxbfLUNxKGOy2XKKBTiLrc0"
+    }
+
     fun sendMessageToDeviceId(deviceId: String, title: String, message: String, data: Map<String, String>): String {
         val message = Message.builder()
                 .setNotification(

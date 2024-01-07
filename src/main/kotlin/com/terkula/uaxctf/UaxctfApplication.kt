@@ -10,8 +10,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.scheduling.annotation.EnableAsync
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import springfox.documentation.builders.ApiInfoBuilder
 import springfox.documentation.builders.PathSelectors
@@ -30,6 +32,8 @@ import java.util.concurrent.Executor
 @EnableJpaRepositories("com.terkula.uaxctf.statistics.repository", "com.terkula.uaxctf.training.repository" )
 @EnableSwagger2
 @EnableAsync
+@Configuration
+@EnableScheduling
 class UaxctfApplication {
 
 	@Bean
