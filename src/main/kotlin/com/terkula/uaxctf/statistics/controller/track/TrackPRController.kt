@@ -80,7 +80,7 @@ class TrackPRController(@field:Autowired
 
             val eventFilter = filterEvent ?: ""
 
-            return personalRecordService.getARunnersPRs(runnerId, includeSplits, eventFilter)
+            return personalRecordService.getARunnersPRs(runnerId, includeSplits, eventFilter, false)
     }
 
     @ApiOperation("Returns PRs for all runners in the last meet")

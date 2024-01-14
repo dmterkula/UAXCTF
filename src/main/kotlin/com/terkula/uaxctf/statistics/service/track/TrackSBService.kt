@@ -26,7 +26,7 @@ class TrackSBService(
 ) {
 
 
-    fun getARunnersSBs(runnerId: Int, includeSplits: Boolean, filterEvent: String, season: String): TrackPerformancesDTO {
+    fun getARunnersSBs(runnerId: Int, includeSplits: Boolean, filterEvent: String, season: String, convertToMetric: Boolean): TrackPerformancesDTO {
 
         val startDate = TimeUtilities.getFirstDayOfGivenYear(season)
         val endDate = TimeUtilities.getLastDayOfGivenYear(season)
@@ -43,10 +43,10 @@ class TrackSBService(
         }
 
         var sbs: Map<String, List<TrackMeetPerformance>> = results
-                .groupBy { it.getLogicalEvent() }
+                .groupBy { it.getLogicalEvent(convertToMetric) }
 
         if (!filterEvent.isEmpty())   {
-            sbs = sbs.filter { it.key == filterEvent.getLogicalEvent() }
+            sbs = sbs.filter { it.key == filterEvent.getLogicalEvent(convertToMetric) }
         }
 
         val sbDTOs =
@@ -85,7 +85,7 @@ class TrackSBService(
                 .groupBy { it.getLogicalEvent() }
 
         if (!filterEvent.isEmpty())   {
-            sbs = sbs.filter { it.key == filterEvent.getLogicalEvent() }
+            sbs = sbs.filter { it.key == filterEvent.getLogicalEvent(false) }
         }
 
         val sbDTOs =
@@ -126,7 +126,7 @@ class TrackSBService(
         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThanEqual(season)
 
         return eligibleRunners.map {
-            getARunnersSBs(it.id, includeSplits, filterEvent, season)
+            getARunnersSBs(it.id, includeSplits, filterEvent, season, false)
         }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
 
     }

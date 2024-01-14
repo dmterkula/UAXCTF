@@ -109,7 +109,7 @@ class WorkoutSplitService(
 
         val components = workoutComponentRepository.findByWorkoutUuid(workoutUuid)
 
-        val runner = runnerService.getRoster(true, workout.date.getYearString()).first { it.id == runnerId }
+        val runner = runnerService.runnerRepository.findById(runnerId).get()
 
         val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(workoutUuid, runnerId)
 
@@ -143,7 +143,7 @@ class WorkoutSplitService(
     fun getAllARunnersWorkoutResults(runnerId: Int, season: String): List<RunnerWorkoutResultResponse> {
 
         val workouts = workoutRepositoryV2.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season))
-        val runner = runnerService.getRoster(false, season).first { it.id == runnerId }
+        val runner = runnerService.runnerRepository.findById(runnerId).get()
 
         val results = workouts.map {
             val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
@@ -220,7 +220,7 @@ class WorkoutSplitService(
 
 
         val workout = workoutRepositoryV2.findByUuid(logWorkoutResultsRequest.workoutUuid).first()
-        val runner = runnerService.getRoster(true, workout.date.getYearString()).first { it.id == logWorkoutResultsRequest.runnerId }
+        val runner = runnerService.runnerRepository.findById(logWorkoutResultsRequest.runnerId).get()
 
         val components = workoutComponentRepository.findByWorkoutUuid(logWorkoutResultsRequest.workoutUuid)
 

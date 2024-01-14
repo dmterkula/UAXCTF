@@ -82,7 +82,7 @@ class TrackSBController(var trackSBService: TrackSBService) {
 
         val eventFilter = filterEvent ?: ""
 
-        return trackSBService.getARunnersSBs(runnerId, includeSplits, eventFilter, season)
+        return trackSBService.getARunnersSBs(runnerId, includeSplits, eventFilter, season, false)
     }
 
     @ApiOperation("Returns a singular Runner's PR")

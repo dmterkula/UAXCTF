@@ -80,7 +80,7 @@ class XcGoalService (
 
                                 return@map XcGoal(goal.runnerId, goal.season, goal.type, goal.value.calculateSecondsFrom().toMinuteSecondString(), goalMet, goal.trackGoal, goal.event)
                             } else {
-                                var sb = trackSBService.getARunnersSBs(it.first.id, false, goal.event!!, season)
+                                var sb = trackSBService.getARunnersSBs(it.first.id, false, goal.event!!, season, false)
 
                                 var goalMet = false
 
@@ -193,7 +193,7 @@ class XcGoalService (
         } else {
             val runner = runnerRepository.findById(runnerId).get()
 
-            val seasonBests: TrackPerformancesDTO = trackSBService.getARunnersSBs(runner.id, true, "", year)
+            val seasonBests: TrackPerformancesDTO = trackSBService.getARunnersSBs(runner.id, true, "", year, false)
             val goals = xcGoalRepository.findByRunnerId(runnerId).filter { it.season == year && it.trackGoal == true }
                     .map {
                         if (it.type.equals("Time", true)) {
