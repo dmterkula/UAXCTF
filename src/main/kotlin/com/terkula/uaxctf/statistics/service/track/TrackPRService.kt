@@ -21,7 +21,7 @@ class TrackPRService(
     private val runnerRepository: RunnerRepository
 ) {
 
-    fun getARunnersPRs(runnerId: Int, includeSplits: Boolean, filterEvent: String): TrackPerformancesDTO {
+    fun getARunnersPRs(runnerId: Int, includeSplits: Boolean, filterEvent: String, convertToMetric: Boolean): TrackPerformancesDTO {
 
         val meetMap = meetRepository.findAll().map { it.uuid to it }.toMap()
         val runner = runnerRepository.findById(runnerId)
@@ -34,10 +34,10 @@ class TrackPRService(
 
 
         var prs: Map<String, List<TrackMeetPerformance>> = results
-                .groupBy { it.getLogicalEvent() }
+                .groupBy { it.getLogicalEvent(convertToMetric) }
 
         if (!filterEvent.isEmpty())   {
-            prs = prs.filter { it.key == filterEvent.getLogicalEvent() }
+            prs = prs.filter { it.key == filterEvent.getLogicalEvent(convertToMetric) }
         }
 
         val prDTOs =
@@ -73,7 +73,7 @@ class TrackPRService(
                 .groupBy { it.getLogicalEvent() }
 
         if (!filterEvent.isEmpty())   {
-            prs = prs.filter { it.key == filterEvent.getLogicalEvent() }
+            prs = prs.filter { it.key == filterEvent.getLogicalEvent(false) }
         }
 
         val prDTOs =
@@ -116,7 +116,7 @@ class TrackPRService(
         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThanEqual(startingGradClass)
 
         return eligibleRunners.map {
-            getARunnersPRs(it.id, includeSplits, filterEvent)
+            getARunnersPRs(it.id, includeSplits, filterEvent, true)
         }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
 
     }
@@ -125,7 +125,7 @@ class TrackPRService(
         val eligibleRunners = runnerRepository.findByGraduatingClassGreaterThanEqual(startingGradClass)
 
         return eligibleRunners.map {
-            getARunnersPRs(it.id, includeSplits, filterEvent)
+            getARunnersPRs(it.id, includeSplits, filterEvent, false)
         }.sortedBy { it.bestResults.firstOrNull { pr -> pr.event == filterEvent }?.best?.time?.calculateSecondsFrom() }
     }
 

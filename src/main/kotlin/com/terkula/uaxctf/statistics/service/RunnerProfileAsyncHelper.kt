@@ -210,12 +210,12 @@ open class RunnerProfileAsyncHelper (
 
     @Async
     open fun getTrackPRs(runnerId: Int): Future<TrackPerformancesDTO> {
-        return AsyncResult(trackPRService.getARunnersPRs(runnerId, false, ""))
+        return AsyncResult(trackPRService.getARunnersPRs(runnerId, false, "", false))
     }
 
     @Async
     open fun getTrackSBs(runnerId: Int, season: String): Future<TrackPerformancesDTO> {
-        return AsyncResult(trackSBService.getARunnersSBs(runnerId, false, "", season))
+        return AsyncResult(trackSBService.getARunnersSBs(runnerId, false, "", season, false))
     }
 
 }

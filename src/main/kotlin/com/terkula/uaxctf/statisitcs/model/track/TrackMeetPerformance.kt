@@ -36,14 +36,24 @@ data class TrackMeetPerformance(
 }
 
 fun TrackMeetPerformance.getLogicalEvent(): String {
-    return this.event.getLogicalEvent()
+    return this.event.getLogicalEvent(false)
+}
+
+fun TrackMeetPerformance.getLogicalEvent(convertToMetric: Boolean): String {
+    return if (convertToMetric) this.event.getLogicalEvent(convertToMetric)
+    else this.event.getLogicalEvent(false)
 }
 
 fun Int.toLogicalEvent(): String {
     return this.toString() + "m"
 }
 
-fun String.getLogicalEvent(): String {
+fun String.getLogicalEvent(convertToMetric: Boolean): String {
+
+    if (convertToMetric) {
+        return this.getLogicalEventMetric()
+    }
+
     val sameGroup = listOf("60m, 60h, 100h, 110h, 300h, 2k Steeple", "5000m")
 
     return if (this in sameGroup) {
@@ -63,6 +73,28 @@ fun String.getLogicalEvent(): String {
     } else if (this == "3200m" || this == "2 Mile" || this == "3218") {
         "3200m"
     }else {
+        this
+    }
+}
+
+fun String.getLogicalEventMetric(): String {
+    val sameGroup = listOf("60m, 60h, 100h, 110h, 300h, 2k Steeple", "5000m")
+
+    return if (this in sameGroup) {
+        this
+    } else if (this == "4x100m" || this == "100m" || this == "100") {
+        "100m"
+    } else if (this == "4x200m" || this == "200m" || this == "200") {
+        "200m"
+    } else if (this == "4x400m" || this == "400m" || this == "400") {
+        "400m"
+    } else if (this == "4x800m" || this == "800m" || this == "800") {
+        "800m"
+    } else if (this == "4x1600m" || this == "1600m" || this == "1600" || this == "4xMile" || this == "Mile" || this == "1609") {
+        "1600m"
+    }  else if (this == "3200m" || this == "2 Mile" || this == "3218") {
+        "3200m"
+    } else {
         this
     }
 }

@@ -104,8 +104,8 @@ class TrackMeetPerformanceService(
 
         val runner = runnerRepository.findById(createTrackMeetResultRequest.runnerId).get()
 
-        val PRs = trackPRService.getARunnersPRs(runner.id, false, "")
-        val SBs = trackSBService.getARunnersSBs(runner.id, false, "", startDate.getYearString())
+        val PRs = trackPRService.getARunnersPRs(runner.id, false, "", false)
+        val SBs = trackSBService.getARunnersSBs(runner.id, false, "", startDate.getYearString(), false)
 
         val meet = meets.first()
 

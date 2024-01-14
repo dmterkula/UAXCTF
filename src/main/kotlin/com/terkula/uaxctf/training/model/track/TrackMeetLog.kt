@@ -45,7 +45,7 @@ class TrackMeetLog( @Column(name = "meet_uuid")
 
     fun getTotalDistance(): Double {
 
-        var totalDistance = event.getLogicalEvent().getMilesDistanceFromLogicalEvent()
+        var totalDistance = event.getLogicalEvent(false).getMilesDistanceFromLogicalEvent()
 
         if (warmUpDistance != null) {
             totalDistance += warmUpDistance!!
@@ -82,7 +82,7 @@ class TrackMeetLog( @Column(name = "meet_uuid")
     }
 
     fun getRaceOnlyDistance(): Double {
-        return event.getLogicalEvent().getMilesDistanceFromLogicalEvent()
+        return event.getLogicalEvent(false).getMilesDistanceFromLogicalEvent()
     }
 
 }

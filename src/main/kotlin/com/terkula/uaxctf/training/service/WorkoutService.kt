@@ -247,8 +247,8 @@ class WorkoutService (
 
         var distance = component.targetDistance
         var duration = component.duration
-        val startDate = Date.valueOf("${date.getYearString()}-01-01")
-        val endDate = Date.valueOf((date.getYearString()) + "-12-31")
+        var startDate = Date.valueOf("${date.getYearString()}-01-01")
+        var endDate = Date.valueOf((date.getYearString()) + "-12-31")
 
         when (type) {
             "Interval" -> {
@@ -296,6 +296,12 @@ class WorkoutService (
 
                         if (component.targetEvent == 5000) {
 
+                            if (date.toLocalDate().month.value < 6) {
+                                // in track season
+                                startDate = Date.valueOf("${date.getYearString()}-01-01")
+                                endDate = Date.valueOf((date.getYearString().toInt()-1).toString() + "-12-31")
+                            }
+
                             val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
                             val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
@@ -342,7 +348,13 @@ class WorkoutService (
                         if (component.targetEvent == 5000) {
 
 
-                            val gradClass = date.getYearString().toInt().toString()
+
+                            var gradClass = date.getYearString().toInt().toString()
+
+                            // workout in track season, us previous year
+                            if (date.toLocalDate().month.value < 6) {
+                                gradClass = (date.getYearString().toInt() - 1).toString()
+                            }
 
                             val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
 
@@ -438,7 +450,13 @@ class WorkoutService (
                 when (pace) {
                     "Goal" -> {
 
-                        val seasonGoals = xcGoalService.getGoalsForSeason(date.getYearString(), xcOnly = true, trackOnly = null)
+                        var yearString = date.getYearString()
+
+                        if (date.toLocalDate().monthValue < 6) {
+                            yearString = (date.getYearString().toInt() -1).toString()
+                        }
+
+                        val seasonGoals = xcGoalService.getGoalsForSeason(yearString, xcOnly = true, trackOnly = null)
                                 .map {
                                     RunnerGoalDTO(it.runner, it.goals.filter{ goal-> goal.value.equals("time", ignoreCase = true) }.sortedBy{goal->goal.value})
                                 }
@@ -463,6 +481,12 @@ class WorkoutService (
                     }
                     "SB" -> {
 
+                        if (date.toLocalDate().month.value < 6) {
+                            // in track season
+                            startDate = Date.valueOf("${date.getYearString()}-01-01")
+                            endDate = Date.valueOf((date.getYearString().toInt()-1).toString() + "-12-31")
+                        }
+
                         val seasonBests = seasonBestService.getSeasonBestTimeOrTrout(startDate, endDate, false)
 
                         val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = seasonBests.map {
@@ -481,7 +505,12 @@ class WorkoutService (
                         return runnerWorkoutPlanDTOV2
                     }
                     "PR" -> {
-                        val gradClass = date.getYearString().toInt().toString()
+                        var gradClass = date.getYearString().toInt().toString()
+
+                        // workout in track season, us previous year
+                        if (date.toLocalDate().month.value < 6) {
+                            gradClass = (date.getYearString().toInt() - 1).toString()
+                        }
 
                         val prs = prService.getAllPRs(gradClass, "", SortingMethodContainer.TIME, false)
 
