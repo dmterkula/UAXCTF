@@ -48,11 +48,7 @@ class WorkoutSplitService(
 
         workoutSplitV2Repository.saveAll(splits)
 
-        if (splits.isEmpty()) {
-            throw RuntimeException("No splits created")
-        }
-
-        return SplitsResponse(splits.first().componentUUID, splits.first().runnerId, splits.map{ SplitResponse(it.uuid, it.number, it.value) })
+        return SplitsResponse(createSplitsRequest.componentUUID, createSplitsRequest.runnerId, splits.map{ SplitResponse(it.uuid, it.number, it.value) })
     }
 
     fun delete(uuid: String): SplitsResponse {

@@ -9,7 +9,9 @@ import org.springframework.stereotype.Service
 class FirebaseMessageService {
 
     companion object {
-        const val DAVIDS_DEVICE_TOKEN = "eHgXoMfVw05sta4UZwt76o:APA91bEsINy_vYQ31PlvpAjiAKXyYgTFABt-rPCp84rdzks4Ov-Kz0EDhMVQM_Ir7hWsN_HXbu2btbbyMEXfcHqY4aBk_pzg-q9qyxsaXAbxsGesPh-jpfxbfLUNxKGOy2XKKBTiLrc0"
+        const val DAVIDS_DEVICE_TOKEN = "eEobv0t7OEEClqspB0NbfS:APA91bENOj8NOhhXYnya68A9EJHpH5v6haFHNBVPViZmtUPGVEXo5VWMF0jFwyhXQkRLb1E7St5ZRUYiPj4tzQPcAjcxkHT40U6nHWiIWCWFIciHvJEDVfAJkBB4siZ32-I1pcOfOv4x"
+        const val BENTLEYS_DEVICE_TOKEN = "exTYz1coq0Lspz3shNn1wB:APA91bFPYgv58a2AiNs4WtU14ls4fa1nr1Qi-SW2w8P-wEeiup3tVP30FUhjsJYm5vFQOqUtkW38r2AkRFp7R9K5fz1ifTz0ZFRLt5aw1rVXgw-wv8QtxskvWh_12sgj51LMsWHD24nF"
+        const val BENTLEYS_RUNNER_ID = 89
     }
 
     fun sendMessageToDeviceId(deviceId: String, title: String, message: String, data: Map<String, String>): String {

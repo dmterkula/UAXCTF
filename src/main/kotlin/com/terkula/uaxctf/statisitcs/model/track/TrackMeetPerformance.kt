@@ -92,7 +92,7 @@ fun String.getLogicalEventMetric(): String {
         "800m"
     } else if (this == "4x1600m" || this == "1600m" || this == "1600" || this == "4xMile" || this == "Mile" || this == "1609") {
         "1600m"
-    }  else if (this == "3200m" || this == "2 Mile" || this == "3218") {
+    }  else if (this == "3200" || this == "3200m" || this == "2 Mile" || this == "3218") {
         "3200m"
     } else {
         this
