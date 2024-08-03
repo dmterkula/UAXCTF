@@ -14,7 +14,9 @@ data class AppUser(
         @Column(name = "device_id")
         var deviceId: String?,
         @Column(name = "sub_role")
-        var subRole: String?
+        var subRole: String?,
+        @Column(name = "is_creator")
+        var isCreator: Boolean
         ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
