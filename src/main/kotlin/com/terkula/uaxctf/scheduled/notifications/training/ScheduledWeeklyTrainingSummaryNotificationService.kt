@@ -47,8 +47,8 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         val meetLogService: MeetLogService,
 ) {
 
-//    @Scheduled(cron = "0 * * * * *") // testing every minute
-    @Scheduled(cron = "0 0 16 * * *") // this is utc 16th hour, so 11am ET
+    //@Scheduled(cron = "0 * * * * *") // testing every minute
+    @Scheduled(cron = "0 0 15 * * *") // this is utc 16th hour, so 10-11am ET
     fun sendBentleyTimeMachineNotification() {
 
         val objectMapper = ObjectMapper()
@@ -132,11 +132,34 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
 
                 }
 
-        val xcMeet = meetRepository.findByDateBetween(startDate, endDate).firstOrNull { it.date == startDate }
-        val trackMeet = trackMeetRepository.findByDateBetween(startDate, endDate).firstOrNull { it.date == startDate }
+        val xcMeet = meetRepository.findByDateBetween(startDate, endDate).firstOrNull()
+        val trackMeet = trackMeetRepository.findByDateBetween(startDate, endDate).firstOrNull()
 
         if (xcMeet != null) {
-            var xcMeetLog = meetLogService.getMeetLog(xcMeet.uuid, BENTLEYS_RUNNER_ID)
+            val xcMeetLog = meetLogService.getMeetLog(xcMeet.uuid, BENTLEYS_RUNNER_ID)
+            xcMeetLog.meet!!.date = java.sql.Date(Date.from(oneYearAgo.atStartOfDay(defaultZoneId).toInstant()).time/1000)
+
+
+            if (xcMeetLog.meetLog != null) {
+                var meetLogJson = objectMapper.writeValueAsString(xcMeetLog)
+
+                firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, you raced at: " + xcMeet.name + "!",
+                        mapOf("type" to "coaches_note_xc_meet_log",
+                                "runner" to runnerJson,
+                                "xcMeetLogResponse" to meetLogJson
+                        )
+                )
+
+                firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, Bentley raced at: " + xcMeet.name + "!",
+                        mapOf("type" to "coaches_note_xc_meet_log",
+                                "runner" to runnerJson,
+                                "xcMeetLogResponse" to meetLogJson
+                        )
+                )
+            }
+
         }
 
         if (trackMeet != null) {
