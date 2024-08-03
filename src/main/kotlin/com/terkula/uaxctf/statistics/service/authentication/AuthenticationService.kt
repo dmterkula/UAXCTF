@@ -85,7 +85,7 @@ class AuthenticationService(
 
         if (user == null) {
 
-            val newUser = AppUser(createAppUser.username, createAppUser.password, createAppUser.role, createAppUser.runnerId, deviceId = null, subRole = null)
+            val newUser = AppUser(createAppUser.username, createAppUser.password, createAppUser.role, createAppUser.runnerId, deviceId = null, subRole = null, isCreator = createAppUser.isCreator)
 
             authenticationRepository.save(newUser)
             return newUser
@@ -93,6 +93,7 @@ class AuthenticationService(
             user.role = createAppUser.role
             user.username = createAppUser.username
             user.password = createAppUser.password
+            user.isCreator = createAppUser.isCreator
             authenticationRepository.save(user)
             return user
         }
