@@ -1,22 +1,37 @@
 package com.terkula.uaxctf.scheduled.notifications.training
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.BENTLEYS_DEVICE_TOKEN
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.BENTLEYS_RUNNER_ID
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.DAVIDS_DEVICE_TOKEN
+import com.terkula.uaxctf.statistics.repository.MeetRepository
+import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
+import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
+import com.terkula.uaxctf.training.model.Firebase.TrainingEvent
+import com.terkula.uaxctf.training.model.Firebase.Type
+import com.terkula.uaxctf.training.model.Firebase.WorkoutEvent
 import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
 import com.terkula.uaxctf.training.repository.TrainingRunRepository
+import com.terkula.uaxctf.training.repository.WorkoutComponentRepository
+import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.service.TrainingRunsService
+import com.terkula.uaxctf.training.service.WorkoutSplitService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.subtractDays
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.*
+
 
 @Service
 class ScheduledWeeklyTrainingSummaryNotificationService(
@@ -24,9 +39,134 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         val trainingRunsService: TrainingRunsService,
         val firebaseMessageService: FirebaseMessageService,
         val runnersTrainingRunRepository: RunnersTrainingRunRepository,
-        val trainingRunRepository: TrainingRunRepository
-
+        val trainingRunRepository: TrainingRunRepository,
+        val workoutRepository: WorkoutRepository,
+        val workoutComponentRepository: WorkoutComponentRepository,
+        val trackMeetRepository: TrackMeetRepository,
+        val meetRepository: MeetRepository,
+        val meetLogService: MeetLogService,
 ) {
+
+    //@Scheduled(cron = "0 * * * * *") // testing every minute
+    @Scheduled(cron = "0 0 15 * * *") // this is utc 16th hour, so 10-11am ET
+    fun sendBentleyTimeMachineNotification() {
+
+        val objectMapper = ObjectMapper()
+
+        val runner = runnerService.runnerRepository.findById(BENTLEYS_RUNNER_ID).get()
+        val runnerJson = objectMapper.writeValueAsString(runner)
+
+
+
+        val defaultZoneId: ZoneId = ZoneId.of("-05:00")
+        val localDate = LocalDate.now()
+        val oneYearAgo = localDate.minusYears(1)
+
+        val startDate = java.sql.Date(Date.from(oneYearAgo.atStartOfDay(defaultZoneId).toInstant()).time)
+        val endDate = java.sql.Date(Date.from(oneYearAgo.atStartOfDay(defaultZoneId).toInstant()).time)
+
+        val trainingRunLogs = trainingRunsService.getARunnersTrainingRunsWithinDates(BENTLEYS_RUNNER_ID, startDate, endDate).trainingRunResults
+                .map { it.results }
+                .flatten()
+                .filter { it.runner.id == BENTLEYS_RUNNER_ID }
+
+        if (trainingRunLogs.isNotEmpty()) {
+            trainingRunLogs.forEach {
+
+                val trainingRun = trainingRunRepository.findByUuid(it.trainingRunUuid).first()!!
+
+                val trainingRunEvent: TrainingEvent = TrainingEvent(uuid = trainingRun.uuid, title = trainingRun.name, date = Date((startDate.time/1000)),
+                time = trainingRun.time, minTime = trainingRun.minTime, distance = trainingRun.distance, minDistance =
+                trainingRun.minDistance, season = trainingRun.season, type = Type.training, description = null)
+
+                var trainingRunEventJson = objectMapper.writeValueAsString(trainingRunEvent)
+                trainingRunEventJson = trainingRunEventJson.replace("\"training\"", "{\"training\":{}}")
+
+
+                firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, you did a " + it.distance + "m training run",
+                        mapOf("type" to "coaches_note_training_run",
+                              "runner" to runnerJson,
+                              "trainingRunEvent" to trainingRunEventJson
+                        )
+                )
+
+                firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, Bentley did a " + it.distance + "m training run",
+                        mapOf("type" to "coaches_note_training_run",
+                                "runner" to runnerJson,
+                                "trainingRunEvent" to trainingRunEventJson
+                        )
+
+                )
+            }
+
+        }
+
+
+        workoutRepository.findByDateBetween(startDate, endDate)
+                .forEach {
+                    val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
+
+                    var workoutEvent: WorkoutEvent = WorkoutEvent(date = Date((startDate.time/1000)), title = it.title,
+                            description = it.description, icon = it.icon, uuid = it.uuid, components = components, season = it.season)
+
+                    var workoutJson = objectMapper.writeValueAsString(workoutEvent)
+
+                    firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, you did the workout: " + it.title,
+                        mapOf("type" to "coaches_note_workout",
+                              "runner" to runnerJson,
+                              "workout" to workoutJson
+                        )
+                )
+
+                    firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                            "One year ago today, Bentley did the workout: " + it.title,
+                            mapOf("type" to "coaches_note_workout",
+                                    "runner" to runnerJson,
+                                    "workout" to workoutJson
+                            )
+
+                    )
+
+                }
+
+        val xcMeet = meetRepository.findByDateBetween(startDate, endDate).firstOrNull()
+        val trackMeet = trackMeetRepository.findByDateBetween(startDate, endDate).firstOrNull()
+
+        if (xcMeet != null) {
+            val xcMeetLog = meetLogService.getMeetLog(xcMeet.uuid, BENTLEYS_RUNNER_ID)
+            xcMeetLog.meet!!.date = java.sql.Date(Date.from(oneYearAgo.atStartOfDay(defaultZoneId).toInstant()).time/1000)
+
+
+            if (xcMeetLog.meetLog != null) {
+                var meetLogJson = objectMapper.writeValueAsString(xcMeetLog)
+
+                firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, you raced at: " + xcMeet.name + "!",
+                        mapOf("type" to "coaches_note_xc_meet_log",
+                                "runner" to runnerJson,
+                                "xcMeetLogResponse" to meetLogJson
+                        )
+                )
+
+                firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                        "One year ago today, Bentley raced at: " + xcMeet.name + "!",
+                        mapOf("type" to "coaches_note_xc_meet_log",
+                                "runner" to runnerJson,
+                                "xcMeetLogResponse" to meetLogJson
+                        )
+                )
+            }
+
+        }
+
+        if (trackMeet != null) {
+            var meetLog = meetLogService.getMeetLog(trackMeet.uuid, BENTLEYS_RUNNER_ID)
+        }
+
+    }
 
     @Scheduled(cron = "0 0 15 * * 0") // this is utc 15th hour, so 10am ET
     fun sendWeeklyTrainingSummaryNotifications() {
