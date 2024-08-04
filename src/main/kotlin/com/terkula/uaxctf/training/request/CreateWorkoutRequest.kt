@@ -12,7 +12,8 @@ class CreateWorkoutRequest (
     var uuid: String,
     @Valid
     var components: List<ComponentCreationElement>,
-    var season: String
+    var season: String,
+    var team: String
     )
 
 class ComponentCreationElement(

@@ -127,7 +127,7 @@ class WorkoutSplitService(
             getSplitsForRunnerAndComponent(runnerId, it.uuid)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season),
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season, workout.team),
                 splitsResponses, totalDistance,
                 workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
@@ -164,7 +164,7 @@ class WorkoutSplitService(
             }
                     .filter { splits -> splits.splits.isNotEmpty() }
 
-            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season), splitsResponses, totalDistance,
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season, it.team), splitsResponses, totalDistance,
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
@@ -202,7 +202,7 @@ class WorkoutSplitService(
             }
                     .filter { splits -> splits.splits.isNotEmpty() }
 
-            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season), splitsResponses, totalDistance,
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season, it.team), splitsResponses, totalDistance,
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
@@ -261,7 +261,7 @@ class WorkoutSplitService(
             workoutDistanceRepository.save(existingRecord)
         }
 
-        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season), splitsResponse, distance,
+        return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season, workout.team), splitsResponse, distance,
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
                 logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes)

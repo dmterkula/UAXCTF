@@ -61,7 +61,8 @@ class WorkoutService (
                     it.icon,
                     it.uuid,
                     workoutComponentRepository.findByWorkoutUuid(it.uuid),
-                    it.season
+                    it.season,
+                    it.team
             )
         }
 
@@ -75,7 +76,7 @@ class WorkoutService (
             throw RuntimeException("Workout with that date and title already exists")
         } else {
            val workoutV2 = Workout(createWorkoutRequest.date, createWorkoutRequest.description, createWorkoutRequest.title,
-           createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season)
+           createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season, createWorkoutRequest.team)
 
            val workoutComponents: List<WorkoutComponent> = createWorkoutRequest.components.map {
                WorkoutComponent(it.uuid, workoutV2.uuid, it.type, it.description, it.targetDistance,
@@ -93,7 +94,9 @@ class WorkoutService (
                     workoutV2.icon,
                     workoutV2.uuid,
                     workoutComponents,
-                    workoutV2.season)
+                    workoutV2.season,
+                    workoutV2.team
+            )
         }
 
     }
@@ -112,6 +115,7 @@ class WorkoutService (
             workoutToUpdate.description = createWorkoutRequest.description
             workoutToUpdate.icon = createWorkoutRequest.icon
             workoutToUpdate.season = createWorkoutRequest.season
+            workoutToUpdate.team = createWorkoutRequest.team
             workoutRepositoryV2.save(workoutToUpdate)
 
 
@@ -148,7 +152,8 @@ class WorkoutService (
                    workoutToUpdate.icon,
                    workoutToUpdate.uuid,
                    updatedComponents.filterNotNull(),
-                   workoutToUpdate.season
+                   workoutToUpdate.season,
+                   workoutToUpdate.team
            )
         } else {
             throw (RuntimeException("Workout not found"))
@@ -173,7 +178,8 @@ class WorkoutService (
                     workoutToDelete.icon,
                     workoutToDelete.uuid,
                     components,
-                    workoutToDelete.season
+                    workoutToDelete.season,
+                    workoutToDelete.team
                 )
         } else {
             null

@@ -14,7 +14,8 @@ data class TrackMeet(
               var name: String,
               var uuid: String,
               var date: Date,
-              var icon: String
+              var icon: String,
+              var team: String
 )
 {
     @Id

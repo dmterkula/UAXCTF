@@ -17,7 +17,8 @@ class TrainingRun (
     var minTime: String?,
     @Column(name = "min_distance")
     var minDistance: Double?,
-    var season: String
+    var season: String,
+    var team: String
 ) {
 
     @JsonIgnore

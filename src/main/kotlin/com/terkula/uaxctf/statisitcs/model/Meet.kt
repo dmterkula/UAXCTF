@@ -14,7 +14,8 @@ data class Meet(
       var name: String,
       var date: Date,
       var uuid: String,
-      var icon: String
+      var icon: String,
+      var team: String
 )
 {
     @Id

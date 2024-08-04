@@ -39,7 +39,7 @@ class TrainingRunsService(
         return TrainingRunResponse(
                 trainingRunRepository.findByDateBetween(startDate, endDate).map {
                     TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
-                            it.name, it.minTime, it.minDistance, it.season)
+                            it.name, it.minTime, it.minDistance, it.season, it.team)
                 }
         )
     }
@@ -57,7 +57,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.name,
                     createTrainingRunRequest.minTime,
                     createTrainingRunRequest.minDistance,
-                    createTrainingRunRequest.season
+                    createTrainingRunRequest.season,
+                    createTrainingRunRequest.team
             )
 
             trainingRunRepository.save(
@@ -66,7 +67,8 @@ class TrainingRunsService(
 
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
-                            trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance, trainingRun.season)
+                            trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
+                            trainingRun.season, trainingRun.team)
             ))
 
         } else {
@@ -90,7 +92,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.name,
                     createTrainingRunRequest.minTime,
                     createTrainingRunRequest.minDistance,
-                    createTrainingRunRequest.season
+                    createTrainingRunRequest.season,
+                    createTrainingRunRequest.team
             )
 
             trainingRunRepository.save(
@@ -99,7 +102,8 @@ class TrainingRunsService(
 
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
-                            trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance, trainingRun.season)
+                            trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
+                            trainingRun.season, trainingRun.team)
             ))
 
         } else {
@@ -112,13 +116,14 @@ class TrainingRunsService(
             foundTrainingRun.minTime = createTrainingRunRequest.minTime
             foundTrainingRun.minDistance = createTrainingRunRequest.minDistance
             foundTrainingRun.season = createTrainingRunRequest.season
+            foundTrainingRun.team = createTrainingRunRequest.team
 
             trainingRunRepository.save(foundTrainingRun)
 
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                             foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
-                            foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season)
+                            foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season, foundTrainingRun.team)
             ))
         }
 
@@ -139,7 +144,7 @@ class TrainingRunsService(
                 return TrainingRunResponse(listOf(TrainingRunDTO(
                         foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                         foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
-                        foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season
+                        foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season, foundTrainingRun.team
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete

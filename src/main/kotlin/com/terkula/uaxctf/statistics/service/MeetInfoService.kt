@@ -82,14 +82,14 @@ class MeetInfoService(
 
     fun createMeet(createMeetRequest: CreateMeetRequest): Meet {
 
-        val meet = Meet(createMeetRequest.name, createMeetRequest.date, createMeetRequest.uuid, createMeetRequest.icon)
+        val meet = Meet(createMeetRequest.name, createMeetRequest.date, createMeetRequest.uuid, createMeetRequest.icon, createMeetRequest.team)
 
         return meetRepository.save(meet)
     }
 
     fun createTrackMeet(createMeetRequest: CreateMeetRequest): TrackMeet {
 
-        val meet = TrackMeet(createMeetRequest.name, createMeetRequest.uuid, createMeetRequest.date, createMeetRequest.icon)
+        val meet = TrackMeet(createMeetRequest.name, createMeetRequest.uuid, createMeetRequest.date, createMeetRequest.icon, createMeetRequest.team)
 
         return trackMeetRepository.save(meet)
     }
@@ -105,6 +105,7 @@ class MeetInfoService(
             meet.date = createMeetRequest.date
             meet.name = createMeetRequest.name
             meet.icon = createMeetRequest.icon
+            meet.team = createMeetRequest.team
 
             return meetRepository.save(meet)
         }
@@ -121,6 +122,7 @@ class MeetInfoService(
             meet.date = createMeetRequest.date
             meet.name = createMeetRequest.name
             meet.icon = createMeetRequest.icon
+            meet.team = createMeetRequest.team
 
             return trackMeetRepository.save(meet)
         }

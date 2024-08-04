@@ -13,7 +13,8 @@ class Workout (var date: Date,
                var title: String,
                var icon: String,
                var uuid: String,
-               var season: String
+               var season: String,
+               var team: String
 ) {
 
     @JsonIgnore
