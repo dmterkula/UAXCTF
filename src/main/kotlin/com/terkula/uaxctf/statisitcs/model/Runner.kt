@@ -16,6 +16,8 @@ class Runner(
          var doesTrack: Boolean = true,
          @Column(name = "device_id")
          var deviceId: String?,
+         @Column(name = "team")
+         var team: String,
 
 ) {
 

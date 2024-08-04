@@ -6,5 +6,6 @@ class CreateRunnerRequest(
     var isActive: Boolean = true,
     var doesXc: Boolean = true,
     var doesTrack: Boolean = true,
-    var deviceId: String?
+    var deviceId: String?,
+    var team: String
     )

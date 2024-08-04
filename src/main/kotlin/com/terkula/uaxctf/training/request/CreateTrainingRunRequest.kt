@@ -11,7 +11,8 @@ class CreateTrainingRunRequest(
         var name: String,
         var minTime: String?,
         var minDistance: Double?,
-        var season: String
+        var season: String,
+        var team: String,
 )
 
 class CreateRunnersTrainingRunRequest(

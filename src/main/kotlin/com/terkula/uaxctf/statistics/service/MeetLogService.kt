@@ -30,7 +30,7 @@ class MeetLogService (
         val trackMeet = trackMeetRepository.findByUuid(meetId)
         if (trackMeet.isPresent) {
             val result = trackMeet.get()
-            meets.add(Meet(result.name, result.date, result.uuid, result.icon))
+            meets.add(Meet(result.name, result.date, result.uuid, result.icon, result.team))
         }
 
         val log = meetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId)
@@ -52,7 +52,7 @@ class MeetLogService (
         val trackMeet = trackMeetRepository.findByUuid(meetId)
         if (trackMeet.isPresent) {
             val result = trackMeet.get()
-            meets.add(Meet(result.name, result.date, result.uuid, result.icon))
+            meets.add(Meet(result.name, result.date, result.uuid, result.icon, result.team))
         }
 
         return meetLogRepository.findByMeetId(meetId).map{
