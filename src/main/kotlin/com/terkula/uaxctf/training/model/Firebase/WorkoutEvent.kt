@@ -11,6 +11,7 @@ class WorkoutEvent(
         var icon: String,
         var uuid: String,
         var components: List<WorkoutComponent>,
-        var season: String
+        var season: String,
+        var team: String
 ) {
 }

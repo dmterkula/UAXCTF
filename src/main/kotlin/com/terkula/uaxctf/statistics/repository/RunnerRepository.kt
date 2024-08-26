@@ -21,4 +21,6 @@ interface RunnerRepository : CrudRepository<Runner, Int> {
 
     fun findByDoesXc(xc: Boolean): MutableList<Runner>
 
+    fun findByTeam(team: String): MutableList<Runner>
+
 }
