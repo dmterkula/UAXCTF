@@ -76,6 +76,17 @@ class RunnerController(
 
     }
 
+    @ApiOperation("Returns runners on team")
+    @RequestMapping(value = ["xc/runners/byTeam"], method = [RequestMethod.GET])
+    fun getRunnersForSeason(
+            @RequestParam(value = "filter.team", required = true, defaultValue = "UA")
+            team: String
+            ): List<Runner> {
+
+        return runnerService.getRunnersByTeam(team)
+
+    }
+
     @ApiOperation("Create Runner")
     @RequestMapping(value = ["xc/runners/create"], method = [RequestMethod.POST])
     fun createRunner(

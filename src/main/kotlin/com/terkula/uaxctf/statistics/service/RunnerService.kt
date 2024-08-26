@@ -104,4 +104,8 @@ class RunnerService (val runnerRepository: RunnerRepository) {
 
     }
 
+    fun getRunnersByTeam(team: String): List<Runner> {
+        return runnerRepository.findByTeam(team).sortedByDescending { it.graduatingClass }
+    }
+
 }
