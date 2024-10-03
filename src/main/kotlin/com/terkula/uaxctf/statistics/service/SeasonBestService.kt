@@ -83,15 +83,15 @@ class SeasonBestService(@field:Autowired
                 }.toMap()
 
 
-       tryouts.map {
+       val bestResult = tryouts.map {
            if(seasonBests[it.first.id] != null && seasonBests[it.first.id]!!.seasonBest.firstOrNull() != null && seasonBests[it.first.id]!!.seasonBest.first().time.calculateSecondsFrom() < it.second.calculateSecondsFrom()) {
-               it.first to seasonBests[it.first.id]!!.seasonBest.first().time.calculateSecondsFrom()
+               it.first to seasonBests[it.first.id]!!.seasonBest.first().time.calculateSecondsFrom().toMinuteSecondString()
            } else {
-               it.first to it.second
+               it.first to it.second.calculateSecondsFrom().toMinuteSecondString()
            }
-       }
+       }.sortedBy { it.second.calculateSecondsFrom() }
 
-        return tryouts
+        return bestResult
 
     }
 

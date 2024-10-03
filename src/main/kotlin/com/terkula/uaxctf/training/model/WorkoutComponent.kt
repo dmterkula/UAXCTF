@@ -36,7 +36,9 @@ class WorkoutComponent(
         @Column(name="recovery_type")
         var recoveryType: String?,
         @Column(name = "recovery_distance")
-        var recoveryDistance: Int?
+        var recoveryDistance: Int?,
+        @Column(name = "percent")
+        var percent: Int?
 ) {
 
     @JsonIgnore
