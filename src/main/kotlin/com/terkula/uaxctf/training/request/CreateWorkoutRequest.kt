@@ -37,5 +37,6 @@ class ComponentCreationElement(
     var recoveryType: String?,
     var recoveryDistance: Int?,
     var setRecovery: String?,
-    var targetEvent: Int = 5000
+    var targetEvent: Int = 5000,
+    var percent: Int?
 )

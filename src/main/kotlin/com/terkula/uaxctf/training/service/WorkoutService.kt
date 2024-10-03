@@ -81,7 +81,7 @@ class WorkoutService (
            val workoutComponents: List<WorkoutComponent> = createWorkoutRequest.components.map {
                WorkoutComponent(it.uuid, workoutV2.uuid, it.type, it.description, it.targetDistance,
                        it.targetCount, it.pace, it.duration, it.targetPaceAdjustment, it.ratio, it.sets, it.recovery, it.setRecovery,
-                       it.targetEvent, it.recoveryType, it.recoveryDistance)
+                       it.targetEvent, it.recoveryType, it.recoveryDistance, it.percent)
            }
 
             workoutRepositoryV2.save(workoutV2)
@@ -137,6 +137,7 @@ class WorkoutService (
                     component.setRecovery = it.setRecovery
                     component.recoveryType = it.recoveryType
                     component.recoveryDistance = it.recoveryDistance
+                    component.percent = it.percent
                 }
 
                 return@map component
@@ -223,7 +224,17 @@ class WorkoutService (
 
         if (component.ratio != null && component.ratio!! != 1.0) {
             return (timeToAdjust.calculateSecondsFrom() * component.ratio!! * distanceRatio).round(2).toMinuteSecondString()
-        } else {
+        } else if (component.percent != null && component.percent != 100) {
+            val adjustmentRatio: Double = if (component.percent!! > 100) {
+                // percent 105: (100 + (100 - 105)) / 100 = 95/100 = .95
+                (100.0 + (100 - component.percent!!)) / 100
+            } else {
+                // percent 95: (100 - ( 95-100)) / 100 = 1.05
+                (100.0 - (component.percent!! - 100)) / 100
+            }
+
+            return (timeToAdjust.calculateSecondsFrom() * distanceRatio * adjustmentRatio).round(2).toMinuteSecondString()
+        } else if (component.targetPaceAdjustment != "00:00" && component.targetPaceAdjustment.isNotEmpty()) {
             var paceAdjustment: Int = if (component.targetPaceAdjustment.isEmpty()) {
                 0
             } else {
@@ -231,6 +242,8 @@ class WorkoutService (
             }
 
             return  ((timeToAdjust.calculateSecondsFrom() + paceAdjustment) * distanceRatio).round(2).toMinuteSecondString()
+        } else {
+            return (timeToAdjust.calculateSecondsFrom() * distanceRatio).round(2).toMinuteSecondString()
         }
 
     }
@@ -288,7 +301,7 @@ class WorkoutService (
                                     listOf(WorkoutComponentPlanElement(
                                             distance,
                                             component.duration,
-                                            (it.goals.first().value.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                            it.goals.first().value,
                                             listOf(TargetedPace("split", time)),
                                             workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         )
@@ -315,7 +328,7 @@ class WorkoutService (
                                         listOf(WorkoutComponentPlanElement(
                                                 distance,
                                                 component.duration,
-                                                (it.second.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                it.second,
                                                 listOf(TargetedPace("split", calculateTargetPace(component, it.second))),
                                                 workoutSplitService.getSplitsForRunnerAndComponent(it.first.id, component.uuid)
 
@@ -369,7 +382,7 @@ class WorkoutService (
                                         listOf(WorkoutComponentPlanElement(
                                                 distance,
                                                 component.duration,
-                                                (it.pr.first().time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                it.pr.first().time,
                                                 listOf(TargetedPace("split", calculateTargetPace(component, it.pr.first().time))),
                                                 workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         )
@@ -393,7 +406,7 @@ class WorkoutService (
                                         listOf(WorkoutComponentPlanElement(
                                                 distance,
                                                 component.duration,
-                                                (it.bestResults.first().best.time.calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                it.bestResults.first().best.time,
                                                 listOf(TargetedPace("split", calculateTargetPace(component, (it.bestResults.first().best.time)))),
                                                 workoutSplitService.getSplitsForRunnerAndComponent(it.runner.id, component.uuid)
                                         ))
@@ -413,7 +426,7 @@ class WorkoutService (
                                         listOf(WorkoutComponentPlanElement(
                                                 distance,
                                                 component.duration,
-                                                (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                it.value.first().toMinuteSecondString(),
                                                 listOf(TargetedPace("split", calculateTargetPace(component, it.value.first().toMinuteSecondString()))),
                                                 workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                         )
@@ -436,7 +449,7 @@ class WorkoutService (
                                         listOf(WorkoutComponentPlanElement(
                                                 distance,
                                                 component.duration,
-                                                (it.value.first().toMinuteSecondString().calculateSecondsFrom() + paceAdjustment).toMinuteSecondString(),
+                                                it.value.first().toMinuteSecondString(),
                                                 listOf(TargetedPace("split", calculateTargetPace(component, it.value.first().toMinuteSecondString()))),
                                                 workoutSplitService.getSplitsForRunnerAndComponent(eligibleRunners[it.key]!!.id, component.uuid)
                                         )
