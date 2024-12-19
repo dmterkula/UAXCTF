@@ -23,7 +23,7 @@ class ComponentCreationElement(
             message = "The value provided for type is invalid. Valid values are 'Interval', 'Tempo' or 'Progression'")
     var type: String,
     @Pattern(
-            regexp = "Goal|PR|SB|Season Avg",
+            regexp = "Goal|PR|SB|Season Avg|Base Training Pace",
             message = "The value provided for pace is invalid. Valid values are 'Goal', 'PR' or 'SB', or 'Season Avg'")
     var pace: String,
     var targetDistance: Int,

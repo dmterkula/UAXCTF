@@ -18,6 +18,8 @@ class Runner(
          var deviceId: String?,
          @Column(name = "team")
          var team: String,
+         @Column(name = "track_group")
+         var trackGroup: String?
 
 ) {
 

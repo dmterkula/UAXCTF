@@ -13,6 +13,8 @@ class CreateTrainingRunRequest(
         var minDistance: Double?,
         var season: String,
         var team: String,
+        var useTrainingPercent: Boolean?,
+        var effortLabel: String?
 )
 
 class CreateRunnersTrainingRunRequest(
@@ -26,6 +28,6 @@ class CreateRunnersTrainingRunRequest(
     val warmUpTime: String?,
     val warmUpPace: String?,
     val warmUpDistance: Double?,
-    val coachNotes: String?
-
+    val coachNotes: String?,
+    val effortLevel: Double
 )

@@ -18,7 +18,11 @@ class TrainingRun (
     @Column(name = "min_distance")
     var minDistance: Double?,
     var season: String,
-    var team: String
+    var team: String,
+    @Column(name = "use_training_percent")
+    var useTrainingPercent: Boolean?,
+    @Column(name = "effort_label")
+    var effortLabel: String?
 ) {
 
     @JsonIgnore

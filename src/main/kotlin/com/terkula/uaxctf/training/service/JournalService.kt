@@ -2,11 +2,13 @@ package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statistics.repository.DailyJournalRepository
 import com.terkula.uaxctf.statistics.repository.JournalCommentRepository
+import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.tags.JournalTagRelationshipRepository
 import com.terkula.uaxctf.statistics.repository.tags.TagRepository
 import com.terkula.uaxctf.statistics.response.journal.DailyJournalEntryResponse
 import com.terkula.uaxctf.training.model.journal.DailyJournalEntry
 import com.terkula.uaxctf.training.model.journal.JournalComment
+import com.terkula.uaxctf.training.model.journal.RunnerJournalEntry
 import com.terkula.uaxctf.training.model.tags.JournalTagRelationship
 import com.terkula.uaxctf.training.model.tags.Tag
 import com.terkula.uaxctf.training.request.journal.CreateDailyJournalEntryRequest
@@ -23,7 +25,8 @@ class JournalService (
         val journalCommentRepository: JournalCommentRepository,
         val tagRepository: TagRepository,
         val journalTagRelationshipRepository: JournalTagRelationshipRepository,
-        val entityManager: EntityManager
+        val entityManager: EntityManager,
+        val runnerRepository: RunnerRepository
     ) {
 
     fun createDailyJournalEntry(createDailyJournalEntryRequest: CreateDailyJournalEntryRequest): DailyJournalEntryResponse {
@@ -350,5 +353,13 @@ class JournalService (
                         createJournalCommentRequest.timestamp
                 )
         )
+    }
+
+    fun getRunnersJournal(uuid: String): RunnerJournalEntry {
+        val journal = getRunnersDailyJournalEntry(uuid)!!
+        val runner = runnerRepository.findById(journal.journalEntry.runnerId)
+
+        return RunnerJournalEntry(runner.get(), journal)
+
     }
 }

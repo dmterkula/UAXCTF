@@ -28,7 +28,7 @@ class AuthenticationService(
                 runner = runnerRepository.findById(user.runnerId).orElse(null)
             }
 
-            if (deviceId != null) {
+            if (deviceId != null && deviceId!!.isNotEmpty()) {
                 if (runner != null) {
                     runner.deviceId = deviceId
                     runnerRepository.save(runner)

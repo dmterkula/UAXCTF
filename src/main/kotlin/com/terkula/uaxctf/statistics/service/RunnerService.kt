@@ -17,7 +17,8 @@ class RunnerService (val runnerRepository: RunnerRepository) {
                 createRunnerRequest.doesXc,
                 createRunnerRequest.doesTrack,
                 createRunnerRequest.deviceId,
-                createRunnerRequest.team
+                createRunnerRequest.team,
+                createRunnerRequest.trackGroup
         )
 
         runnerRepository.save(runner)
@@ -38,6 +39,7 @@ class RunnerService (val runnerRepository: RunnerRepository) {
             foundRunner.doesXc = createRunnerRequest.doesXc
             foundRunner.doesTrack = createRunnerRequest.doesTrack
             foundRunner.team = createRunnerRequest.team
+            foundRunner.trackGroup = createRunnerRequest.trackGroup
 
 
             runnerRepository.save(foundRunner)
