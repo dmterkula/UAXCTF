@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService
-import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.BENTLEYS_DEVICE_TOKEN
 import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.BENTLEYS_RUNNER_ID
-import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService.Companion.DAVIDS_DEVICE_TOKEN
+import com.terkula.uaxctf.statistics.repository.AuthenticationRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.service.MeetLogService
@@ -45,6 +44,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         val trackMeetRepository: TrackMeetRepository,
         val meetRepository: MeetRepository,
         val meetLogService: MeetLogService,
+        val authenticationRepository: AuthenticationRepository
 ) {
 
  //   @Scheduled(cron = "0 * * * * *") // testing every minute
@@ -54,6 +54,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         val objectMapper = ObjectMapper()
 
         val runner = runnerService.runnerRepository.findById(BENTLEYS_RUNNER_ID).get()
+        val davidsDeviceId = authenticationRepository.findById(25).get().deviceId!!
         val runnerJson = objectMapper.writeValueAsString(runner)
 
 
@@ -73,7 +74,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         if (trainingRunLogs.isNotEmpty()) {
             trainingRunLogs.forEach {
 
-                val trainingRun = trainingRunRepository.findByUuid(it.trainingRunUuid).first()!!
+                val trainingRun = trainingRunRepository.findByUuid(it.trainingRunUuid).first()
 
                 val trainingRunEvent: TrainingEvent = TrainingEvent(uuid = trainingRun.uuid, title = trainingRun.name, date = Date((startDate.time/1000)),
                 time = trainingRun.time, minTime = trainingRun.minTime, distance = trainingRun.distance, minDistance =
@@ -83,7 +84,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                 trainingRunEventJson = trainingRunEventJson.replace("\"training\"", "{\"training\":{}}")
 
 
-                firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, "UAXCTF Time Machine",
                         "One year ago today, you did a " + it.distance + "m training run",
                         mapOf("type" to "coaches_note_training_run",
                               "runner" to runnerJson,
@@ -91,7 +92,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                         )
                 )
 
-                firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                firebaseMessageService.sendMessageToDeviceId(davidsDeviceId, "UAXCTF Time Machine",
                         "One year ago today, Bentley did a " + it.distance + "m training run",
                         mapOf("type" to "coaches_note_training_run",
                                 "runner" to runnerJson,
@@ -113,7 +114,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
 
                     var workoutJson = objectMapper.writeValueAsString(workoutEvent)
 
-                    firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                    firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, "UAXCTF Time Machine",
                         "One year ago today, you did the workout: " + it.title,
                         mapOf("type" to "coaches_note_workout",
                               "runner" to runnerJson,
@@ -121,7 +122,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                         )
                 )
 
-                    firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                    firebaseMessageService.sendMessageToDeviceId(davidsDeviceId, "UAXCTF Time Machine",
                             "One year ago today, Bentley did the workout: " + it.title,
                             mapOf("type" to "coaches_note_workout",
                                     "runner" to runnerJson,
@@ -143,7 +144,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
             if (xcMeetLog.meetLog != null) {
                 var meetLogJson = objectMapper.writeValueAsString(xcMeetLog)
 
-                firebaseMessageService.sendMessageToDeviceId(BENTLEYS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, "UAXCTF Time Machine",
                         "One year ago today, you raced at: " + xcMeet.name + "!",
                         mapOf("type" to "coaches_note_xc_meet_log",
                                 "runner" to runnerJson,
@@ -151,7 +152,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                         )
                 )
 
-                firebaseMessageService.sendMessageToDeviceId(DAVIDS_DEVICE_TOKEN, "UAXCTF Time Machine",
+                firebaseMessageService.sendMessageToDeviceId(davidsDeviceId, "UAXCTF Time Machine",
                         "One year ago today, Bentley raced at: " + xcMeet.name + "!",
                         mapOf("type" to "coaches_note_xc_meet_log",
                                 "runner" to runnerJson,
@@ -168,7 +169,8 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
 
     }
 
-    @Scheduled(cron = "0 0 15 * * 0") // this is utc 15th hour, so 10am ET
+     @Scheduled(cron = "0 0 14 * * 0") // this is utc 15th hour, so 10am ET
+    //@Scheduled(cron = "0 * * * * *") // testing every minute
     fun sendWeeklyTrainingSummaryNotifications() {
 
         val defaultZoneId: ZoneId = ZoneId.of("-05:00")
@@ -220,7 +222,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                 trackYear = (trackYear.toInt() + 1).toString()
             }
             runnerService.getTrackRoster(true, trackYear)
-        }.filter { it.deviceId != null }
+        }.filter { it.deviceId != null && it.deviceId!!.isNotEmpty() }
 
         runners.forEach{
             getRunnersWeeklyMiles(startDateOfSeason, java.sql.Date(currentDate.time), it, seasonType, seasonYear)
@@ -231,6 +233,8 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
     fun getRunnersWeeklyMiles(startDate: java.sql.Date, endDate: java.sql.Date, runner: Runner, type: String, seasonYear: String): Boolean {
 
         val objectMapper = ObjectMapper().registerKotlinModule()
+
+        val davidsDeviceId = authenticationRepository.findById(25).get().deviceId!!
 
         val runnersSeasonWeeklyMiles: List<DateRangeRunSummaryDTO> =
                 trainingRunsService.getTotalDistancePerWeek(startDate, endDate, runner.id, true, type)
@@ -278,16 +282,22 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
                     " at an average pace of " + runnersSeasonWeeklyMiles.last().trainingAvgPace + "s per mile."
         }
 
-        firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, title, message, mapOf())
+        try {
+            firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, title, message, mapOf())
 
-        firebaseMessageService.sendMessageToDeviceId(FirebaseMessageService.DAVIDS_DEVICE_TOKEN, titleToCoach, messageToCoach,
-                mapOf(
-                        "type" to "runnersWeeklySummaryToCoach",
-                        "runner" to objectMapper.writeValueAsString(runner),
-                        "seasonType" to type,
-                        "seasonYear" to seasonYear
-                )
-        )
+            firebaseMessageService.sendMessageToDeviceId(davidsDeviceId, titleToCoach, messageToCoach,
+                    mapOf(
+                            "type" to "runnersWeeklySummaryToCoach",
+                            "runner" to objectMapper.writeValueAsString(runner),
+                            "seasonType" to type,
+                            "seasonYear" to seasonYear
+                    )
+            )
+        } catch (e: Exception) {
+            println(e.message)
+        }
+
+
         return true
     }
 
@@ -335,6 +345,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
     fun getLongestContinuousRunForRunner(runner: Runner, currentDate: java.sql.Date) {
 
         val trainingRunLogs = runnersTrainingRunRepository.findByRunnerId(runner.id).sortedByDescending { it.distance }
+        val davidsDeviceId = authenticationRepository.findById(25).get().deviceId!!
 
         if (trainingRunLogs.isEmpty()) {
             return
@@ -358,7 +369,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
 
             firebaseMessageService.sendMessageToDeviceId(runner.deviceId!!, title, message, mapOf())
 
-            firebaseMessageService.sendMessageToDeviceId(FirebaseMessageService.DAVIDS_DEVICE_TOKEN, titleToCoach, messageToCoach,
+            firebaseMessageService.sendMessageToDeviceId(davidsDeviceId, titleToCoach, messageToCoach,
                     mapOf()
             )
         } else {

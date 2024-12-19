@@ -23,7 +23,9 @@ class RunnersTrainingRun(
     var warmUpDistance: Double?,
     var warmUpPace: String?,
     @Column(name = "coach_notes")
-    var coachNotes: String?
+    var coachNotes: String?,
+    @Column(name = "effort_level")
+    var effortLevel: Double?
 ) {
 
     @JsonIgnore

@@ -2,6 +2,7 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.response.journal.DailyJournalEntryResponse
 import com.terkula.uaxctf.training.model.journal.JournalComment
+import com.terkula.uaxctf.training.model.journal.RunnerJournalEntry
 import com.terkula.uaxctf.training.request.journal.CreateDailyJournalEntryRequest
 import com.terkula.uaxctf.training.request.journal.CreateJournalCommentRequest
 import com.terkula.uaxctf.training.request.journal.SearchJournalRequest
@@ -80,6 +81,14 @@ class JournalController(val journalService: JournalService) {
             @RequestParam(name = "journalUuid") journalUuid: String,
     ): List<JournalComment> {
         return journalService.getJournalComments(journalUuid)
+    }
+
+    @ApiOperation("Get Runner's Journal By UUID")
+    @RequestMapping(value = ["journal/runnersJournalEntry"], method = [RequestMethod.GET])
+    fun getRunnersJournalEntry(
+            @RequestParam(name = "journalUuid") journalUuid: String,
+    ): RunnerJournalEntry {
+        return journalService.getRunnersJournal(journalUuid)
     }
 
 

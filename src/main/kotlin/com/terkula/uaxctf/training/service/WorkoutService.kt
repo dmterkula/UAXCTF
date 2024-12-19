@@ -20,6 +20,7 @@ import com.terkula.uaxctf.training.dto.WorkoutComponentPlanElement
 import com.terkula.uaxctf.training.model.TargetedPace
 import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.model.WorkoutComponent
+import com.terkula.uaxctf.training.model.trainingbase.TrainingBasePerformance
 import com.terkula.uaxctf.training.repository.WorkoutComponentRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
@@ -28,6 +29,7 @@ import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Component
 import java.lang.RuntimeException
 import java.sql.Date
+import java.time.Month
 
 @Component
 class WorkoutService (
@@ -43,7 +45,8 @@ class WorkoutService (
      var workoutSplitService: WorkoutSplitService,
      var runnerService: RunnerService,
      var trackPRService: TrackPRService,
-     val trackSBService: TrackSBService
+     val trackSBService: TrackSBService,
+     val trainingBasePerformanceService: TrainingBasePerformanceService
 ) {
 
     fun getWorkoutsV2(startDate: Date, endDate: Date): List<WorkoutResponseDTO> {
@@ -246,6 +249,25 @@ class WorkoutService (
             return (timeToAdjust.calculateSecondsFrom() * distanceRatio).round(2).toMinuteSecondString()
         }
 
+    }
+
+    fun calculateTargetPaceFromBaseTrainingPace(component: WorkoutComponent, baseTrainingPerformance: TrainingBasePerformance): String {
+
+
+        if ((component.duration != null && component.duration!!.calculateSecondsFrom() != 0.0) || component.type.equals("Tempo", true)) {
+
+            val secondsPerMile = baseTrainingPerformance.seconds / baseTrainingPerformance.fractionOfMiles
+
+            return if (component.percent == null || component.percent == 100) {
+                secondsPerMile.toMinuteSecondString()
+            } else {
+                secondsPerMile.secondsPerMileToPercentPacePerMile(component.percent!!)
+            }
+        } else {
+            val distanceRatio = component.targetDistance.toDouble() / 1609.34
+
+            return (baseTrainingPerformance.seconds.toDouble() / baseTrainingPerformance.fractionOfMiles).secondsPerMileToPercentPacePerMile(component.percent!!, distanceRatio)
+        }
     }
 
     fun buildComponentPlan(
@@ -461,6 +483,26 @@ class WorkoutService (
 
 
                     }
+                    "Base Training Pace" -> {
+
+                        // find all runners whose graduating class is > current year
+
+                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = getBaseTrainingPaces(workout, component.targetEvent.toString()).map {
+                            RunnerWorkoutPlanDTOV2(it.key,
+                                    listOf(WorkoutComponentPlanElement(
+                                            distance,
+                                            component.duration,
+                                            it.value.seconds.toDouble().toMinuteSecondString(),
+                                            listOf(TargetedPace("split", calculateTargetPaceFromBaseTrainingPace(component, it.value))),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.key!!.id, component.uuid)
+                                    )
+                                    )
+                            )
+                        }
+
+                        return runnerWorkoutPlanDTOV2
+                    }
+
                 }
 
             }
@@ -567,6 +609,25 @@ class WorkoutService (
 
                         return runnerWorkoutPlanDTOV2
                     }
+                    "Base Training Pace" -> {
+
+                        // find all runners whose graduating class is > current year
+
+                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = getBaseTrainingPaces(workout, component.targetEvent.toString()).map {
+                            RunnerWorkoutPlanDTOV2(it.key,
+                                    listOf(WorkoutComponentPlanElement(
+                                            distance,
+                                            component.duration,
+                                            it.value.seconds.toDouble().toMinuteSecondString(),
+                                            listOf(TargetedPace("perMile", calculateTargetPaceFromBaseTrainingPace(component, it.value))),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.key!!.id, component.uuid)
+                                    )
+                                    )
+                            )
+                        }
+
+                        return runnerWorkoutPlanDTOV2
+                    }
                 }
             }
             "Progression" -> {
@@ -667,6 +728,26 @@ class WorkoutService (
 
                         return runnerWorkoutPlanDTOV2
                     }
+                    "Base Training Pace" -> {
+
+                        // find all runners whose graduating class is > current year
+
+                        val runnerWorkoutPlanDTOV2: List<RunnerWorkoutPlanDTOV2> = getBaseTrainingPaces(workout, component.targetEvent.toString()).map {
+                            val basePacePerMile = distanceRatio * it.value.seconds + paceAdjustment
+                            RunnerWorkoutPlanDTOV2(it.key,
+                                    listOf(WorkoutComponentPlanElement(
+                                            distance,
+                                            component.duration,
+                                            it.value.seconds.toDouble().toMinuteSecondString(),
+                                            constructProgressionTargetedPaces(basePacePerMile.secondsPerMileToPercentPacePerMile(component.percent!!).calculateSecondsFrom()),
+                                            workoutSplitService.getSplitsForRunnerAndComponent(it.key!!.id, component.uuid)
+                                    )
+                                    )
+                            )
+                        }
+
+                        return runnerWorkoutPlanDTOV2
+                    }
                 }
 
             }
@@ -704,6 +785,24 @@ class WorkoutService (
                 }.toMutableList().sortedBy { it.second.first() }.toMap()
     }
 
+    fun getBaseTrainingPaces(workout: Workout, targetEvent: String): Map<Runner, TrainingBasePerformance> {
+
+        var year = workout.date.getYearString()
+        val eligibleRunners = if (workout.season == "xc") {
+            runnerService.getXcRoster(true, workout.date.getYearString()).map { it.id to it }.toMap()
+        } else {
+            if (workout.date.toLocalDate().month == Month.NOVEMBER || workout.date.toLocalDate().month == Month.DECEMBER) {
+                year = (workout.date.getYearString().toInt() + 1).toString()
+            }
+            runnerService.getTrackRoster(true, year).map { it.id to it }.toMap()
+        }
+
+        return trainingBasePerformanceService.getBaseTrainingPerformancesForEvent(targetEvent + "m", workout.season, year)
+                .map { eligibleRunners[it.runner.id] to it.trainingBasePerformance }
+                .filter { it.first != null && it.second != null }
+                .map { it.first!! to it.second!! }
+                .toMap()
+    }
 
 
     fun constructProgressionTargetedPaces(basePacePerMile: Double): List<TargetedPace> {

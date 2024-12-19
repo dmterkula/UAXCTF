@@ -17,8 +17,6 @@ import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
 import java.sql.Date
 import java.time.*
-import java.time.temporal.IsoFields
-import java.time.temporal.TemporalAdjusters
 import java.time.temporal.TemporalAdjusters.firstDayOfMonth
 import java.time.temporal.TemporalAdjusters.lastDayOfMonth
 import java.time.temporal.WeekFields
@@ -32,14 +30,15 @@ class TrainingRunsService(
     val runnerRepository: RunnerRepository,
     val workoutRepository: WorkoutRepository,
     val workoutDistanceRepository: RunnerWorkoutDistanceRepository,
-    val meetLogService: MeetLogService
+    val meetLogService: MeetLogService,
+    val trainingBasePerformanceService: TrainingBasePerformanceService
 ) {
 
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
         return TrainingRunResponse(
                 trainingRunRepository.findByDateBetween(startDate, endDate).map {
                     TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
-                            it.name, it.minTime, it.minDistance, it.season, it.team)
+                            it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel)
                 }
         )
     }
@@ -58,7 +57,9 @@ class TrainingRunsService(
                     createTrainingRunRequest.minTime,
                     createTrainingRunRequest.minDistance,
                     createTrainingRunRequest.season,
-                    createTrainingRunRequest.team
+                    createTrainingRunRequest.team,
+                    createTrainingRunRequest.useTrainingPercent,
+                    createTrainingRunRequest.effortLabel
             )
 
             trainingRunRepository.save(
@@ -68,7 +69,7 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team)
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel)
             ))
 
         } else {
@@ -93,7 +94,9 @@ class TrainingRunsService(
                     createTrainingRunRequest.minTime,
                     createTrainingRunRequest.minDistance,
                     createTrainingRunRequest.season,
-                    createTrainingRunRequest.team
+                    createTrainingRunRequest.team,
+                    createTrainingRunRequest.useTrainingPercent,
+                    createTrainingRunRequest.effortLabel
             )
 
             trainingRunRepository.save(
@@ -103,7 +106,7 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team)
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel)
             ))
 
         } else {
@@ -117,13 +120,16 @@ class TrainingRunsService(
             foundTrainingRun.minDistance = createTrainingRunRequest.minDistance
             foundTrainingRun.season = createTrainingRunRequest.season
             foundTrainingRun.team = createTrainingRunRequest.team
+            foundTrainingRun.useTrainingPercent = createTrainingRunRequest.useTrainingPercent
+            foundTrainingRun.effortLabel = createTrainingRunRequest.effortLabel
 
             trainingRunRepository.save(foundTrainingRun)
 
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                             foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
-                            foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season, foundTrainingRun.team)
+                            foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season,
+                            foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel)
             ))
         }
 
@@ -144,7 +150,8 @@ class TrainingRunsService(
                 return TrainingRunResponse(listOf(TrainingRunDTO(
                         foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                         foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
-                        foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season, foundTrainingRun.team
+                        foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season,
+                        foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete
@@ -163,12 +170,19 @@ class TrainingRunsService(
             return RunnersTrainingRunResponse(emptyList())
         }
 
+        val trainingRun = trainingRunRepository.findByUuid(trainingRunUUID)
+        val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun.firstOrNull(), runnerId)
+
         val results = runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(trainingRunUUID, runnerId)
+
+        if (results.isEmpty()) {
+            return buildDefaultResponse(trainingRun.firstOrNull(), runner.get())
+        }
 
         return RunnersTrainingRunResponse(results.map {
             RunnerTrainingRunDTO(
                     runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
+                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange
             )
         })
 
@@ -185,9 +199,11 @@ class TrainingRunsService(
         val trainingRuns = trainingRunRepository.findByDateBetween(startDate, endDate).sortedBy { it.date }
 
         val runnersTrainingRuns = trainingRuns.map {
+            val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(it, runnerId)
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance,
-                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace, result.coachNotes) })
+                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace,
+                            result.coachNotes, result.effortLevel, paceRange) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -207,9 +223,11 @@ class TrainingRunsService(
         val trainingRuns = trainingRunRepository.findByDateBetweenAndSeason(startDate, endDate, season).sortedBy { it.date }
 
         val runnersTrainingRuns = trainingRuns.map {
+            val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(it, runnerId)
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance,
-                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace, result.coachNotes) })
+                            result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace, result.coachNotes,
+                            result.effortLevel, paceRange) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -223,11 +241,13 @@ class TrainingRunsService(
         val runners = runnerRepository.findAll().map { it.id to it }.toMap()
 
         val results = runnersTrainingRunRepository.findByTrainingRunUuid(trainingRunUUID)
+        val trainingRun = trainingRunRepository.findByUuid(trainingRunUUID)
 
         return RunnersTrainingRunResponse(results.map {
+            val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun.firstOrNull(), it.runnerId)
             RunnerTrainingRunDTO(
                     runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
+                    it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange
             )
         })
 
@@ -241,6 +261,9 @@ class TrainingRunsService(
             return RunnersTrainingRunResponse(emptyList())
         }
 
+        val trainingRun = trainingRunRepository.findByUuid(createRunnersTrainingRunRequest.trainingRunUUID)
+        val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun.firstOrNull(), createRunnersTrainingRunRequest.runnerId)
+
         val runnerRecord =
                 runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(createRunnersTrainingRunRequest.trainingRunUUID, createRunnersTrainingRunRequest.runnerId)
                         .firstOrNull()
@@ -258,13 +281,15 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.warmUpTime,
                     createRunnersTrainingRunRequest.warmUpDistance,
                     createRunnersTrainingRunRequest.warmUpPace,
-                    createRunnersTrainingRunRequest.coachNotes
+                    createRunnersTrainingRunRequest.coachNotes,
+                    createRunnersTrainingRunRequest.effortLevel
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
-                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace, insertMe.coachNotes
+                    insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
+                    insertMe.coachNotes, insertMe.effortLevel, paceRange
             )))
 
         } else {
@@ -277,13 +302,14 @@ class TrainingRunsService(
             runnerRecord.warmUpDistance = createRunnersTrainingRunRequest.warmUpDistance
             runnerRecord.warmUpPace = createRunnersTrainingRunRequest.warmUpPace
             runnerRecord.coachNotes = createRunnersTrainingRunRequest.coachNotes
+            runnerRecord.effortLevel = createRunnersTrainingRunRequest.effortLevel
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance,
                     runnerRecord.avgPace, runnerRecord.notes, runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
-                    runnerRecord.coachNotes
+                    runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange
             )))
 
         }
@@ -297,6 +323,10 @@ class TrainingRunsService(
             return RunnersTrainingRunResponse(emptyList())
         }
 
+        val trainingRun = trainingRunRepository.findByUuid(createRunnersTrainingRunRequest.trainingRunUUID)
+        val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun.firstOrNull(), createRunnersTrainingRunRequest.runnerId)
+
+
         val runnerRecord =
                 runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(createRunnersTrainingRunRequest.trainingRunUUID, createRunnersTrainingRunRequest.runnerId)
                         .firstOrNull()
@@ -314,14 +344,15 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.warmUpTime,
                     createRunnersTrainingRunRequest.warmUpDistance,
                     createRunnersTrainingRunRequest.warmUpPace,
-                    createRunnersTrainingRunRequest.coachNotes
+                    createRunnersTrainingRunRequest.coachNotes,
+                    createRunnersTrainingRunRequest.effortLevel
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
                     insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
-                    insertMe.coachNotes
+                    insertMe.coachNotes, insertMe.effortLevel, paceRange
             )))
 
         } else {
@@ -330,6 +361,7 @@ class TrainingRunsService(
             runnerRecord.time = createRunnersTrainingRunRequest.time
             runnerRecord.notes = createRunnersTrainingRunRequest.notes
             runnerRecord.coachNotes = createRunnersTrainingRunRequest.coachNotes
+            runnerRecord.effortLevel = createRunnersTrainingRunRequest.effortLevel
 
             runnersTrainingRunRepository.save(runnerRecord)
 
@@ -337,7 +369,7 @@ class TrainingRunsService(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time,
                     runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes,
                     runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
-                    runnerRecord.coachNotes
+                    runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange
             )))
 
         }
@@ -361,7 +393,7 @@ class TrainingRunsService(
                 return RunnersTrainingRunResponse(runnerRecords.map {
                     RunnerTrainingRunDTO(
                             runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
-                            it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes
+                            it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel,null
                     )
                 })
             }
@@ -936,4 +968,38 @@ class TrainingRunsService(
             DateRangeRunSummaryDTO(start, end, it.value.totalDistance.round(2), it.value.count, avgPace.toMinuteSecondString())
         }.sortedBy { it.startDate }
     }
+
+    fun getRunnersPaceRangeForTrainingRun(trainingRun: TrainingRun?, runnerId: Int): TrainingRunPaceRange? {
+
+        if (trainingRun == null) {
+            return null
+        } else {
+            var paceRange: TrainingRunPaceRange? = null
+            if (trainingRun.useTrainingPercent != null
+                    && trainingRun.useTrainingPercent!! && trainingRun.effortLabel != null) {
+
+                var year = trainingRun.date.getYearString()
+                if (trainingRun.season == "track" && trainingRun.date.toLocalDate().month == Month.NOVEMBER || trainingRun.date.toLocalDate().month == Month.DECEMBER) {
+                    year = (year.toInt() + 1).toString()
+                }
+
+                paceRange = trainingBasePerformanceService.getRunnersBaseTrainingPaces(trainingRun.effortLabel!!, trainingRun.season, year, runnerId)
+            }
+            return paceRange
+        }
+    }
+
+    fun buildDefaultResponse(trainingRun: TrainingRun?, runner: Runner): RunnersTrainingRunResponse {
+
+        return if (trainingRun == null) {
+            RunnersTrainingRunResponse(emptyList())
+        } else {
+            RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
+                    runner, "be5a5137-60fc-457b-8b10-b9c913c48249", trainingRun.uuid, "00:00", 0.0,
+                    "00:00", "", "00:00", 0.0, "00:00",
+                    "", 0.0, getRunnersPaceRangeForTrainingRun(trainingRun, runner.id)
+            )))
+        }
+    }
+
 }

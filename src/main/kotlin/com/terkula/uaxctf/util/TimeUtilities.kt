@@ -160,6 +160,30 @@ fun String.getPacePerMile(): Double {
    return this.calculateSecondsFrom() / 3.10686
 }
 
+fun String.removeDecimal(): String {
+    return this.substringBefore('.')
+}
+
+fun Double.secondsPerMileToPercentPacePerMile(percent: Int): String {
+    if (percent!! > 100) {
+        var ratio: Double = (100.0 + (100 - percent)) / 100
+        return (this * ratio).toMinuteSecondString()
+    } else {
+        var ratio: Double = (100 + (100.0 - percent)) / 100
+        return (this * ratio).toMinuteSecondString()
+    }
+}
+
+fun Double.secondsPerMileToPercentPacePerMile(percent: Int, distanceRatio: Double): String {
+    if (percent!! > 100) {
+        var ratio: Double = (100.0 + (100 - percent)) / 100
+        return (this * ratio * distanceRatio).toMinuteSecondString()
+    } else {
+        var ratio: Double = (100 + (100.0 - percent)) / 100
+        return (this * ratio * distanceRatio).toMinuteSecondString()
+    }
+}
+
 fun String.toPlace(): Int {
 
     return try {
