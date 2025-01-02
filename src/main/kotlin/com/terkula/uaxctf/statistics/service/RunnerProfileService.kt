@@ -64,6 +64,7 @@ class RunnerProfileService (
         val trackPRsFuture = runnerProfileAsyncHelper.getTrackPRs(runnerId)
         val trackSBsFuture = runnerProfileAsyncHelper.getTrackSBs(runnerId, season)
         val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
+        val crossTrainingFuture = runnerProfileAsyncHelper.getCrossTrainingWorkouts(runnerId, season, type)
 
 
 
@@ -86,12 +87,13 @@ class RunnerProfileService (
         val trackPRs = trackPRsFuture.get()
         val trackSBs = trackSBsFuture.get()
         val achievements = achievementsFuture.get()
+        val crossTrainingRecords = crossTrainingFuture.get()
 
 
 
         return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
                 goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trackResults.sortedBy { it.meet.date }, trainingRunSummary,
-                achievements, trackPRs, trackSBs
+                achievements, trackPRs, trackSBs, crossTrainingRecords
         )
 
 
