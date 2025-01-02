@@ -11,6 +11,8 @@ import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResult
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
+import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
+import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordResponse
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class RunnerProfileDTO(
@@ -46,5 +48,6 @@ class RunnerProfileDTOV2(
         var trainingRunSummary: List<DateRangeRunSummaryDTO>,
         val achievements: RunnerAchievementsDTO,
         val trackPRs: TrackPerformancesDTO,
-        val trackSBs: TrackPerformancesDTO
+        val trackSBs: TrackPerformancesDTO,
+        val crossTrainingRecords: List<CrossTrainingRecordProfileResponse>
 )

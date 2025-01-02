@@ -612,6 +612,28 @@ class TrainingRunsService(
 
         }
 
+//        meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), "track")
+//                .forEach { pair ->
+//                    val entry = runnersToDistance[runners[pair.first.meetLog?.runnerId]]
+//                    if (entry == null) {
+//                        runnersToDistance[runners[pair.first.meetLog?.runnerId]!!] = pair.first.meetLog!!.getTotalDistance()
+//                    } else {
+//                        runnersToDistance[runners[pair.first.meetLog?.runnerId]!!] = entry + pair.first.meetLog!!.getTotalDistance()
+//                    }
+//
+//                }
+//
+//        meetLogService.getAllMeetLogsForRunnerInSeason(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), "xc")
+//                .forEach { pair ->
+//            val entry = runnersToDistance[runners[pair.first.meetLog?.runnerId]]
+//            if (entry == null) {
+//                runnersToDistance[runners[pair.first.meetLog?.runnerId]!!] = pair.first.meetLog!!.getTotalDistance()
+//            } else {
+//                runnersToDistance[runners[pair.first.meetLog?.runnerId]!!] = entry + pair.first.meetLog!!.getTotalDistance()
+//            }
+//
+//        }
+
         return runnersToDistance.toList().sortedByDescending { it.second }
                 .mapIndexed { index, it ->
                     RankedRunnerDistanceRunDTO(it.first, it.second, index + 1)

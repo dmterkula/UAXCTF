@@ -18,7 +18,9 @@ import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
+import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
 import com.terkula.uaxctf.training.service.AchievementService
+import com.terkula.uaxctf.training.service.CrossTrainingService
 import com.terkula.uaxctf.training.service.TrainingRunsService
 import com.terkula.uaxctf.training.service.WorkoutSplitService
 import com.terkula.uaxctf.util.TimeUtilities
@@ -48,6 +50,7 @@ open class RunnerProfileAsyncHelper (
     val trackMeetPerformanceService: TrackMeetPerformanceService,
     val trackPRService: TrackPRService,
     val trackSBService: TrackSBService,
+    val crossTrainingService: CrossTrainingService
 ) {
 
 
@@ -162,6 +165,17 @@ open class RunnerProfileAsyncHelper (
             val startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90) // start in roughly october of previous year looking for track records
             val endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150) // stop looking for track records in august
             return AsyncResult(trainingRunsService.getARunnersTrainingRunsByTypeWithinDates(runnerId, startDate, endDate, type))
+        }
+    }
+
+    @Async
+    open fun getCrossTrainingWorkouts(runnerId: Int, season: String, type: String): Future<List<CrossTrainingRecordProfileResponse>>  {
+        if (type.equals("xc", ignoreCase = true)) {
+            return AsyncResult(crossTrainingService.getCrossTrainingActivitiesForRunnerBetweenDatesForSeason(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season), type))
+        } else {
+            val startDate = TimeUtilities.getFirstDayOfGivenYear(season).subtractDays(90) // start in roughly october of previous year looking for track records
+            val endDate = TimeUtilities.getLastDayOfGivenYear(season).subtractDays(150) // stop looking for track records in august
+            return AsyncResult(crossTrainingService.getCrossTrainingActivitiesForRunnerBetweenDatesForSeason(runnerId, startDate, endDate, type))
         }
     }
 
