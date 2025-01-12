@@ -159,5 +159,15 @@ class WorkoutController(
         return workoutSplitService.getRunnerWorkoutResults(workoutUuid, runnerId)
     }
 
+    @ApiOperation("Get all runners workout results")
+    @RequestMapping(value = ["xc/workout/all-runner-results/get"], method = [RequestMethod.GET])
+    fun getAllWorkoutResultsRunnersResults(
+            @ApiParam("workoutUuid")
+            @RequestParam(value = "workoutUuid", required = true) workoutUuid: String,
+
+    ): List<RunnerWorkoutResultResponse> {
+        return workoutSplitService.getAllResultsForWorkout(workoutUuid)
+    }
+
 
 }

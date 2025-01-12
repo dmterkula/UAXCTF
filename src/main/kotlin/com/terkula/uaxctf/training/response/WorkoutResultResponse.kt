@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.response
 
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.training.dto.WorkoutResultDTO
+import com.terkula.uaxctf.training.model.TrainingComment
 
 class WorkoutResultResponse (val workoutResults: List<WorkoutResultDTO>)
 
@@ -9,4 +10,4 @@ class RunnerWorkoutResultResponse(val runner: Runner, val workout: WorkoutRespon
                                   val totalDistance: Double, val time: String, val pace: String, val warmUpDistance: Double?,
                                   val warmUpTime: String?, val warmUpPace: String?,
                                   val coolDownDistance: Double?, val coolDownTime: String?, val coolDownPace: String?,
-                                  val notes: String?, val coachNotes: String?)
+                                  val notes: String?, val coachNotes: String?, val comments: List<TrainingComment>)

@@ -9,4 +9,6 @@ interface TrainingCommentRepository : CrudRepository<TrainingComment, Int> {
 
     fun findByTrainingEntityUuid(trainingEntityUuid: String): List<TrainingComment>
 
+    fun deleteByTrainingEntityUuid(trainingEntityUuid: String): List<TrainingComment>
+
 }

@@ -16,5 +16,7 @@ class TrainingEvent(
     var minTime: String?,
     var minDistance: Double?,
     var season: String,
-    var team: String
+    var team: String,
+    var useTrainingPercent: Boolean?,
+    var effortLabel: String?
 )
