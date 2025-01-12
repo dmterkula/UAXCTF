@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService
 import com.terkula.uaxctf.statistics.service.RunnerService
+import com.terkula.uaxctf.training.request.notifications.SendNotificationRequestToAppUser
 import com.terkula.uaxctf.training.request.notifications.SendNotificationRequestToDevice
 import com.terkula.uaxctf.training.request.notifications.SendNotificationRequestToRunner
 import com.terkula.uaxctf.training.request.notifications.SendNotificationRequestToTopic
@@ -19,6 +20,14 @@ class NotificationController(val firebaseMessageService: FirebaseMessageService,
             @RequestBody request: SendNotificationRequestToDevice
             ): String {
         return firebaseMessageService.sendMessageToDeviceId(request.deviceId, request.title, request.message, request.data)
+    }
+
+    @ApiOperation("Sends a notification to a appUser")
+    @RequestMapping(value = ["notifications/send-to-user"], method = [RequestMethod.POST])
+    fun sendNotificationToAppUser(
+            @RequestBody request: SendNotificationRequestToAppUser
+    ): String {
+        return firebaseMessageService.sendMessageToAppUser(request.userId, request.title, request.message, request.data)
     }
 
     @ApiOperation("Sends notification to runner based on their id")

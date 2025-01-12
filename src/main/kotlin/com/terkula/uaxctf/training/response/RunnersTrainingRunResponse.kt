@@ -2,9 +2,10 @@ package com.terkula.uaxctf.training.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.training.model.TrainingComment
 
 
-class RunnersTrainingRunResponse(val runnerTrainingRuns: List<RunnerTrainingRunDTO>)
+class RunnersTrainingRunResponse(val runnerTrainingRuns: List<RunnerTrainingRunDTO>, val comments: List<TrainingComment>)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class RunnerTrainingRunDTO(

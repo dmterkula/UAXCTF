@@ -2,11 +2,9 @@ package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.training.model.RunnerWorkoutDistance
+import com.terkula.uaxctf.training.model.TrainingComment
 import com.terkula.uaxctf.training.model.WorkoutSplitV2
-import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
-import com.terkula.uaxctf.training.repository.WorkoutComponentRepository
-import com.terkula.uaxctf.training.repository.WorkoutRepository
-import com.terkula.uaxctf.training.repository.WorkoutSplitV2Repository
+import com.terkula.uaxctf.training.repository.*
 import com.terkula.uaxctf.training.request.CreateSplitsRequest
 import com.terkula.uaxctf.training.request.LogWorkoutResultsRequest
 import com.terkula.uaxctf.training.response.*
@@ -14,6 +12,7 @@ import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
 import java.lang.RuntimeException
 import java.sql.Date
+import java.time.Month
 
 @Service
 class WorkoutSplitService(
@@ -21,7 +20,8 @@ class WorkoutSplitService(
         var workoutComponentRepository: WorkoutComponentRepository,
         var workoutSplitV2Repository: WorkoutSplitV2Repository,
         var runnerService: RunnerService,
-        var workoutDistanceRepository: RunnerWorkoutDistanceRepository
+        var workoutDistanceRepository: RunnerWorkoutDistanceRepository,
+        var commentRepository: TrainingCommentRepository
 ) {
 
     fun createSplits(createSplitsRequest: CreateSplitsRequest): SplitsResponse {
@@ -109,6 +109,12 @@ class WorkoutSplitService(
 
         val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(workoutUuid, runnerId)
 
+        var comments: List<TrainingComment> = emptyList()
+        if (workoutDistance.firstOrNull() != null) {
+            comments = commentRepository.findByTrainingEntityUuid(workoutDistance.first().workoutUuid + workoutDistance.first().runnerId)
+                    .sortedBy { it.timestamp }
+        }
+
         val notes: String? = workoutDistance.firstOrNull()?.notes
         val coachNotes: String? = workoutDistance.firstOrNull()?.coachNotes
 
@@ -132,7 +138,75 @@ class WorkoutSplitService(
                 workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                 workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                notes, coachNotes)
+                notes, coachNotes, comments)
+
+    }
+
+    fun getAllResultsForWorkout(workoutUuid: String): List<RunnerWorkoutResultResponse> {
+
+        val workout = workoutRepositoryV2.findByUuid(workoutUuid).firstOrNull() ?: return emptyList()
+
+        val components = workoutComponentRepository.findByWorkoutUuid(workoutUuid)
+
+        val runners =
+
+                if (workout.team.equals("NU", true)) {
+                    runnerService.getRunnersByTeam(workout.team)
+                } else {
+                    if (workout.season == "track") {
+                        var season = workout.date.getYearString()
+
+                        if(workout.date.toLocalDate().month >= Month.NOVEMBER) {
+                            season = (workout.date.toLocalDate().year + 1).toString()
+                        }
+
+                        runnerService.getTrackRoster(true, season)
+                    } else {
+                        runnerService.getTrackRoster(true, workout.date.getYearString())
+                    }
+                }
+                .map {
+            it.id to it
+        }.toMap()
+
+        return workoutDistanceRepository.findByWorkoutUuid(workoutUuid)
+                .map {
+                    runners[it.runnerId] to it
+                }.filter {
+                    it.first != null
+                }.
+                map {
+
+
+            val notes: String? = it.second.notes
+            val coachNotes: String? = it.second.coachNotes
+
+            var totalDistance = 0.0
+            if (it.second.distance != 0.0) {
+                totalDistance = it.second.distance
+            }
+            var workoutTime = "00:00"
+            var workoutPace = "00:00"
+            if (it.second.distance != 0.0) {
+                workoutTime = it.second.getTimeSeconds().toMinuteSecondString()
+                workoutPace = it.second.pace
+            }
+
+            val splitsResponses = components.map { component ->
+                getSplitsForRunnerAndComponent(it.first!!.id, component.uuid)
+            }
+            var comments: List<TrainingComment> = emptyList()
+            comments = commentRepository.findByTrainingEntityUuid(it.second.workoutUuid + it.second.runnerId)
+                    .sortedBy { it.timestamp }
+
+
+            return@map RunnerWorkoutResultResponse(it.first!!, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season, workout.team),
+                    splitsResponses, totalDistance,
+                    workoutTime, workoutPace, it.second.warmUpDistance,
+                    it.second.warmUpTime, it.second.warmUpPace,
+                    it.second.coolDownDistance, it.second.coolDownTime, it.second.coolDownPace,
+                    notes, coachNotes, comments)
+        }
 
     }
 
@@ -144,6 +218,11 @@ class WorkoutSplitService(
         val results = workouts.map {
             val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
             val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+            var comments: List<TrainingComment> = emptyList()
+            if (workoutDistance.firstOrNull() != null) {
+                comments = commentRepository.findByTrainingEntityUuid(workoutDistance.first().workoutUuid + workoutDistance.first().runnerId)
+                        .sortedBy { it.timestamp }
+            }
             var totalDistance = 0.0
             if (workoutDistance.isNotEmpty()) {
                 totalDistance = workoutDistance.sumOf {dist-> dist.distance }
@@ -168,7 +247,7 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes)
+                    notes, coachNotes, comments)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -182,6 +261,11 @@ class WorkoutSplitService(
         val results = workouts.map {
             val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
             val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+            var comments: List<TrainingComment> = emptyList()
+            if (workoutDistance.firstOrNull() != null) {
+                comments = commentRepository.findByTrainingEntityUuid(workoutDistance.first().workoutUuid + workoutDistance.first().runnerId)
+                        .sortedBy { it.timestamp }
+            }
             var totalDistance = 0.0
             if (workoutDistance.isNotEmpty()) {
                 totalDistance = workoutDistance.sumOf {dist-> dist.distance }
@@ -206,7 +290,7 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes)
+                    notes, coachNotes, comments)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -225,6 +309,12 @@ class WorkoutSplitService(
         }
 
         val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(logWorkoutResultsRequest.workoutUuid, logWorkoutResultsRequest.runnerId)
+
+        var comments: List<TrainingComment> = emptyList()
+        if (workoutDistance.firstOrNull() != null) {
+            comments = commentRepository.findByTrainingEntityUuid(workoutDistance.first().workoutUuid + workoutDistance.first().runnerId)
+                    .sortedBy { it.timestamp }
+        }
 
         var distance = 0.0
 
@@ -264,7 +354,7 @@ class WorkoutSplitService(
         return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season, workout.team), splitsResponse, distance,
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
-                logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes)
+                logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, comments)
 
     }
 

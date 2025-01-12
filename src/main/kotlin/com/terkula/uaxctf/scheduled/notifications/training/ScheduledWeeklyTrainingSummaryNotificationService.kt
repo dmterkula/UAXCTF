@@ -47,7 +47,7 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
         val authenticationRepository: AuthenticationRepository
 ) {
 
- //   @Scheduled(cron = "0 * * * * *") // testing every minute
+    //@Scheduled(cron = "0 * * * * *") // testing every minute
     @Scheduled(cron = "0 0 15 * * *") // this is utc 16th hour, so 10-11am ET
     fun sendBentleyTimeMachineNotification() {
 
@@ -78,7 +78,8 @@ class ScheduledWeeklyTrainingSummaryNotificationService(
 
                 val trainingRunEvent: TrainingEvent = TrainingEvent(uuid = trainingRun.uuid, title = trainingRun.name, date = Date((startDate.time/1000)),
                 time = trainingRun.time, minTime = trainingRun.minTime, distance = trainingRun.distance, minDistance =
-                trainingRun.minDistance, season = trainingRun.season, type = Type.training, description = null, team = trainingRun.team)
+                trainingRun.minDistance, season = trainingRun.season, type = Type.training, description = null, team = trainingRun.team, useTrainingPercent = trainingRun.useTrainingPercent,
+                effortLabel = trainingRun.effortLabel)
 
                 var trainingRunEventJson = objectMapper.writeValueAsString(trainingRunEvent)
                 trainingRunEventJson = trainingRunEventJson.replace("\"training\"", "{\"training\":{}}")

@@ -5,13 +5,12 @@ import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.training.model.*
-import com.terkula.uaxctf.training.repository.RunnerWorkoutDistanceRepository
-import com.terkula.uaxctf.training.repository.RunnersTrainingRunRepository
-import com.terkula.uaxctf.training.repository.TrainingRunRepository
-import com.terkula.uaxctf.training.repository.WorkoutRepository
+import com.terkula.uaxctf.training.repository.*
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
+import com.terkula.uaxctf.training.request.crosstraining.CreateCommentRequest
 import com.terkula.uaxctf.training.response.*
+import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordResponse
 import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
 import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
@@ -31,7 +30,8 @@ class TrainingRunsService(
     val workoutRepository: WorkoutRepository,
     val workoutDistanceRepository: RunnerWorkoutDistanceRepository,
     val meetLogService: MeetLogService,
-    val trainingBasePerformanceService: TrainingBasePerformanceService
+    val trainingBasePerformanceService: TrainingBasePerformanceService,
+    val trainingCommentRepository: TrainingCommentRepository
 ) {
 
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
@@ -167,7 +167,7 @@ class TrainingRunsService(
         val runner: Optional<Runner> = runnerRepository.findById(runnerId)
 
         if (!runner.isPresent) {
-            return RunnersTrainingRunResponse(emptyList())
+            return RunnersTrainingRunResponse(emptyList(), emptyList())
         }
 
         val trainingRun = trainingRunRepository.findByUuid(trainingRunUUID)
@@ -184,7 +184,7 @@ class TrainingRunsService(
                     runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                     it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange
             )
-        })
+        }, getTrainingComments(results.first().uuid))
 
     }
 
@@ -249,7 +249,7 @@ class TrainingRunsService(
                     runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                     it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange
             )
-        })
+        }, emptyList())
 
     }
 
@@ -258,7 +258,7 @@ class TrainingRunsService(
         val runner: Optional<Runner> = runnerRepository.findById(createRunnersTrainingRunRequest.runnerId)
 
         if (!runner.isPresent) {
-            return RunnersTrainingRunResponse(emptyList())
+            return RunnersTrainingRunResponse(emptyList(), emptyList())
         }
 
         val trainingRun = trainingRunRepository.findByUuid(createRunnersTrainingRunRequest.trainingRunUUID)
@@ -290,7 +290,7 @@ class TrainingRunsService(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
                     insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
                     insertMe.coachNotes, insertMe.effortLevel, paceRange
-            )))
+            )), emptyList())
 
         } else {
 
@@ -310,7 +310,7 @@ class TrainingRunsService(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance,
                     runnerRecord.avgPace, runnerRecord.notes, runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
                     runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange
-            )))
+            )), getTrainingComments(createRunnersTrainingRunRequest.uuid))
 
         }
     }
@@ -320,7 +320,7 @@ class TrainingRunsService(
         val runner: Optional<Runner> = runnerRepository.findById(createRunnersTrainingRunRequest.runnerId)
 
         if (!runner.isPresent) {
-            return RunnersTrainingRunResponse(emptyList())
+            return RunnersTrainingRunResponse(emptyList(), emptyList())
         }
 
         val trainingRun = trainingRunRepository.findByUuid(createRunnersTrainingRunRequest.trainingRunUUID)
@@ -353,7 +353,7 @@ class TrainingRunsService(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
                     insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
                     insertMe.coachNotes, insertMe.effortLevel, paceRange
-            )))
+            )), emptyList())
 
         } else {
             runnerRecord.avgPace = createRunnersTrainingRunRequest.avgPace
@@ -370,7 +370,7 @@ class TrainingRunsService(
                     runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes,
                     runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
                     runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange
-            )))
+            )), getTrainingComments(createRunnersTrainingRunRequest.uuid))
 
         }
     }
@@ -380,22 +380,27 @@ class TrainingRunsService(
         val foundTrainingRun = runnersTrainingRunRepository.findByUuid(uuid).firstOrNull()
 
         if (foundTrainingRun == null) {
-            return RunnersTrainingRunResponse(emptyList())
+            return RunnersTrainingRunResponse(emptyList(), emptyList())
         } else {
             val runnerRecords = runnersTrainingRunRepository.findByUuid(uuid)
 
             if (runnerRecords.isEmpty()) {
                 // nothing to delete, empty response
-                return RunnersTrainingRunResponse(emptyList())
+                return RunnersTrainingRunResponse(emptyList(), emptyList())
             } else {
                 val runner = runnerRepository.findById(runnerRecords.first().runnerId).get()
                 runnersTrainingRunRepository.deleteByUuid(uuid)
+
+                runnerRecords.forEach {
+                    trainingCommentRepository.deleteByTrainingEntityUuid(it.uuid)
+                }
+
                 return RunnersTrainingRunResponse(runnerRecords.map {
                     RunnerTrainingRunDTO(
                             runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                             it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel,null
                     )
-                })
+                }, emptyList())
             }
 
         }
@@ -1014,14 +1019,53 @@ class TrainingRunsService(
     fun buildDefaultResponse(trainingRun: TrainingRun?, runner: Runner): RunnersTrainingRunResponse {
 
         return if (trainingRun == null) {
-            RunnersTrainingRunResponse(emptyList())
+            RunnersTrainingRunResponse(emptyList(), emptyList())
         } else {
             RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner, "be5a5137-60fc-457b-8b10-b9c913c48249", trainingRun.uuid, "00:00", 0.0,
                     "00:00", "", "00:00", 0.0, "00:00",
                     "", 0.0, getRunnersPaceRangeForTrainingRun(trainingRun, runner.id)
-            )))
+            )), emptyList())
         }
     }
 
+    fun createComment(createCommentRequest: CreateCommentRequest): TrainingComment {
+        return trainingCommentRepository.save(
+                TrainingComment(
+                        createCommentRequest.uuid,
+                        createCommentRequest.referenceUuid,
+                        createCommentRequest.madeBy,
+                        createCommentRequest.message,
+                        createCommentRequest.timestamp
+                )
+        )
+    }
+
+    fun getTrainingComments(runnersTrainingRunUUID: String):List<TrainingComment> {
+        return trainingCommentRepository.findByTrainingEntityUuid(runnersTrainingRunUUID).sortedBy { it.timestamp }
+    }
+
+
+    fun getRunnersTrainingRunRecord(uuid: String): RunnersTrainingRunResponse? {
+        val record = runnersTrainingRunRepository.findByUuid(uuid).firstOrNull()
+
+        if (record == null) {
+            return null
+        }
+
+        val trainingRun = trainingRunRepository.findByUuid(record.trainingRunUuid).first()
+
+        return run {
+            val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun, record.runnerId)
+            val comments = trainingCommentRepository.findByTrainingEntityUuid(record.uuid).sortedBy { it.timestamp }
+            val runner = runnerRepository.findById(record.runnerId).get()
+            RunnersTrainingRunResponse(listOf(record).map {
+                RunnerTrainingRunDTO(
+                        runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
+                        it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel,null
+                )
+            }, comments)
+        }
+
+    }
 }

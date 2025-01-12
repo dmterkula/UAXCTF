@@ -1,12 +1,15 @@
 package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.training.model.DateRangeRunSummaryDTO
+import com.terkula.uaxctf.training.model.TrainingComment
 import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
+import com.terkula.uaxctf.training.request.crosstraining.CreateCommentRequest
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnersTrainingRunResponse
 import com.terkula.uaxctf.training.response.TrainingRunResponse
+import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordResponse
 import com.terkula.uaxctf.training.service.TrainingRunsService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.subtractDays
@@ -197,5 +200,23 @@ class TrainingRunsController(
             trainingRunsService.getTotalDistancePerDay(startDate, endDate, runnerId, includeWarmUps, xcOrTrack)
         }
 
+    }
+
+    @ApiOperation("Create training run comment")
+    @RequestMapping(value = ["/training-comment/create"], method = [RequestMethod.POST])
+    fun createTrainingComment(
+            @RequestBody @Valid createCommentRequest: CreateCommentRequest
+    ): TrainingComment {
+        return trainingRunsService.createComment(createCommentRequest)
+    }
+
+    @ApiOperation("Returns the planned training run between the given dates")
+    @RequestMapping(value = ["xc/runners-training-run"], method = [RequestMethod.GET])
+    fun getTrainingRunRecord(
+            @ApiParam("runners training run record uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+    ): RunnersTrainingRunResponse? {
+
+        return trainingRunsService.getRunnersTrainingRunRecord(uuid)
     }
 }
