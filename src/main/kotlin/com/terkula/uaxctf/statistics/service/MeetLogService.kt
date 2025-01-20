@@ -23,6 +23,19 @@ class MeetLogService (
         val trackMeetRepository: TrackMeetRepository
 ) {
 
+    fun getRunnerMeetLogsBetweenDates(runnerId: Int, startDate: Date, endDate: Date): Pair<List<MeetLogResponse>, List<TrackMeetLogResponse>> {
+        val meets = meetRepository.findByDateBetween(startDate, endDate).map {
+            getMeetLog(it.uuid, runnerId)
+        }
+        val trackMeets = trackMeetRepository.findByDateBetween(startDate, endDate)
+                .map{
+                    getTrackMeetLogs(it.uuid, runnerId)
+                }
+
+        return Pair(meets, trackMeets)
+
+    }
+
     fun getMeetLog(meetId: String, runnerId: Int): MeetLogResponse {
 
         val meets = meetRepository.findByUuid(meetId)
