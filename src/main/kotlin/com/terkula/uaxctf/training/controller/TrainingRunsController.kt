@@ -8,6 +8,7 @@ import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
 import com.terkula.uaxctf.training.request.crosstraining.CreateCommentRequest
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnersTrainingRunResponse
+import com.terkula.uaxctf.training.response.TrainingRunDTO
 import com.terkula.uaxctf.training.response.TrainingRunResponse
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordResponse
 import com.terkula.uaxctf.training.service.TrainingRunsService
@@ -41,6 +42,19 @@ class TrainingRunsController(
 
         return trainingRunsService.getTrainingRuns(startDate, endDate)
     }
+
+    @ApiOperation("Returns the planned training run between the given dates")
+    @RequestMapping(value = ["xc/training-run/by-uuid/get"], method = [RequestMethod.GET])
+    fun getTrainingRun(
+
+            @ApiParam("training run uuid")
+            @RequestParam(value = "uuid", required = true) uuid: String,
+
+            ): TrainingRunDTO? {
+
+        return trainingRunsService.getTrainingRun(uuid)
+    }
+
 
     @ApiOperation("Returns a planned training run")
     @RequestMapping(value = ["xc/training-run/create"], method = [RequestMethod.POST])

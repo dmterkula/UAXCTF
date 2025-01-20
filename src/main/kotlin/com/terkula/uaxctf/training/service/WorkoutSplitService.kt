@@ -293,7 +293,8 @@ class WorkoutSplitService(
                     notes, coachNotes, comments)
         }
 
-        return results.filter { it.componentResults.isNotEmpty()  }
+        return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
+
     }
 
     fun logRunnersWorkout(logWorkoutResultsRequest: LogWorkoutResultsRequest): RunnerWorkoutResultResponse{

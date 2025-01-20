@@ -43,6 +43,11 @@ class TrainingRunsService(
         )
     }
 
+    fun getTrainingRun(uuid: String): TrainingRunDTO? {
+        return trainingRunRepository.findByUuid(uuid).map { TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
+                it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel)  }.firstOrNull()
+    }
+
     fun createTrainingRun(createTrainingRunRequest: CreateTrainingRunRequest): TrainingRunResponse {
 
         if (trainingRunRepository.findByUuid(createTrainingRunRequest.uuid).isEmpty()) {

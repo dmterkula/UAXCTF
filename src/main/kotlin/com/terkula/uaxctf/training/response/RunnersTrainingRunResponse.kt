@@ -23,3 +23,13 @@ class RunnerTrainingRunDTO(
     val effortLevel: Double?,
     val paceRange: TrainingRunPaceRange?
 )
+
+fun RunnerTrainingRunDTO.getTotalDistance(): Double {
+
+    var warmUpDist = 0.0
+    if (warmUpDistance != null) {
+        warmUpDist = warmUpDistance!!
+    }
+
+    return distance + warmUpDist
+}
