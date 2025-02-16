@@ -76,11 +76,18 @@ class TrainingBasePerformanceController(
             @ApiParam("Track or XC?")
             @RequestParam(value = "season", required = true) season: String,
 
+            @ApiParam("Team")
+            @RequestParam(value = "team", required = false) team: String?,
+
             @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
     ): List<TrainingBasePerformanceResponse> {
+        var teamValue: String = "UA"
+        if (team != null) {
+            teamValue = team
+        }
 
-        return trainingBasePerformanceService.getBaseTrainingPerformances(season, year)
+        return trainingBasePerformanceService.getBaseTrainingPerformances(season, year, teamValue)
     }
 
     @ApiOperation("Get Base Training Paces")

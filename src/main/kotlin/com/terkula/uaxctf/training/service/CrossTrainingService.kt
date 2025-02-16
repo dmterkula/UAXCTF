@@ -46,6 +46,16 @@ class CrossTrainingService(
                 }
     }
 
+    fun getCrossTrainingActivitiesForRunnerBetweenDates(runnerId: Int, startDate: Date, endDate: Date): List<CrossTrainingRecordProfileResponse> {
+        return crossTrainingRepository.findByDateBetween(startDate, endDate)
+                .map { it to crossTrainingRecordRepository.findByCrossTrainingUuidAndRunnerId(it.uuid, runnerId) }
+                .filter { it.second.isNotEmpty() }
+                .map { it.first to it.second.first() }
+                .map {
+                    CrossTrainingRecordProfileResponse(it.first, it.second)
+                }
+    }
+
     fun createCrossTraining(createCrossTrainingRequest: CreateCrossTrainingRequest): CrossTrainingResponse {
 
         if (crossTrainingRepository.findByUuid(createCrossTrainingRequest.uuid).isEmpty()) {

@@ -138,7 +138,7 @@ class WorkoutSplitService(
                 workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                 workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                notes, coachNotes, comments)
+                notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
 
     }
 
@@ -205,7 +205,7 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, it.second.warmUpDistance,
                     it.second.warmUpTime, it.second.warmUpPace,
                     it.second.coolDownDistance, it.second.coolDownTime, it.second.coolDownPace,
-                    notes, coachNotes, comments)
+                    notes, coachNotes, it.second.painLevel, it.second.painNotes, comments)
         }
 
     }
@@ -247,7 +247,7 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes, comments)
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -290,7 +290,51 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes, comments)
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
+        }
+
+        return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
+
+    }
+
+    fun getAllARunnersWorkoutResultsBetweenDates(runnerId: Int, startDate: Date, endDate: Date): List<RunnerWorkoutResultResponse> {
+
+        val workouts = workoutRepositoryV2.findByDateBetween(startDate, endDate)
+        val runner = runnerService.runnerRepository.findById(runnerId).get()
+
+        val results = workouts.map {
+            val components = workoutComponentRepository.findByWorkoutUuid(it.uuid)
+            val workoutDistance = workoutDistanceRepository.findByWorkoutUuidAndRunnerId(it.uuid, runnerId)
+            var comments: List<TrainingComment> = emptyList()
+            if (workoutDistance.firstOrNull() != null) {
+                comments = commentRepository.findByTrainingEntityUuid(workoutDistance.first().workoutUuid + workoutDistance.first().runnerId)
+                        .sortedBy { it.timestamp }
+            }
+            var totalDistance = 0.0
+            if (workoutDistance.isNotEmpty()) {
+                totalDistance = workoutDistance.sumOf {dist-> dist.distance }
+            }
+
+            var workoutTime = "00:00"
+            var workoutPace = "00:00"
+            if (workoutDistance.isNotEmpty()) {
+                workoutTime = workoutDistance.sumOf { it.getTimeSeconds() }.toMinuteSecondString()
+                workoutPace = workoutDistance.first().pace
+            }
+
+            val notes: String? = workoutDistance.firstOrNull()?.notes
+            val coachNotes: String? = workoutDistance.firstOrNull()?.coachNotes
+
+            val splitsResponses = components.map { comp->
+                getSplitsForRunnerAndComponent(runnerId, comp.uuid)
+            }
+                    .filter { splits -> splits.splits.isNotEmpty() }
+
+            return@map RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(it.date, it.description, it.title, it.icon, it.uuid, components, it.season, it.team), splitsResponses, totalDistance,
+                    workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
+                    workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
+                    workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
         }
 
         return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
@@ -323,7 +367,7 @@ class WorkoutSplitService(
             val runnerWorkoutDistance = RunnerWorkoutDistance(logWorkoutResultsRequest.workoutUuid, logWorkoutResultsRequest.runnerId, logWorkoutResultsRequest.totalDistance,
                     logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                     logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
-                    logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes
+                    logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel, logWorkoutResultsRequest.painNotes
             )
             workoutDistanceRepository.save(runnerWorkoutDistance)
             distance = runnerWorkoutDistance.distance
@@ -344,6 +388,8 @@ class WorkoutSplitService(
             existingRecord.coolDownTime = logWorkoutResultsRequest.coolDownTime
             existingRecord.coolDownPace = logWorkoutResultsRequest.coolDownPace
             existingRecord.coachNotes = logWorkoutResultsRequest.coachNotes
+            existingRecord.painLevel = logWorkoutResultsRequest.painLevel
+            existingRecord.painNotes = logWorkoutResultsRequest.painNotes
 
             distance = existingRecord.distance
 
@@ -355,7 +401,8 @@ class WorkoutSplitService(
         return RunnerWorkoutResultResponse(runner, WorkoutResponseDTO(workout.date, workout.description, workout.title, workout.icon, workout.uuid, components, workout.season, workout.team), splitsResponse, distance,
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
-                logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, comments)
+                logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel,
+                logWorkoutResultsRequest.painNotes, comments)
 
     }
 

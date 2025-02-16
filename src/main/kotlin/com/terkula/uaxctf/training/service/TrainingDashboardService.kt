@@ -5,12 +5,10 @@ import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.training.model.TrainingRunResult
 import com.terkula.uaxctf.training.repository.MeetLogRepository
-import com.terkula.uaxctf.training.response.MeetLogResponse
-import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
+import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
-import com.terkula.uaxctf.training.response.getTotalDistance
-import com.terkula.uaxctf.training.response.getTotalSeconds
 import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
+import com.terkula.uaxctf.training.response.trainingdashboard.IndividualTrainingDashboardResponse
 import com.terkula.uaxctf.training.response.trainingdashboard.RunnerTrainingDashboardEntry
 import com.terkula.uaxctf.training.response.trainingdashboard.TrainingDashboardResponse
 import com.terkula.uaxctf.util.calculateSecondsFrom
@@ -29,13 +27,18 @@ class TrainingDashboardService(
 
 ) {
 
-    fun getTrainingDashboard(season: String, startDate: Date, endDate: Date, team: String?): TrainingDashboardResponse {
+    fun getTeamTrainingDashboard(season: String, startDate: Date, endDate: Date, team: String?): TrainingDashboardResponse {
 
 
         val runners = if (team != null && !team.equals("UA", ignoreCase = true)) {
             runnerService.getRunnersByTeam(team)
         } else if (season == "track") {
-            runnerService.getTrackRoster(true, startDate.getYearString())
+            if (startDate.toLocalDate().monthValue >= 11) {
+                runnerService.getTrackRoster(true, (startDate.getYearString().toInt()+1).toString())
+            } else {
+                runnerService.getTrackRoster(true, startDate.getYearString())
+            }
+
         } else {
             runnerService.getXcRoster(true, startDate.getYearString())
         }
@@ -44,7 +47,7 @@ class TrainingDashboardService(
 
             val trainingRuns: List<TrainingRunResult> = trainingRunsService.getARunnersTrainingRunsByTypeWithinDates(it.id, startDate, endDate, season).trainingRunResults
             val crossTrainingWorkouts: List<CrossTrainingRecordProfileResponse> = crossTrainingService.getCrossTrainingActivitiesForRunnerBetweenDatesForSeason(it.id, startDate, endDate, season)
-            val workouts: List<RunnerWorkoutResultResponse>  = workoutSplitService.getAllARunnersWorkoutResultsBySeason(it.id, startDate.getYearString(), startDate, endDate, season)
+            val workouts: List<RunnerWorkoutResultResponse> = workoutSplitService.getAllARunnersWorkoutResultsBySeason(it.id, startDate.getYearString(), startDate, endDate, season)
             val meetLogs = meetLogService.getRunnerMeetLogsBetweenDates(it.id, startDate, endDate)
             val xcMeetLogs = meetLogs.first.filter{ log -> log.meetLog != null }
             val trackMeetLogs = meetLogs.second
@@ -62,7 +65,7 @@ class TrainingDashboardService(
                 weeklyTrainingRunAverageEffort = 0.0
             }
 
-            val trainingRunTotalSeconds = trainingRuns.map { it.results.map { it.time.calculateSecondsFrom() } }.flatten().sum()
+            val trainingRunTotalSeconds = trainingRuns.map { it.results.map { it.getTotalTime() } }.flatten().sum()
             val workoutTotalSeconds = workouts.map { it.getTotalSeconds() }.sum()
             val totalXcMeetTime =  xcMeetLogs.map { it.meetLog!!.getTotalTimeSeconds() }.sum()
             val totalTrackMeetTime = trackMeetLogs.map { it.trackMeetLogs.map { it.getTotalTimeSeconds() } }.flatten().sum()
@@ -81,7 +84,7 @@ class TrainingDashboardService(
                     weeklyMiles,
                     weeklyAveragePace,
                     weeklyTrainingRunAverageEffort,
-                    trainingRuns.map{it.results}.flatten(),
+                    trainingRuns,
                     workouts,
                     crossTrainingWorkouts,
                     xcMeetLogs,
@@ -92,6 +95,19 @@ class TrainingDashboardService(
         }
                 .sortedByDescending { it.weeklyMiles }
         return TrainingDashboardResponse(dashboardRows)
+    }
+
+    fun getIndividualTrainingDashboard(runnerId: Int, startDate: Date, endDate: Date): IndividualTrainingDashboardResponse {
+        var runner = runnerService.runnerRepository.findById(runnerId).get()
+        val trainingRuns: List<TrainingRunResult> = trainingRunsService.getARunnersTrainingRunsWithinDates(runnerId, startDate, endDate).trainingRunResults
+        val workouts: List<RunnerWorkoutResultResponse> = workoutSplitService.getAllARunnersWorkoutResultsBetweenDates(runnerId, startDate, endDate)
+        val crossTrainingWorkouts: List<CrossTrainingRecordProfileResponse> = crossTrainingService.getCrossTrainingActivitiesForRunnerBetweenDates(runnerId, startDate, endDate)
+        val meetLogs = meetLogService.getRunnerMeetLogsBetweenDates(runnerId, startDate, endDate)
+        val xcMeetLogs = meetLogs.first.filter{ log -> log.meetLog != null }
+        val trackMeetLogs = meetLogs.second
+
+        return IndividualTrainingDashboardResponse(runner, trainingRuns, workouts, crossTrainingWorkouts, xcMeetLogs, trackMeetLogs)
+
     }
 
 

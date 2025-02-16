@@ -7,16 +7,12 @@ import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
 import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
 
-class RunnerTrainingDashboardEntry(
+class IndividualTrainingDashboardResponse(
         val runner: Runner,
-        val weeklyRuns: Int,
-        val weeklyMiles: Double,
-        val weeklyAvgPace: String,
-        val weeklyTrainingRunAvgEffort: Double,
-        val trainingRuns: List<TrainingRunResult>,
-        val workouts: List<RunnerWorkoutResultResponse>,
+        val trainingRunResults: List<TrainingRunResult>,
+        val workoutResults: List<RunnerWorkoutResultResponse>,
         val crossTrainingRecords: List<CrossTrainingRecordProfileResponse>,
         val xcMeetLogs: List<MeetLogResponse>,
         val trackMeetLogs: List<TrackMeetLogResponse>
-    ) {
+) {
 }
