@@ -196,6 +196,7 @@ class TrainingBasePerformanceService(
 
         val trainingPaceRanges: List<RunnersTrainingRunPaceRange> = trainingBasePerformanceRepository.findBySeasonAndYear(season, year)
                 .groupBy { it.runnerId }
+                .filter { runners[it.key] != null }
                 .map {
                     runners[it.key]!! to it.value
                 }.map {

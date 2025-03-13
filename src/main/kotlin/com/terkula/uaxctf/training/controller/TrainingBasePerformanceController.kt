@@ -112,7 +112,7 @@ class TrainingBasePerformanceController(
     @ApiOperation("Get Base Training Paces")
     @RequestMapping(value = ["training/base-paces/for-all-runners"], method = [RequestMethod.GET])
     fun getBaseTrainingPacesForAllRunners(
-            @ApiParam("type of run (recovery or base building")
+            @ApiParam("type of run (recovery or base building)")
             @RequestParam(value = "type", required = true) type: String,
 
             @ApiParam("track or xc?")
