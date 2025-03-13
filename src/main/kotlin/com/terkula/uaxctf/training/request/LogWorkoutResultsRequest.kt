@@ -14,7 +14,9 @@ class LogWorkoutResultsRequest(
     var coolDownDistance: Double?,
     var coolDownPace: String?,
     val componentsSplits: List<ComponentsSplitsRequest>,
-    val coachNotes: String?
+    val coachNotes: String?,
+    val painLevel: Double?,
+    val painNotes: String?
 )
 
 

@@ -29,5 +29,16 @@ class CreateRunnersTrainingRunRequest(
     val warmUpPace: String?,
     val warmUpDistance: Double?,
     val coachNotes: String?,
-    val effortLevel: Double
-)
+    val effortLevel: Double,
+    val painLevel: Double?,
+    val painNotes: String?,
+    val splits: List<String>?
+) {
+    fun splitsString(): String? {
+        if (splits == null) {
+            return null
+        } else {
+            return splits!!.joinToString(",")
+        }
+    }
+}

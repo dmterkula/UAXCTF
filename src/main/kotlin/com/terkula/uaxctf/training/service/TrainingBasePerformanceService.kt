@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.training.service
 
+import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.training.model.trainingbase.BaseTrainingPercentage
@@ -36,13 +37,22 @@ class TrainingBasePerformanceService(
 
     fun getBaseTrainingPerformances(
             season: String,
-            year: String
+            year: String,
+            team: String
     ): List<TrainingBasePerformanceResponse> {
 
         var basePaces = trainingBasePerformanceRepository.findBySeasonAndYear(season, year)
-        var runners = runnerRepository.findByGraduatingClassGreaterThanEqual(year).map { it.id to it }.toMap()
+
+        val bent = if (year.toInt() >= 2024) {
+            runnerRepository.findByTeam("NU")
+        } else {
+            emptyList<Runner>()
+        }
+        var runners = runnerRepository.findByGraduatingClassGreaterThanEqual(year).toMutableList().plus(bent).map{ it.id to it }.toMap()
 
         return basePaces.map { TrainingBasePerformanceResponse(runners[it.runnerId]!!, it) }
+                .filter { it.runner.team == team }
+                .groupBy { it.runner.id }.map { it.value }.flatten()
 
     }
 

@@ -31,7 +31,12 @@ class RunnerWorkoutDistance(
         var coolDownPace: String?,
         var notes: String?,
         @Column(name = "coach_notes")
-        var coachNotes: String?
+        var coachNotes: String?,
+        @Column(name = "pain_level")
+        var painLevel: Double?,
+        @Column(name = "pain_notes")
+        var painNotes: String?
+
 ) {
 
     @JsonIgnore

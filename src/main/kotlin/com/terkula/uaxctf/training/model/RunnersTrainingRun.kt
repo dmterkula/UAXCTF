@@ -25,7 +25,13 @@ class RunnersTrainingRun(
     @Column(name = "coach_notes")
     var coachNotes: String?,
     @Column(name = "effort_level")
-    var effortLevel: Double?
+    var effortLevel: Double?,
+    @Column(name = "pain_level")
+    var painLevel: Double?,
+    @Column(name = "pain_notes")
+    var painNotes: String?,
+    @Column(name = "splits")
+    var splits: String?
 ) {
 
     @JsonIgnore
@@ -33,6 +39,14 @@ class RunnersTrainingRun(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    fun splitsList(): List<String>? {
+        var splits: List<String>? = null
+        if (this.splits != null) {
+            splits = this.splits!!.split(",")
+        }
+        return splits
+    }
 
     fun getTotalDistance(): Double {
 
