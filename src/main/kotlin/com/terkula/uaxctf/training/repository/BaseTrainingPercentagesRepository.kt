@@ -13,5 +13,9 @@ interface BaseTrainingPercentagesRepository: CrudRepository<BaseTrainingPercenta
     fun findByType(type: String): List<BaseTrainingPercentage>
 
     fun findByTypeAndSeason(type: String, season: String): List<BaseTrainingPercentage>
+    fun findByEventAndSeason(event: String, season: String): List<BaseTrainingPercentage>
+
+    fun findBySeasonAndTypeAndPaceName(season: String, type: String, paceName: String): List<BaseTrainingPercentage>
+    fun findByEventAndSeasonAndTypeAndPaceNameAndPercent(event: String, season: String, type: String, paceName: String, percent: Int): List<BaseTrainingPercentage>
 
 }
