@@ -16,7 +16,9 @@ class LogWorkoutResultsRequest(
     val componentsSplits: List<ComponentsSplitsRequest>,
     val coachNotes: String?,
     val painLevel: Double?,
-    val painNotes: String?
+    val painNotes: String?,
+    val avgHr: Int?,
+    val maxHr: Int?
 )
 
 

@@ -25,7 +25,9 @@ class RunnerTrainingRunDTO(
     val paceRange: TrainingRunPaceRange?,
     val painLevel: Double?,
     val painNotes: String?,
-    val splits: List<String>?
+    val splits: List<String>?,
+    val avgHr: Int?,
+    val maxHr: Int?
 )
 
 fun RunnerTrainingRunDTO.getTotalDistance(): Double {
