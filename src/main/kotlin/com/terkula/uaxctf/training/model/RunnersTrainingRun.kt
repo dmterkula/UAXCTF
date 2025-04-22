@@ -31,7 +31,11 @@ class RunnersTrainingRun(
     @Column(name = "pain_notes")
     var painNotes: String?,
     @Column(name = "splits")
-    var splits: String?
+    var splits: String?,
+    @Column(name = "avg_hr")
+    var avgHr: Int?,
+    @Column(name = "max_hr")
+    var maxHr: Int?,
 ) {
 
     @JsonIgnore

@@ -35,7 +35,11 @@ class RunnerWorkoutDistance(
         @Column(name = "pain_level")
         var painLevel: Double?,
         @Column(name = "pain_notes")
-        var painNotes: String?
+        var painNotes: String?,
+        @Column(name = "avg_hr")
+        var avgHr: Int?,
+        @Column(name = "max_hr")
+        var maxHr: Int?,
 
 ) {
 

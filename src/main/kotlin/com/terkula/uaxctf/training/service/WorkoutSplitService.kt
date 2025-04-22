@@ -138,7 +138,8 @@ class WorkoutSplitService(
                 workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                 workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
+                notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
+                workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
 
     }
 
@@ -205,7 +206,7 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, it.second.warmUpDistance,
                     it.second.warmUpTime, it.second.warmUpPace,
                     it.second.coolDownDistance, it.second.coolDownTime, it.second.coolDownPace,
-                    notes, coachNotes, it.second.painLevel, it.second.painNotes, comments)
+                    notes, coachNotes, it.second.painLevel, it.second.painNotes, comments, it.second.avgHr, it.second.maxHr)
         }
 
     }
@@ -247,7 +248,8 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
+                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -290,7 +292,9 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
+                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr
+            )
         }
 
         return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
@@ -334,7 +338,8 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, workoutDistance.firstOrNull()?.warmUpDistance,
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
-                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments)
+                    notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
+                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
         }
 
         return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
@@ -367,7 +372,8 @@ class WorkoutSplitService(
             val runnerWorkoutDistance = RunnerWorkoutDistance(logWorkoutResultsRequest.workoutUuid, logWorkoutResultsRequest.runnerId, logWorkoutResultsRequest.totalDistance,
                     logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                     logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
-                    logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel, logWorkoutResultsRequest.painNotes
+                    logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel, logWorkoutResultsRequest.painNotes,
+                    logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr
             )
             workoutDistanceRepository.save(runnerWorkoutDistance)
             distance = runnerWorkoutDistance.distance
@@ -390,6 +396,8 @@ class WorkoutSplitService(
             existingRecord.coachNotes = logWorkoutResultsRequest.coachNotes
             existingRecord.painLevel = logWorkoutResultsRequest.painLevel
             existingRecord.painNotes = logWorkoutResultsRequest.painNotes
+            existingRecord.avgHr = logWorkoutResultsRequest.avgHr
+            existingRecord.maxHr = logWorkoutResultsRequest.maxHr
 
             distance = existingRecord.distance
 
@@ -402,7 +410,7 @@ class WorkoutSplitService(
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
                 logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel,
-                logWorkoutResultsRequest.painNotes, comments)
+                logWorkoutResultsRequest.painNotes, comments, logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr)
 
     }
 

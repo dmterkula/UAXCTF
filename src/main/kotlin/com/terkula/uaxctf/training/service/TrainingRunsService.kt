@@ -190,7 +190,7 @@ class TrainingRunsService(
             RunnerTrainingRunDTO(
                     runner.get(), it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                     it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange,
-                    it.painLevel, it.painNotes, it.splitsList()
+                    it.painLevel, it.painNotes, it.splitsList(), it.avgHr, it.maxHr
             )
         }, getTrainingComments(results.first().uuid))
 
@@ -211,7 +211,8 @@ class TrainingRunsService(
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance,
                             result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace,
-                            result.coachNotes, result.effortLevel, paceRange, result.painLevel, result.painNotes, result.splitsList()) })
+                            result.coachNotes, result.effortLevel, paceRange, result.painLevel, result.painNotes, result.splitsList(),
+                            result.avgHr, result.maxHr) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -235,7 +236,8 @@ class TrainingRunsService(
             TrainingRunResult(it, runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(it.uuid, runner.get().id)
                     .map { result -> RunnerTrainingRunDTO(runner.get(), result.uuid, result.trainingRunUuid, result.time, result.distance,
                             result.avgPace, result.notes, result.warmUpTime, result.warmUpDistance, result.warmUpPace, result.coachNotes,
-                            result.effortLevel, paceRange, result.painLevel, result.painNotes, result.splitsList()) })
+                            result.effortLevel, paceRange, result.painLevel, result.painNotes, result.splitsList(),
+                            result.avgHr, result.maxHr) })
         }
                 .filter { it.results.isNotEmpty() }
 
@@ -256,7 +258,7 @@ class TrainingRunsService(
             RunnerTrainingRunDTO(
                     runners[it.runnerId]!!, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                     it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange,
-                    it.painLevel, it.painNotes, it.splitsList()
+                    it.painLevel, it.painNotes, it.splitsList(), it.avgHr, it.maxHr
             )
         }, emptyList())
 
@@ -294,14 +296,18 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.effortLevel,
                     createRunnersTrainingRunRequest.painLevel,
                     createRunnersTrainingRunRequest.painNotes,
-                    createRunnersTrainingRunRequest.splitsString()
+                    createRunnersTrainingRunRequest.splitsString(),
+                    createRunnersTrainingRunRequest.avgHr,
+                    createRunnersTrainingRunRequest.maxHr
+
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
                     insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
-                    insertMe.coachNotes, insertMe.effortLevel, paceRange, insertMe.painLevel, insertMe.painNotes, insertMe.splitsList()
+                    insertMe.coachNotes, insertMe.effortLevel, paceRange, insertMe.painLevel, insertMe.painNotes, insertMe.splitsList(),
+                    insertMe.avgHr, insertMe.maxHr
             )), emptyList())
 
         } else {
@@ -318,13 +324,16 @@ class TrainingRunsService(
             runnerRecord.painLevel = createRunnersTrainingRunRequest.painLevel
             runnerRecord.painNotes = createRunnersTrainingRunRequest.painNotes
             runnerRecord.splits = createRunnersTrainingRunRequest.splitsString()
+            runnerRecord.avgHr = createRunnersTrainingRunRequest.avgHr
+            runnerRecord.maxHr = createRunnersTrainingRunRequest.maxHr
 
             runnersTrainingRunRepository.save(runnerRecord)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), runnerRecord.uuid, runnerRecord.trainingRunUuid, runnerRecord.time, runnerRecord.distance,
                     runnerRecord.avgPace, runnerRecord.notes, runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
-                    runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange, runnerRecord.painLevel, runnerRecord.painNotes, runnerRecord.splitsList()
+                    runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange, runnerRecord.painLevel, runnerRecord.painNotes, runnerRecord.splitsList(),
+                    runnerRecord.avgHr, runnerRecord.maxHr
             )), getTrainingComments(createRunnersTrainingRunRequest.uuid))
 
         }
@@ -363,14 +372,17 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.effortLevel,
                     createRunnersTrainingRunRequest.effortLevel,
                     createRunnersTrainingRunRequest.painNotes,
-                    createRunnersTrainingRunRequest.splitsString()
+                    createRunnersTrainingRunRequest.splitsString(),
+                    createRunnersTrainingRunRequest.avgHr,
+                    createRunnersTrainingRunRequest.maxHr
             )
             runnersTrainingRunRepository.save(insertMe)
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,
                     insertMe.avgPace, insertMe.notes, insertMe.warmUpTime, insertMe.warmUpDistance, insertMe.warmUpPace,
-                    insertMe.coachNotes, insertMe.effortLevel, paceRange, insertMe.painLevel, insertMe.painNotes, insertMe.splitsList()
+                    insertMe.coachNotes, insertMe.effortLevel, paceRange, insertMe.painLevel, insertMe.painNotes, insertMe.splitsList(),
+                    insertMe.avgHr, insertMe.maxHr
             )), emptyList())
 
         } else {
@@ -380,6 +392,8 @@ class TrainingRunsService(
             runnerRecord.notes = createRunnersTrainingRunRequest.notes
             runnerRecord.coachNotes = createRunnersTrainingRunRequest.coachNotes
             runnerRecord.effortLevel = createRunnersTrainingRunRequest.effortLevel
+            runnerRecord.avgHr = createRunnersTrainingRunRequest.avgHr
+            runnerRecord.maxHr = createRunnersTrainingRunRequest.maxHr
 
             runnersTrainingRunRepository.save(runnerRecord)
 
@@ -388,7 +402,8 @@ class TrainingRunsService(
                     runnerRecord.distance, runnerRecord.avgPace, runnerRecord.notes,
                     runnerRecord.warmUpTime, runnerRecord.warmUpDistance, runnerRecord.warmUpPace,
                     runnerRecord.coachNotes, runnerRecord.effortLevel, paceRange,
-                    runnerRecord.painLevel, runnerRecord.painNotes, runnerRecord.splitsList()
+                    runnerRecord.painLevel, runnerRecord.painNotes, runnerRecord.splitsList(),
+                    runnerRecord.avgHr, runnerRecord.maxHr
             )), getTrainingComments(createRunnersTrainingRunRequest.uuid))
 
         }
@@ -418,7 +433,7 @@ class TrainingRunsService(
                     RunnerTrainingRunDTO(
                             runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                             it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel,null,
-                            it.painLevel, it.painNotes, it.splitsList()
+                            it.painLevel, it.painNotes, it.splitsList(), it.avgHr, it.maxHr
                     )
                 }, emptyList())
             }
@@ -1045,7 +1060,7 @@ class TrainingRunsService(
                     runner, "be5a5137-60fc-457b-8b10-b9c913c48249", trainingRun.uuid, "00:00", 0.0,
                     "00:00", "", "00:00", 0.0, "00:00",
                     "", 0.0, getRunnersPaceRangeForTrainingRun(trainingRun, runner.id),
-                    null, null, null
+                    null, null, null, null, null
             )), emptyList())
         }
     }
@@ -1084,7 +1099,7 @@ class TrainingRunsService(
                 RunnerTrainingRunDTO(
                         runner, it.uuid, it.trainingRunUuid, it.time, it.distance, it.avgPace, it.notes,
                         it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel,null,
-                        it.painLevel, it.painNotes, it.splitsList()
+                        it.painLevel, it.painNotes, it.splitsList(), it.avgHr, it.maxHr
                 )
             }, comments)
         }
