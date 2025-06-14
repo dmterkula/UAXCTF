@@ -16,4 +16,6 @@ interface CrossTrainingRepository: CrudRepository<CrossTraining, Int> {
 
     fun findByDateBetweenAndSeason(start: Date, end: Date, season: String): List<CrossTraining>
 
+    fun findByDateBetweenAndSeasonAndTeam(start: Date, end: Date, season: String, team: String): List<CrossTraining>
+
 }

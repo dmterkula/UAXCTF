@@ -191,6 +191,15 @@ class TrainingBasePerformanceService(
                         percentage ->
                         val personalPercent: Int? = personalPercentages.firstOrNull { it.event == percentage.event && it.paceType == percentage.type && it.paceName == percentage.paceName }?.percent
                         var percentageForCalculation: Int = percentage.percent
+                        if (percentage.event == "5000m") {
+                            if (basePerformanceToPercents.first.seconds >= (23.5 * 60) && basePerformanceToPercents.first.seconds <= (27*60)) {
+                                // if between 23:30 and 27:00, add two percent.
+                                percentageForCalculation += 2
+                            } else if (basePerformanceToPercents.first.seconds > (27*60)) {
+                                // if above 27:00, add 4%
+                                percentageForCalculation += 4
+                            }
+                        }
                         if (personalPercent != null) {
                             percentageForCalculation = personalPercent
                         }
@@ -227,6 +236,13 @@ class TrainingBasePerformanceService(
                         percentage ->
                         val personalPercent: Int? = personalPercentages.firstOrNull { it.event == percentage.event && it.paceType == percentage.type && it.paceName == percentage.paceName }?.percent
                         var percentageForCalculation: Int = percentage.percent
+                        if (percentage.event == "5000m") {
+                            if (basePerformanceToPercents.first.seconds >= (23.5 * 60) && basePerformanceToPercents.first.seconds <= (27*60)) {
+                                percentageForCalculation += 2
+                            } else if (basePerformanceToPercents.first.seconds > (27*60)) {
+                                percentageForCalculation += 4
+                            }
+                        }
                         if (personalPercent != null) {
                             percentageForCalculation = personalPercent
                         }

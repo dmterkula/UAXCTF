@@ -19,10 +19,8 @@ import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
-import com.terkula.uaxctf.training.service.AchievementService
-import com.terkula.uaxctf.training.service.CrossTrainingService
-import com.terkula.uaxctf.training.service.TrainingRunsService
-import com.terkula.uaxctf.training.service.WorkoutSplitService
+import com.terkula.uaxctf.training.response.runnerseasontrainingcount.RunnerSeasonTrainingCount
+import com.terkula.uaxctf.training.service.*
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.subtractDay
 import com.terkula.uaxctf.util.subtractDays
@@ -50,7 +48,8 @@ open class RunnerProfileAsyncHelper (
     val trackMeetPerformanceService: TrackMeetPerformanceService,
     val trackPRService: TrackPRService,
     val trackSBService: TrackSBService,
-    val crossTrainingService: CrossTrainingService
+    val crossTrainingService: CrossTrainingService,
+    val summerTrainingAwardService: SummerTrainingAwardService
 ) {
 
 
@@ -73,6 +72,11 @@ open class RunnerProfileAsyncHelper (
 
         return splits
 
+    }
+
+    @Async
+    open fun getSummerTrainingAwardStatus(runnerId: Int, season: String, year: String, team: String): Future<RunnerSeasonTrainingCount?> {
+        return AsyncResult(summerTrainingAwardService.getSeasonTrainingCountsForRunner(runnerId, season, year, team))
     }
 
     @Async
