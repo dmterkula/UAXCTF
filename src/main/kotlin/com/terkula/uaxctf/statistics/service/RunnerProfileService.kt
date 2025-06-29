@@ -43,7 +43,7 @@ class RunnerProfileService (
         ) {
 
 
-    fun buildRunnerProfileV2(runnerId: Int, season: String, type: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
+    fun buildRunnerProfileV2(runnerId: Int, season: String, type: String, team: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
         val runner = runnerRepository.findById(runnerId).get()
 
 
@@ -65,6 +65,7 @@ class RunnerProfileService (
         val trackSBsFuture = runnerProfileAsyncHelper.getTrackSBs(runnerId, season)
         val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
         val crossTrainingFuture = runnerProfileAsyncHelper.getCrossTrainingWorkouts(runnerId, season, type)
+        val seasonTrainingCountFuture = runnerProfileAsyncHelper.getSummerTrainingAwardStatus(runnerId, type, season, team)
 
 
 
@@ -88,12 +89,13 @@ class RunnerProfileService (
         val trackSBs = trackSBsFuture.get()
         val achievements = achievementsFuture.get()
         val crossTrainingRecords = crossTrainingFuture.get()
+        val summerTrainingCount = seasonTrainingCountFuture.get()
 
 
 
         return RunnerProfileDTOV2(runner, prRank, sbRank, consistencyRank, trainingDistanceRank, timeTrailProgressionRank,
                 goals.goals, trainingRuns, workoutResults, meetResults.sortedBy { it.meetDate }, trackResults.sortedBy { it.meet.date }, trainingRunSummary,
-                achievements, trackPRs, trackSBs, crossTrainingRecords
+                achievements, trackPRs, trackSBs, crossTrainingRecords, summerTrainingCount
         )
 
 

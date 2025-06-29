@@ -18,4 +18,6 @@ interface WorkoutRepository: CrudRepository<Workout, Int> {
 
     fun findByDateBetweenAndSeason(start: Date, end: Date, season: String): List<Workout>
 
+    fun findByDateBetweenAndSeasonAndTeam(start: Date, end: Date, season: String, team: String): List<Workout>
+
 }

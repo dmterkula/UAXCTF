@@ -211,6 +211,10 @@ fun Date.addDay(): Date {
     return Date.valueOf(this.toLocalDate().plusDays(1))
 }
 
+fun Date.addDays(days: Long): Date {
+    return Date.valueOf(this.toLocalDate().plusDays(days))
+}
+
 fun Date.subtractDay(): Date {
     return Date.valueOf(this.toLocalDate().minusDays(1))
 }

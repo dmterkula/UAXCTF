@@ -37,7 +37,8 @@ class RunnerProfileController (@field:Autowired
 
             @RequestParam(value = "includeWarmUps", required = false) includeWarmUps: Boolean = false,
 
-            @RequestParam(value = "type", required = false) type: String? = "xc"
+            @RequestParam(value = "type", required = false) type: String? = "xc",
+            @RequestParam(value = "team", required = false) team: String? = "UA"
             ): RunnerProfileDTOV2 {
 
         var trackOrXc = "xc"
@@ -45,7 +46,12 @@ class RunnerProfileController (@field:Autowired
            trackOrXc = type
         }
 
-        return runnerProfileService.buildRunnerProfileV2(runnerId, season, trackOrXc, includeWarmUps)
+        var teamType = "UA"
+        if (team != null && team != "UA") {
+            teamType = team
+        }
+
+        return runnerProfileService.buildRunnerProfileV2(runnerId, season, trackOrXc, teamType, includeWarmUps)
 
     }
 

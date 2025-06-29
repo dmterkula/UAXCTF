@@ -163,7 +163,7 @@ class WorkoutSplitService(
 
                         runnerService.getTrackRoster(true, season)
                     } else {
-                        runnerService.getTrackRoster(true, workout.date.getYearString())
+                        runnerService.getXcRoster(true, workout.date.getYearString())
                     }
                 }
                 .map {
