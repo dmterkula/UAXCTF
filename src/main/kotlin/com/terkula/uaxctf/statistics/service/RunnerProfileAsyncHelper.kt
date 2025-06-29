@@ -21,9 +21,7 @@ import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
 import com.terkula.uaxctf.training.response.runnerseasontrainingcount.RunnerSeasonTrainingCount
 import com.terkula.uaxctf.training.service.*
-import com.terkula.uaxctf.util.TimeUtilities
-import com.terkula.uaxctf.util.subtractDay
-import com.terkula.uaxctf.util.subtractDays
+import com.terkula.uaxctf.util.*
 import org.springframework.scheduling.annotation.Async
 import org.springframework.scheduling.annotation.AsyncResult
 import org.springframework.stereotype.Component
@@ -210,7 +208,7 @@ open class RunnerProfileAsyncHelper (
     @Async
     open fun getTrainingRunSummary(runnerId: Int, season: String, includeWarmUps: Boolean, type: String): Future<List<DateRangeRunSummaryDTO>> {
 
-        var startDate = TimeUtilities.getFirstDayOfGivenYear(season)
+        var startDate = TimeUtilities.getFirstDayOfGivenYear(season).addDays(150)
         var endDate = TimeUtilities.getLastDayOfGivenYear(season)
 
         if (type.equals("track", ignoreCase = true)) {
