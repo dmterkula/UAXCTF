@@ -17,4 +17,6 @@ interface AuthenticationRepository: CrudRepository<AppUser, Int> {
 
     fun deleteByRunnerId(runnerId: Int): AppUser?
 
+    fun findByRole(role: String): List<AppUser>
+
 }

@@ -92,4 +92,13 @@ class AuthenticationController(val authenticationService: AuthenticationService)
     ): List<Runner> {
         return authenticationService.getAllRunnersOnRosterWithoutAnAccount(season)
     }
+
+    @ApiOperation("Create App User")
+    @RequestMapping(value = ["xc/appUsers/AllForSeason"], method = [RequestMethod.GET])
+    fun getRunnersOnRosterWithoutAccount(
+            @RequestParam(value = "season", required = true) season: String,
+            @RequestParam(value = "year", required = true) year: String,
+    ): List<AppUser> {
+        return authenticationService.getAllAppUsersForSeason(year, season)
+    }
 }

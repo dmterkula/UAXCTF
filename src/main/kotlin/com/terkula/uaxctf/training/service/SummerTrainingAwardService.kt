@@ -58,9 +58,15 @@ class SummerTrainingAwardService(
                     .forEach { loggedRun ->
                         val entry = runnersToCount[runners[loggedRun.runnerId]]
                         if (entry == null) {
-                            runnersToCount[runners[loggedRun.runnerId]!!] = 1 to loggedRun.getTotalDistance()
+                            if (runners[loggedRun.runnerId] != null) {
+                                runnersToCount[runners[loggedRun.runnerId]!!] = 1 to loggedRun.getTotalDistance()
+                            }
+
                         } else {
-                            runnersToCount[runners[loggedRun.runnerId]!!] = (entry.first + 1 ) to (entry.second + loggedRun.getTotalDistance())
+                            if (runners[loggedRun.runnerId] != null) {
+                                runnersToCount[runners[loggedRun.runnerId]!!] = (entry.first + 1 ) to (entry.second + loggedRun.getTotalDistance())
+                            }
+
                         }
                     }
         }
@@ -72,9 +78,15 @@ class SummerTrainingAwardService(
                     .forEach { distance ->
                         val entry = runnersToCount[runners[distance.runnerId]]
                         if (entry == null) {
-                            runnersToCount[runners[distance.runnerId]!!] = 1 to distance.getTotalDistance()
+                            if (runners[distance.runnerId] != null) {
+                                runnersToCount[runners[distance.runnerId]!!] = 1 to distance.getTotalDistance()
+                            }
+
                         } else {
-                            runnersToCount[runners[distance.runnerId]!!] = (entry.first + 1) to (entry.second + distance.getTotalDistance())
+                            if (runners[distance.runnerId] != null) {
+                                runnersToCount[runners[distance.runnerId]!!] = (entry.first + 1) to (entry.second + distance.getTotalDistance())
+                            }
+
                         }
                     }
 
@@ -88,9 +100,15 @@ class SummerTrainingAwardService(
                     .forEach { crossTraining ->
                         val entry = runnersToCount[runners[crossTraining.runnerId]]
                         if (entry == null) {
-                            runnersToCount[runners[crossTraining.runnerId]!!] = 1 to 0.0
+                            if (runners[crossTraining.runnerId] != null) {
+                                runnersToCount[runners[crossTraining.runnerId]!!] = 1 to 0.0
+                            }
+
                         } else {
-                            runnersToCount[runners[crossTraining.runnerId]!!] = (entry.first + 1) to (entry.second)
+                            if (runners[crossTraining.runnerId] != null) {
+                                runnersToCount[runners[crossTraining.runnerId]!!] = (entry.first + 1) to (entry.second)
+                            }
+
                         }
                     }
         }
