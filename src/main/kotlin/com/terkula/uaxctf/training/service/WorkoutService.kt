@@ -214,6 +214,7 @@ class WorkoutService (
                     RunnerWorkoutPlanDTOV2(it.first, it.second.map { dto-> dto.componentPlans[0] })
                 }
 
+
         return WorkoutPlanResponseV2(componentPlans, runnerWorkoutPlans)
     }
 
@@ -801,6 +802,7 @@ class WorkoutService (
                 .map { eligibleRunners[it.runner.id] to it.trainingBasePerformance }
                 .filter { it.first != null && it.second != null }
                 .map { it.first!! to it.second!! }
+                .sortedBy { it.second.seconds }
                 .toMap()
     }
 

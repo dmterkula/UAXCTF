@@ -79,6 +79,21 @@ class AuthenticationService(
                 }
     }
 
+    fun getAllAppUsersForSeason(season: String, type: String): List<AppUser> {
+
+        var runners: Map<Int, Runner,> = if (type == "xc") {
+            runnerService.getXcRoster(true, season).associateBy { it.id }
+        } else {
+            runnerService.getTrackRoster(true, season).associateBy { it.id }
+        }
+
+        var bentley = authenticationRepository.findByRunnerId(89)
+
+        var allUsers = authenticationRepository.findAll().filter { runners.containsKey(it.runnerId) || it.role == "coach" }
+        allUsers = allUsers.plus(bentley)
+        return allUsers.distinctBy { it.id }
+    }
+
     fun createAppUser(createAppUser: CreateAppUserRequest): AppUser {
 
         var user = authenticationRepository.findByRunnerId(createAppUser.runnerId)
