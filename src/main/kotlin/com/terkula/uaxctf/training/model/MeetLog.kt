@@ -30,7 +30,14 @@ class MeetLog( @Column(name = "meet_uuid")
                @Column(name = "coach_notes")
                var coachNotes: String?,
                @Column(name = "season")
-               var season: String
+               var season: String,
+               @Column(name = "satisfaction")
+               var satisfaction: Int?,
+               @Column(name = "happyWith")
+               var happyWith: String?,
+               @Column(name = "notHappyWith")
+               var notHappyWith: String?,
+
 ) {
 
     @JsonIgnore

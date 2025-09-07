@@ -310,10 +310,15 @@ class MeetPerformanceService(@field:Autowired
                                        endDate: Date,
                                        sortingMethodContainer: SortingMethodContainer,
                                        count: Int,
-                                       adjustForDistance: Boolean): List<RunnerMeetPerformanceDTO> {
+                                       adjustForDistance: Boolean,
+                                       team: String
+    ): List<RunnerMeetPerformanceDTO> {
+
+
+
         // find meet matching partial name
 
-        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
+        val meets = meetRepository.findByNameAndDateBetweenAndTeam(meetName, startDate, endDate, team)
 
         // construct map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()

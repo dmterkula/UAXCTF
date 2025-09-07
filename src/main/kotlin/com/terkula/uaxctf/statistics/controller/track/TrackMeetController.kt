@@ -57,9 +57,12 @@ class TrackMeetController(
 
     @ApiOperation("Returns a List of meet names to select for results ")
     @RequestMapping(value = ["track/getMeetNames"], method = [RequestMethod.GET])
-    fun getMeets() : MeetResponse {
+    fun getMeets(
+            @RequestParam(value = "team", required = false, defaultValue = "UA") team: String? = "UA"
+    ) : MeetResponse {
 
-        return MeetResponse(meetInfoService.getTrackMeetInfo())
+        var teamString = team ?: "UA"
+        return MeetResponse(meetInfoService.getTrackMeetInfo(teamString))
     }
 
     @ApiOperation("Returns Meet Summary For Track Meet ")

@@ -16,15 +16,22 @@ class MeetInfoController(var meetInfoService: MeetInfoService) {
 
     @ApiOperation("Returns a List of meet names to select for results ")
     @RequestMapping(value = ["xc/getMeetNames"], method = [RequestMethod.GET])
-    fun getMeets() : MeetResponse {
+    fun getMeets(
+            @RequestParam(value = "team", required = false, defaultValue = "UA") team: String? = "UA"
+    ) : MeetResponse {
 
-       return MeetResponse(meetInfoService.getMeetInfo())
+        var teamString = team ?: "UA"
+       return MeetResponse(meetInfoService.getMeetInfo(teamString))
     }
 
     @ApiOperation("Returns a List of meet names to select for results for both XC and track")
     @RequestMapping(value = ["/getAllMeetNames"], method = [RequestMethod.GET])
-    fun getAllMeets() : TrackAndXcMeetResponse {
-        return TrackAndXcMeetResponse(meetInfoService.getMeetInfo(), meetInfoService.getTrackMeetInfo())
+    fun getAllMeets(
+            @RequestParam(value = "team", required = false, defaultValue = "UA") team: String? = "UA"
+    ) : TrackAndXcMeetResponse {
+
+        var teamString = team ?: "UA"
+        return TrackAndXcMeetResponse(meetInfoService.getMeetInfo(teamString), meetInfoService.getTrackMeetInfo(teamString))
     }
 
     @ApiOperation("Returns a List of meet names to select for results ")

@@ -6,11 +6,17 @@ import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetLogRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.CreateMeetLogRequest
+import com.terkula.uaxctf.statistics.request.CreateXcPreMeetLogRequest
 import com.terkula.uaxctf.statistics.request.track.CreateTrackMeetLogRequest
 import com.terkula.uaxctf.training.model.MeetLog
 import com.terkula.uaxctf.training.model.TrackMeetLog
+import com.terkula.uaxctf.training.model.PreMeetLog
+import com.terkula.uaxctf.training.model.TrainingComment
 import com.terkula.uaxctf.training.repository.MeetLogRepository
+import com.terkula.uaxctf.training.repository.TrainingCommentRepository
+import com.terkula.uaxctf.training.repository.XcPreMeetLogRepository
 import com.terkula.uaxctf.training.response.MeetLogResponse
+import com.terkula.uaxctf.training.response.PreMeetLogResponse
 import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
 import org.springframework.stereotype.Service
 import java.sql.Date
@@ -20,7 +26,9 @@ class MeetLogService (
         val meetLogRepository: MeetLogRepository,
         val meetRepository: MeetRepository,
         val trackMeetLogRepository: TrackMeetLogRepository,
-        val trackMeetRepository: TrackMeetRepository
+        val trackMeetRepository: TrackMeetRepository,
+        val xcPreMeetLogRepository: XcPreMeetLogRepository,
+        val commentRepository: TrainingCommentRepository
 ) {
 
     fun getRunnerMeetLogsBetweenDates(runnerId: Int, startDate: Date, endDate: Date): Pair<List<MeetLogResponse>, List<TrackMeetLogResponse>> {
@@ -47,9 +55,79 @@ class MeetLogService (
         }
 
         val log = meetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId)
+        val preMeetLog: PreMeetLog? = xcPreMeetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId).firstOrNull()
+        var preMeetComments = emptyList<TrainingComment>()
+        var postMeetComments = emptyList<TrainingComment>()
 
-        return MeetLogResponse(log.firstOrNull(), meets.first())
+        if (preMeetLog != null) {
+            preMeetComments = commentRepository.findByTrainingEntityUuid(preMeetLog!!.uuid)
+        }
+        if (log.firstOrNull() != null) {
+            postMeetComments = commentRepository.findByTrainingEntityUuid(log.first().meetId + "-" + log.first().runnerId)
+        }
+
+        return MeetLogResponse(log.firstOrNull(), meets.first(), preMeetLog, preMeetComments, postMeetComments)
     }
+
+    fun getXcPreMeetLog(meetId: String, runnerId: Int): PreMeetLogResponse{
+
+        val meets = meetRepository.findByUuid(meetId)
+
+        val trackMeet = trackMeetRepository.findByUuid(meetId)
+        if (trackMeet.isPresent) {
+            val result = trackMeet.get()
+            meets.add(Meet(result.name, result.date, result.uuid, result.icon, result.team))
+        }
+
+        val log = xcPreMeetLogRepository.findByMeetIdAndRunnerId(meetId, runnerId)
+
+        return PreMeetLogResponse(log.firstOrNull(), meets.first())
+    }
+
+    fun createXcPreMeetLog(createMeetLogRequest: CreateXcPreMeetLogRequest): MeetLogResponse {
+
+        val meet = meetRepository.findByUuid(createMeetLogRequest.meetId).first()
+        val existingPreMeetLog = xcPreMeetLogRepository.findByMeetIdAndRunnerId(createMeetLogRequest.meetId, createMeetLogRequest.runnerId)
+
+        val existingMeetLog = meetLogRepository.findByMeetIdAndRunnerId(createMeetLogRequest.meetId, createMeetLogRequest.runnerId).firstOrNull()
+
+        if (existingPreMeetLog.firstOrNull() == null) {
+
+            val newPreMeetLog = PreMeetLog(createMeetLogRequest.meetId, createMeetLogRequest.runnerId, createMeetLogRequest.goals,
+            createMeetLogRequest.plan, createMeetLogRequest.confidence, createMeetLogRequest.preparation, createMeetLogRequest.whenItsHard,
+            createMeetLogRequest.questions, createMeetLogRequest.notes, createMeetLogRequest.sleepScore, createMeetLogRequest.fuelingScore,
+            createMeetLogRequest.hydrationScore, createMeetLogRequest.sorenessScore, createMeetLogRequest.uuid)
+
+            xcPreMeetLogRepository.save(newPreMeetLog)
+
+            return MeetLogResponse(existingMeetLog, meet, newPreMeetLog, emptyList(), commentRepository.findByTrainingEntityUuid(createMeetLogRequest.meetId + "-" + createMeetLogRequest.runnerId))
+
+        } else {
+            val preMeetLog = existingPreMeetLog.first()
+
+            preMeetLog.goals = createMeetLogRequest.goals
+            preMeetLog.plan = createMeetLogRequest.plan
+            preMeetLog.confidence = createMeetLogRequest.confidence
+            preMeetLog.preparation = createMeetLogRequest.preparation
+            preMeetLog.whenItsHard = createMeetLogRequest.whenItsHard
+            preMeetLog.questions = createMeetLogRequest.questions
+            preMeetLog.notes = createMeetLogRequest.notes
+            preMeetLog.sleepScore = createMeetLogRequest.sleepScore
+            preMeetLog.fuelingScore = createMeetLogRequest.fuelingScore
+            preMeetLog.hydrationScore = createMeetLogRequest.hydrationScore
+            preMeetLog.sorenessScore = createMeetLogRequest.sorenessScore
+
+
+            xcPreMeetLogRepository.save(preMeetLog)
+
+            var preMeetComments: List<TrainingComment> = commentRepository.findByTrainingEntityUuid(createMeetLogRequest.uuid)
+            var postMeetComments: List<TrainingComment> = commentRepository.findByTrainingEntityUuid(createMeetLogRequest.meetId + "-" + createMeetLogRequest.runnerId)
+
+            return MeetLogResponse(existingMeetLog, meet, preMeetLog, preMeetComments, postMeetComments)
+
+        }
+    }
+
 
     fun getTrackMeetLogs(meetId: String, runnerId: Int): TrackMeetLogResponse {
 
@@ -68,8 +146,20 @@ class MeetLogService (
             meets.add(Meet(result.name, result.date, result.uuid, result.icon, result.team))
         }
 
+        val preMeetLogs = xcPreMeetLogRepository.findByMeetId(meetId).map { it.runnerId to it }.toMap()
+
         return meetLogRepository.findByMeetId(meetId).map{
-            MeetLogResponse(it, meets.first())
+            var preMeetComments: List<TrainingComment> = emptyList()
+            val preMeetLog = preMeetLogs[it.runnerId]
+            if (preMeetLog != null) {
+                preMeetComments = commentRepository.findByTrainingEntityUuid(preMeetLog!!.uuid)
+                        .sortedBy { it.timestamp }
+            }
+
+            val postMeetComments: List<TrainingComment> = commentRepository.findByTrainingEntityUuid(it.meetId + "-" + it.runnerId)
+                    .sortedBy { it.timestamp }
+
+            MeetLogResponse(it, meets.first(), preMeetLogs[it.runnerId], preMeetComments, postMeetComments)
         }
     }
 
@@ -87,16 +177,31 @@ class MeetLogService (
 
         val meet = meetRepository.findByUuid(createMeetLogRequest.meetId).first()
         val existingLog = meetLogRepository.findByMeetIdAndRunnerId(createMeetLogRequest.meetId, createMeetLogRequest.runnerId)
+        val preMeetLog = xcPreMeetLogRepository.findByMeetIdAndRunnerId(createMeetLogRequest.meetId, createMeetLogRequest.runnerId).firstOrNull()
+
+        var preMeetComments = emptyList<TrainingComment>()
+        var postMeetComments = emptyList<TrainingComment>()
+
+        if (preMeetLog != null) {
+            preMeetComments = commentRepository.findByTrainingEntityUuid(preMeetLog!!.uuid)
+        }
+        if (existingLog.firstOrNull() != null) {
+            postMeetComments = commentRepository.findByTrainingEntityUuid(existingLog.first().meetId + "-" + existingLog.first().runnerId)
+        }
 
         if (existingLog.firstOrNull() == null) {
 
             val newMeetLog = MeetLog(createMeetLogRequest.meetId, createMeetLogRequest.runnerId, createMeetLogRequest.time,
                     createMeetLogRequest.warmUpDistance, createMeetLogRequest.warmUpTime, createMeetLogRequest.warmUpPace, createMeetLogRequest.coolDownDistance,
-                    createMeetLogRequest.coolDownTime, createMeetLogRequest.coolDownPace, createMeetLogRequest.notes, createMeetLogRequest.coachNotes, createMeetLogRequest.season)
+                    createMeetLogRequest.coolDownTime, createMeetLogRequest.coolDownPace, createMeetLogRequest.notes, createMeetLogRequest.coachNotes, createMeetLogRequest.season,
+                    createMeetLogRequest.satisfaction, createMeetLogRequest.happyWith, createMeetLogRequest.notHappyWith
+            )
+
+
 
             meetLogRepository.save(newMeetLog)
 
-            return MeetLogResponse(newMeetLog, meet)
+            return MeetLogResponse(newMeetLog, meet, preMeetLog, preMeetComments, postMeetComments)
 
         } else {
             val log = existingLog.first()
@@ -111,10 +216,13 @@ class MeetLogService (
             log.notes = createMeetLogRequest.notes
             log.coachNotes = createMeetLogRequest.coachNotes
             log.season = createMeetLogRequest.season
+            log.satisfaction = createMeetLogRequest.satisfaction
+            log.happyWith = createMeetLogRequest.happyWith
+            log.notHappyWith = createMeetLogRequest.notHappyWith
 
             meetLogRepository.save(log)
 
-            return MeetLogResponse(log, meet)
+            return MeetLogResponse(log, meet, preMeetLog, preMeetComments, postMeetComments)
 
         }
     }
@@ -198,7 +306,7 @@ class MeetLogService (
         } else {
             meetRepository.findByDateBetween(startDate, endDate).map {
                 getMeetLog(it.uuid, runnerId) to it.date
-            }.filter {it.first.meetLog != null}
+            }.filter {it.first.meetLog != null || it.first.preMeetLog != null}
                     .map {
                         it.first!! to it.second
                     }
