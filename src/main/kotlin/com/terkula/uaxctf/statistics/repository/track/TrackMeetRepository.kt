@@ -19,6 +19,8 @@ interface TrackMeetRepository : CrudRepository<TrackMeet, String> {
 
     fun findByNameContainingAndDateBetween(meetName: String, start: Date, end: Date): MutableList<TrackMeet>
 
+    fun findByTeam(team: String): MutableList<TrackMeet>
+
 }
 
 

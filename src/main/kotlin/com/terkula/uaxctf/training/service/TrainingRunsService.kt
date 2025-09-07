@@ -851,7 +851,7 @@ class TrainingRunsService(
         }
 
         if (type == "xc") {
-            meetLogDatePairs.forEach {
+            meetLogDatePairs.filter{it.first.meetLog != null}.forEach {
                 trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
                 if (includeWarmUps) {
                     trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1
@@ -867,7 +867,7 @@ class TrainingRunsService(
 
 
         if (type == "track") {
-            trackMeetLogDatePairs.forEach {
+            trackMeetLogDatePairs.filter{it.first.trackMeetLogs.isNotEmpty()}.forEach {
                 trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.trainingCount + 1
                 if (includeWarmUps) {
                     trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count = trainingSummaryDates[it.second.toLocalDate().get(weekOfYear)]!!.count + 1

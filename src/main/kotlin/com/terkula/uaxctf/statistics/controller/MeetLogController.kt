@@ -1,8 +1,10 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.request.CreateMeetLogRequest
+import com.terkula.uaxctf.statistics.request.CreateXcPreMeetLogRequest
 import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.training.response.MeetLogResponse
+import com.terkula.uaxctf.training.response.PreMeetLogResponse
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.subtractDays
 
@@ -71,6 +73,12 @@ class MeetLogController(val meetLogService: MeetLogService) {
     @RequestMapping(value = ["xc/meet/log/create"], method = [RequestMethod.POST])
     fun createMeetLog(@RequestBody createMeetLogRequest: CreateMeetLogRequest): MeetLogResponse {
         return meetLogService.createMeetLog(createMeetLogRequest)
+    }
+
+    @ApiOperation("Create Meet Log Entry")
+    @RequestMapping(value = ["xc/meet/log/pre-meet/create"], method = [RequestMethod.POST])
+    fun createPreMeetLog(@RequestBody createPreMeetLogRequest: CreateXcPreMeetLogRequest): MeetLogResponse {
+        return meetLogService.createXcPreMeetLog(createPreMeetLogRequest)
     }
 
 }

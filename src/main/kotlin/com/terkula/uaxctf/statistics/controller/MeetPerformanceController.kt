@@ -139,15 +139,18 @@ class MeetPerformanceController(@field:Autowired
             @ApiParam("Limits the number of total results returned to the input")
             @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int,
             @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
-            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false): List<RunnerMeetPerformanceDTO>  {
+            @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false,
+            @RequestParam(value = "team", required = false, defaultValue = "UA") team: String? = "UA"): List<RunnerMeetPerformanceDTO>  {
 
         var startDate = Date.valueOf("$season-01-01")
         var endDate = Date.valueOf("$season-12-31")
 
         val sortingMethodContainer = getSortingMethod(sortMethod)
 
+        var teamString = team ?: "UA"
+
         return meetPerformanceService.getTotalMeetPerformancesAtMeet(partialName,
-                startDate, endDate, sortingMethodContainer, count, adjustForDistance)
+                startDate, endDate, sortingMethodContainer, count, adjustForDistance, teamString)
     }
 
     @ApiOperation("Returns the meet results for all runners matching the given name")

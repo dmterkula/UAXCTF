@@ -20,9 +20,9 @@ class MeetInfoService(
     var meetInfoRepository: MeetInfoRepository
 ) {
 
-    fun getMeetInfo(): List<MeetToDatesRunDTO>  {
+    fun getMeetInfo(team: String): List<MeetToDatesRunDTO>  {
 
-        var meets = meetRepository.findAll()
+        var meets = meetRepository.findByTeam(team)
 
         return meets.groupBy { it.name }.map {
             it.key to it.value.map { meet -> meet.date }
@@ -31,9 +31,9 @@ class MeetInfoService(
         }
     }
 
-    fun  getTrackMeetInfo(): List<MeetToDatesRunDTO>  {
+    fun  getTrackMeetInfo(team: String): List<MeetToDatesRunDTO>  {
 
-        var meets = trackMeetRepository.findAll()
+        var meets = trackMeetRepository.findByTeam(team)
 
         return meets.groupBy { it.name }.map {
             it.key to it.value.map { meet -> meet.date }

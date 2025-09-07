@@ -1,6 +1,5 @@
 package com.terkula.uaxctf.statistics.request
 
-import com.terkula.uaxctf.training.request.ComponentsSplitsRequest
 
 class CreateMeetLogRequest(
     val runnerId: Int,
@@ -14,5 +13,25 @@ class CreateMeetLogRequest(
     var coolDownDistance: Double?,
     var coolDownPace: String?,
     var coachNotes: String?,
-    var season: String = "xc"
+    var season: String = "xc",
+    var satisfaction: Int?,
+    var happyWith: String?,
+    var notHappyWith: String?
+)
+
+class CreateXcPreMeetLogRequest(
+    val runnerId: Int,
+    val meetId: String,
+    val uuid: String,
+    var goals: String?,
+    var plan: String?,
+    var confidence: String?,
+    var preparation: String?,
+    var whenItsHard: String?,
+    var questions: String?,
+    var notes: String?,
+    var sleepScore: Int?,
+    var fuelingScore: Int?,
+    var hydrationScore: Int?,
+    var sorenessScore: Int?,
 )
