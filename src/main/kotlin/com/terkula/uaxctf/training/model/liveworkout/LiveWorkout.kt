@@ -35,5 +35,13 @@ class LiveWorkout (
     @Column(name = "avg_power")
     var avgPower: Double,
     @Column(name = "current_power")
-    var currentPower: Double
+    var currentPower: Double,
+    @Column(name = "predicted_marathon")
+    var predictedMarathon: String,
+    @Column(name = "rolling_pace")
+    var rollingPace: String,
+    @Column(name = "song_title")
+    var songTitle: String,
+    @Column(name = "song_artist")
+    var songArtist: String
 )

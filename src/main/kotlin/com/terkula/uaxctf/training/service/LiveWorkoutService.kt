@@ -42,7 +42,11 @@ class LiveWorkoutService(
                 (liveWorkout.avgPace * 60).toMinuteSecondString().removeDecimal(),
                 (liveWorkout.currentPace * 60.0).toMinuteSecondString().removeDecimal(),
                 liveWorkout.avgPower.roundToInt(),
-                liveWorkout.currentPower.roundToInt()
+                liveWorkout.currentPower.roundToInt(),
+                liveWorkout.predictedMarathon,
+                liveWorkout.rollingPace,
+                liveWorkout.songTitle,
+                liveWorkout.songArtist
         )
 
     }
@@ -89,7 +93,11 @@ class LiveWorkoutService(
                         createLiveWorkoutEntryRequest.avgPace.round(2),
                         createLiveWorkoutEntryRequest.currentPace.round(2),
                         createLiveWorkoutEntryRequest.avgPower.round(2),
-                        createLiveWorkoutEntryRequest.currentPower.round(2)
+                        createLiveWorkoutEntryRequest.currentPower.round(2),
+                        createLiveWorkoutEntryRequest.predictedMarathonFinishTime,
+                        createLiveWorkoutEntryRequest.rollingMilePace,
+                        createLiveWorkoutEntryRequest.songTitle,
+                        createLiveWorkoutEntryRequest.songArtist
                 )
         )
 
@@ -107,7 +115,11 @@ class LiveWorkoutService(
                 (liveWorkout.avgPace * 60).toMinuteSecondString().removeDecimal(),
                 (liveWorkout.currentPace * 60.0).toMinuteSecondString().removeDecimal(),
                 liveWorkout.avgPower.roundToInt(),
-                liveWorkout.currentPower.roundToInt()
+                liveWorkout.currentPower.roundToInt(),
+                liveWorkout.predictedMarathon,
+                liveWorkout.rollingPace,
+                liveWorkout.songTitle,
+                liveWorkout.songArtist
         )
     }
 

@@ -5,7 +5,10 @@ import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.dto.StatisticalComparisonDTO
 import com.terkula.uaxctf.statistics.dto.TotalMeetPerformanceDTO
 import com.terkula.uaxctf.statistics.request.CreateMeetResultRequest
+import com.terkula.uaxctf.statistics.response.IndividualMeetSummaryResponse
 import com.terkula.uaxctf.statistics.response.RunnerMeetPerformanceResponse
+import com.terkula.uaxctf.statistics.service.IndividualMeetSummaryAsync
+import com.terkula.uaxctf.statistics.service.IndividualMeetSummaryService
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
 import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
@@ -16,7 +19,10 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 class MeetPerformanceController(@field:Autowired
-                                internal var meetPerformanceService: MeetPerformanceService) {
+                                internal var meetPerformanceService: MeetPerformanceService,
+                                var individualMeetSummaryService: IndividualMeetSummaryService,
+                                var individualMeetSummaryServiceAsync: IndividualMeetSummaryAsync
+) {
 
     @ApiOperation("Returns the meet results for all runners matching the given name")
     @RequestMapping(value = ["xc/getMeetResultByName"], method = [RequestMethod.GET])
@@ -162,6 +168,27 @@ class MeetPerformanceController(@field:Autowired
         var endDate = Date.valueOf("${createMeetResultRequest.season}-12-31")
 
         return meetPerformanceService.createMeetResult(createMeetResultRequest)
+    }
+
+    @ApiOperation("individual meet summaries")
+    @RequestMapping(value = ["xc/individualMeetSummary"], method = [RequestMethod.GET])
+    fun getIndividualMeetSummaryForRunner(
+            @RequestParam(value = "filter.meetUuid") meetUuid: String,
+            @RequestParam(value = "filter.runnerId") runnerId: Int
+    )
+            : IndividualMeetSummaryResponse? {
+
+        return individualMeetSummaryServiceAsync.getIndividualMeetSummary(runnerId, meetUuid).get()
+    }
+
+    @ApiOperation("individual meet summaries")
+    @RequestMapping(value = ["xc/individualMeetSummaries"], method = [RequestMethod.GET])
+    fun getIndividualMeetSummaryForRunner(
+            @RequestParam(value = "filter.meetUuid") meetUuid: String,
+    )
+            : List<IndividualMeetSummaryResponse> {
+
+        return individualMeetSummaryService.getIndividualMeetSummaries(meetUuid)
     }
 
 

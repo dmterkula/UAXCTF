@@ -12,6 +12,8 @@ import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
 import com.terkula.uaxctf.statistics.response.TTestResponse
+import com.terkula.uaxctf.training.repository.BaseTrainingPercentagesRepository
+import com.terkula.uaxctf.training.service.TrainingBasePerformanceService
 import com.terkula.uaxctf.util.*
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
@@ -39,14 +41,15 @@ class MeetMileSplitService(
     @field:Autowired
     private val personalRecordService: PersonalRecordService,
     @field:Autowired
-    private val meetSplitsAsyncService: MeetMileSplitAsyncService
+    private val meetSplitsAsyncService: MeetMileSplitAsyncService,
+    val trainingBasePerformanceService: TrainingBasePerformanceService
 ) {
 
 
     fun getAllMeetMileSplitsForRunner(name: String, startDate: Date, endDate: Date): RunnerMeetSplitResponse {
         val meets = meetRepository.findByDateBetween(startDate, endDate)
 
-        // val meetMap = meets.map { it.id to it }.toMap()
+         val meetMap = meets.map { it.id to it }.toMap()
 
         val runner = try {
             runnerRepository.findByNameContaining(name).first()
@@ -55,15 +58,19 @@ class MeetMileSplitService(
         }
 
         val performances: Map<Int, MeetPerformanceDTO> = meetPerformanceService.getMeetPerformancesForRunnerWithNameContaining(name,
-                startDate, endDate, SortingMethodContainer.TIME, 20, false).map { it.performance }
+                startDate, endDate, SortingMethodContainer.TIME, 50, false).map { it.performance }
                 .flatten()
                 .filter {
                     it.meetName in meets.map { meet -> meet.name }
                 }.map {
-                    meetRepository.findByNameAndDateBetween(it.meetName, startDate, endDate).first().id to it
-                }.toMap()
+                    meets.firstOrNull { m-> m.name == it.meetName && m.date == it.meetDate }?.id to it
+                }.filter{
+                            it.first != null
+                        }
+                .map { it.first!! to it.second }
+                .toMap()
 
-        return RunnerMeetSplitResponse(runner, meets.map { it.id to meetMileSplitRepository.findByMeetIdAndRunnerId(it.id, runner.id).firstOrNull() }
+        return RunnerMeetSplitResponse(runner, performances.map { it.key to meetMileSplitRepository.findByMeetIdAndRunnerId(it.key, runner.id).firstOrNull() }
                 .filter { it.second != null }
                 .map { it.first to it.second!!}
                 .toMap()
@@ -93,24 +100,46 @@ class MeetMileSplitService(
         val runnerIdToSplitComparisons = splits.map {
             it.key to it.value.map { split->
 
-                val prBeforeThisMeet = personalRecordService.getPRsByNameBeforeTargetDate(runners[it.key]!!.name, false, meetMap[split.meetId]!!.date.subtractDay())
+                var comparisonPace: Double? = null
 
-                val prPaceNullable = prBeforeThisMeet.firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
-                val prPace = if (prPaceNullable == null) {
-                    // use a value that will create a very higher number that we can filter out later to avoid this screwing up the metrics
-                    1.0
+                if (targetPace == "baseTraining") {
+
+                    val baseTraining = trainingBasePerformanceService.getRunnersTrainingBasePerformance(it.key, "xc", meets.first().date.getYearString())
+
+                    if (baseTraining.trainingBasePerformance != null) {
+                        comparisonPace = baseTraining.trainingBasePerformance.seconds.toDouble().toMinuteSecondString().getPacePerMile()
+                    }
+
+
+                } else if (targetPace == "sb") {
+
+                    val sb = seasonBestService.getSeasonBestBeforeDate(it.key, meets.first().date)
+                    if (sb != null) {
+                        comparisonPace = sb.time.getPacePerMile()
+                    }
+
                 } else {
-                    prPaceNullable!!
+                    val prBeforeThisMeet = personalRecordService.getPRsByNameBeforeTargetDate(runners[it.key]!!.name, false, meetMap[split.meetId]!!.date.subtractDay())
+
+                    val prPaceNullable = prBeforeThisMeet.firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
+                    if (prPaceNullable != null) {
+                       comparisonPace = prPaceNullable
+                    }
+                }
+
+                if (comparisonPace == null) {
+                    // use a value that will create a very higher number that we can filter out later to avoid this screwing up the metrics
+                    comparisonPace = 1.0
                 }
 
 
-                val percentOfPrPaceMile1: Double = (split.mileOne.calculateSecondsFrom() / prPace).round(2)
-                val percentOfPrPaceMile2: Double = (split.mileTwo.calculateSecondsFrom() / prPace).round(2)
-                val percentOfPrPaceMile3: Double = (split.mileThree.calculateSecondsFrom() / prPace).round(2)
+                val percentOfPaceMile1: Double = (split.mileOne.calculateSecondsFrom() / comparisonPace).round(2)
+                val percentOfPaceMile2: Double = (split.mileTwo.calculateSecondsFrom() / comparisonPace).round(2)
+                val percentOfPaceMile3: Double = (split.mileThree.calculateSecondsFrom() / comparisonPace).round(2)
 
-                listOf(MeetSplitToComparisonPace(1, split.mileOne, percentOfPrPaceMile1, 0, 0.0, 0.0),
-                        MeetSplitToComparisonPace(2, split.mileTwo, percentOfPrPaceMile2, 0, 0.0, 0.0),
-                        MeetSplitToComparisonPace(3, split.mileThree, percentOfPrPaceMile3, 0, 0.0, 0.0),
+                listOf(MeetSplitToComparisonPace(1, split.mileOne, percentOfPaceMile1, 0, 0.0, 0.0),
+                        MeetSplitToComparisonPace(2, split.mileTwo, percentOfPaceMile2, 0, 0.0, 0.0),
+                        MeetSplitToComparisonPace(3, split.mileThree, percentOfPaceMile3, 0, 0.0, 0.0),
                 )
             }.flatten()
         }
@@ -354,6 +383,35 @@ class MeetMileSplitService(
                 NamedStatistic(MeetSplitsOption.SecondToThirdMile.value, calculateDesiredMeetStatistic(MeetSplitsOption.SecondToThirdMile, splits)),
                 NamedStatistic(MeetSplitsOption.Combined.value, calculateDesiredMeetStatistic(MeetSplitsOption.Combined, splits)),
                 NamedStatistic(MeetSplitsOption.Spread.value, calculateDesiredMeetStatistic(MeetSplitsOption.Spread, splits)))
+
+    }
+
+    fun getStatisticsForMeetForRunners(filterMeet: String, startDate: Date, endDate: Date): List<Pair<Runner, List<NamedStatistic>>> {
+        // all meets in date range
+        val meets = if( filterMeet.isEmpty()) {
+            meetRepository.findByDateBetween(startDate, endDate)
+        } else {
+            meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
+        }
+
+        val runners = runnerRepository.findAll().associateBy { it.id }
+
+        // all splits at meets in date range
+        val splits = meets.
+        map { meetMileSplitRepository.findByMeetId(it.id) }
+                .filter { it.isNotEmpty() }
+                .flatten()
+                .map {
+                    runners[it.runnerId]!! to it
+                }
+                .map {
+                    it.first to listOf(NamedStatistic(MeetSplitsOption.FirstToSecondMile.value, calculateDesiredMeetStatistic(MeetSplitsOption.FirstToSecondMile, listOf(it.second))),
+                            NamedStatistic(MeetSplitsOption.SecondToThirdMile.value, calculateDesiredMeetStatistic(MeetSplitsOption.SecondToThirdMile, listOf(it.second))),
+                            NamedStatistic(MeetSplitsOption.Combined.value, calculateDesiredMeetStatistic(MeetSplitsOption.Combined, listOf(it.second))),
+                            NamedStatistic(MeetSplitsOption.Spread.value, calculateDesiredMeetStatistic(MeetSplitsOption.Spread, listOf(it.second))))
+                }
+
+        return splits
 
     }
 
