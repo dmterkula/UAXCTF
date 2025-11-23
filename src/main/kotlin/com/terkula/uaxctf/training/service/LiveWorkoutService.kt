@@ -46,7 +46,8 @@ class LiveWorkoutService(
                 liveWorkout.predictedMarathon,
                 liveWorkout.rollingPace,
                 liveWorkout.songTitle,
-                liveWorkout.songArtist
+                liveWorkout.songArtist,
+                liveWorkout.mileSplits.split(",")
         )
 
     }
@@ -57,23 +58,23 @@ class LiveWorkoutService(
         if (latestLiveWorkout == null || latestLiveWorkout.workoutUuid != createLiveWorkoutEntryRequest.workoutUuid) {
             // send notification
 
-            firebaseMessageService.sendMessageToAppUser(BENTLEY_APP_USER_ID, "David started a run!",
-                    "Check out how his workout is going!",
+            firebaseMessageService.sendMessageToTopic("xc_runner","David's Live Marathon Stats!",
+                    "The race has started! Follow along under \"Coach David's Live Workouts\"!",
                     mapOf("type" to "coach_david_live_workout"
                     )
             )
 
-            firebaseMessageService.sendMessageToAppUser(BECKY_APP_USER_ID, "David started a run!",
-                    "Check out how his workout is going!",
-                    mapOf("type" to "coach_david_live_workout"
-                    )
+            firebaseMessageService.sendMessageToTopic("xc_coach","David's Live Marathon Stats!",
+                "The race has started! Follow along under \"Coach David's Live Workouts\"!",
+                mapOf("type" to "coach_david_live_workout"
+                )
             )
-
-            firebaseMessageService.sendMessageToAppUser(DAVID_APP_USER_ID, "You started a run!",
-                    "Check out your stats!",
-                    mapOf("type" to "coach_david_live_workout"
-                    )
-            )
+//
+//            firebaseMessageService.sendMessageToAppUser(DAVID_APP_USER_ID, "You started a run!",
+//                    "Check out your stats!",
+//                    mapOf("type" to "coach_david_live_workout"
+//                    )
+//            )
 
 
         }
@@ -97,7 +98,8 @@ class LiveWorkoutService(
                         createLiveWorkoutEntryRequest.predictedMarathonFinishTime,
                         createLiveWorkoutEntryRequest.rollingMilePace,
                         createLiveWorkoutEntryRequest.songTitle,
-                        createLiveWorkoutEntryRequest.songArtist
+                        createLiveWorkoutEntryRequest.songArtist,
+                        createLiveWorkoutEntryRequest.mileSplits.toString()
                 )
         )
 
@@ -119,7 +121,8 @@ class LiveWorkoutService(
                 liveWorkout.predictedMarathon,
                 liveWorkout.rollingPace,
                 liveWorkout.songTitle,
-                liveWorkout.songArtist
+                liveWorkout.songArtist,
+                liveWorkout.mileSplits.split(",")
         )
     }
 

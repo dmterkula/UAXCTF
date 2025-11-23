@@ -16,6 +16,7 @@ class CreateLiveWorkoutEntryRequest(
         var predictedMarathonFinishTime: String,
         var rollingMilePace: String,
         var songTitle: String,
-        var songArtist: String
+        var songArtist: String,
+        var mileSplits: List<String>
 ) {
 }

@@ -33,6 +33,8 @@ class LiveWorkoutDTO(
 
         var songTitle: String,
 
-        var songArtist: String
+        var songArtist: String,
+
+        var mileSplits: List<String>
 ) {
 }

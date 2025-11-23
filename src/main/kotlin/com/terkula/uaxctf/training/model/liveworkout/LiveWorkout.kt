@@ -43,5 +43,8 @@ class LiveWorkout (
     @Column(name = "song_title")
     var songTitle: String,
     @Column(name = "song_artist")
-    var songArtist: String
+    var songArtist: String,
+    @Column(name = "mile_splits")
+    var mileSplits: String
+
 )
