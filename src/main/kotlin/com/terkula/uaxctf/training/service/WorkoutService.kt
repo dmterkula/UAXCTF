@@ -798,12 +798,24 @@ class WorkoutService (
             runnerService.getTrackRoster(true, year).map { it.id to it }.toMap()
         }
 
-        return trainingBasePerformanceService.getBaseTrainingPerformancesForEvent(targetEvent + "m", workout.season, year)
-                .map { eligibleRunners[it.runner.id] to it.trainingBasePerformance }
-                .filter { it.first != null && it.second != null }
-                .map { it.first!! to it.second!! }
-                .sortedBy { it.second.seconds }
-                .toMap()
+        // Use historical lookup: get the base performance that was active at the workout date
+        val event = targetEvent + "m"
+        return eligibleRunners.values.mapNotNull { runner ->
+            val basePerformance = trainingBasePerformanceService.getTrainingBasePerformanceAtDate(
+                    runner.id,
+                    event,
+                    workout.season,
+                    year,
+                    workout.date
+            )
+            if (basePerformance != null) {
+                runner to basePerformance
+            } else {
+                null
+            }
+        }
+        .sortedBy { it.second.seconds }
+        .toMap()
     }
 
 

@@ -33,6 +33,18 @@ class AuthenticationController(val authenticationService: AuthenticationService)
         return authenticationService.authenticate(username, password, deviceId)
     }
 
+    @ApiOperation("Authenticates a user for the app given a username and device")
+    @RequestMapping(value = ["xc/authenticate/device"], method = [RequestMethod.GET])
+    fun getAuthenticate(
+
+        @ApiParam("deviceId")
+        @RequestParam(value = "deviceId", required = false) deviceId: String
+
+    ): AuthenticationResponse {
+
+        return authenticationService.authenticateDevice(deviceId)
+    }
+
     @ApiOperation("Changes password for user")
     @RequestMapping(value = ["xc/authenticate/change-credentials"], method = [RequestMethod.POST])
     fun changeLogin(

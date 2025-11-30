@@ -45,6 +45,33 @@ class AuthenticationService(
 
     }
 
+    fun authenticateDevice(deviceId: String): AuthenticationResponse {
+
+        val user = authenticationRepository.findByDeviceId(deviceId)
+
+        return if (user != null) {
+            var runner: Runner? = null
+            if (user.role == "runner" && user.runnerId != null) {
+                runner = runnerRepository.findById(user.runnerId).orElse(null)
+            }
+
+//            if (deviceId != null && deviceId!!.isNotEmpty()) {
+//                if (runner != null) {
+//                    runner.deviceId = deviceId
+//                    runnerRepository.save(runner)
+//                }
+//                user.deviceId = deviceId
+//                authenticationRepository.save(user)
+//            }
+
+            AuthenticationResponse(true, user, runner)
+
+        } else {
+            AuthenticationResponse(false, null, null)
+        }
+
+    }
+
     fun getAllUsernames(): List<String> {
        return authenticationRepository.findAll().map { it.username }
     }

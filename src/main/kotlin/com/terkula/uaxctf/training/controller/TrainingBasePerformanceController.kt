@@ -9,6 +9,8 @@ import io.swagger.annotations.ApiOperation
 import io.swagger.annotations.ApiParam
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import org.threeten.bp.Instant
+import java.sql.Date
 import javax.validation.Valid
 
 @RestController
@@ -158,9 +160,19 @@ class TrainingBasePerformanceController(
             @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
+            @ApiParam("The date (YYYY-MM-DD format)")
+            @RequestParam(value = "date", required = true)  date: String?,
+
     ): List<RunnersTrainingRunPaceRange> {
 
-        return trainingBasePerformanceService.getAllRunnersBaseTrainingPaces(type, season, year)
+        val dateToUse =
+        if (date == null) {
+            Date(Instant.now().toEpochMilli())
+        } else {
+            Date.valueOf(date)
+        }
+
+        return trainingBasePerformanceService.getAllRunnersBaseTrainingPaces(type, season, year, dateToUse)
     }
 
     @ApiOperation("Get All Runners Personal Pace Percentages")
@@ -282,6 +294,59 @@ class TrainingBasePerformanceController(
             ): List<String> {
 
         return trainingBasePerformanceService.getPaceNames(season, year, event)
+    }
+
+    // Historical tracking endpoints
+
+    @ApiOperation("Get historical base performance records for a runner in a season")
+    @RequestMapping(value = ["training/base-performances/history"], method = [RequestMethod.GET])
+    fun getBaseTrainingPerformanceHistory(
+            @ApiParam("The runner to get history for")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+            @ApiParam("Track or XC?")
+            @RequestParam(value = "season", required = true) season: String,
+
+            @ApiParam("The year (optional)")
+            @RequestParam(value = "year", required = false) year: String?
+    ): TrainingBasePerformanceHistoryResponse {
+        val runner = trainingBasePerformanceService.runnerRepository.findById(runnerId).get()
+        val history = if (year != null) {
+            trainingBasePerformanceService.getTrainingBasePerformanceHistory(runnerId, season, year)
+        } else {
+            trainingBasePerformanceService.getTrainingBasePerformanceHistory(runnerId, season)
+        }
+        return TrainingBasePerformanceHistoryResponse(runner, history)
+    }
+
+    @ApiOperation("Get the base performance that was active at a specific date")
+    @RequestMapping(value = ["training/base-performances/at-date"], method = [RequestMethod.GET])
+    fun getBaseTrainingPerformanceAtDate(
+            @ApiParam("The runner to get base performance for")
+            @RequestParam(value = "runnerId", required = true) runnerId: Int,
+
+            @ApiParam("Track or XC?")
+            @RequestParam(value = "season", required = true) season: String,
+
+            @ApiParam("The date (YYYY-MM-DD format)")
+            @RequestParam(value = "date", required = true) dateString: String,
+
+            @ApiParam("The event (optional)")
+            @RequestParam(value = "event", required = false) event: String?,
+
+            @ApiParam("The year (optional)")
+            @RequestParam(value = "year", required = false) year: String?
+    ): TrainingBasePerformanceResponse {
+        val date = Date.valueOf(dateString)
+        val runner = trainingBasePerformanceService.runnerRepository.findById(runnerId).get()
+
+        val basePerformance = when {
+            event != null && year != null -> trainingBasePerformanceService.getTrainingBasePerformanceAtDate(runnerId, event, season, year, date)
+            event != null -> trainingBasePerformanceService.getTrainingBasePerformanceAtDate(runnerId, event, season, date)
+            else -> trainingBasePerformanceService.getTrainingBasePerformanceAtDate(runnerId, season, date)
+        }
+
+        return TrainingBasePerformanceResponse(runner, basePerformance)
     }
 
 

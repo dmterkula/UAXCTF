@@ -13,7 +13,10 @@ import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.removeDecimal
 import com.terkula.uaxctf.util.secondsPerMileToPercentPacePerMile
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import java.sql.Date
+import java.sql.Timestamp
 
 @Service
 class TrainingBasePerformanceService(
@@ -23,6 +26,21 @@ class TrainingBasePerformanceService(
         val runnerService: RunnerService,
         val runnerBaseTrainingPercentagesRepository: RunnerTrainingBasePercentageRepository
 ) {
+
+    /**
+     * Helper function to get only the most recent base performance record for each runner/event combination.
+     * Handles null timestamps (legacy data) by taking the first record if all timestamps are null.
+     */
+    private fun List<TrainingBasePerformance>.getMostRecentPerRunnerAndEvent(): List<TrainingBasePerformance> {
+        return this.groupBy { it.runnerId to it.event }
+                .mapValues { (_, performances) ->
+                    // Sort by createdAt descending, with nulls last
+                    performances.sortedWith(compareByDescending(nullsLast()) { it.createdAt })
+                            .firstOrNull()
+                }
+                .values
+                .filterNotNull()
+    }
 
     fun getRunnersTrainingBasePerformance(
             runnerId: Int,
@@ -42,6 +60,7 @@ class TrainingBasePerformanceService(
     ): List<TrainingBasePerformanceResponse> {
 
         var basePaces = trainingBasePerformanceRepository.findBySeasonAndYear(season, year)
+                .getMostRecentPerRunnerAndEvent()  // Get only the most recent record per runner/event
 
         val bent = if (year.toInt() >= 2024) {
             runnerRepository.findByTeam("NU")
@@ -52,7 +71,6 @@ class TrainingBasePerformanceService(
 
         return basePaces.map { TrainingBasePerformanceResponse(runners[it.runnerId]!!, it) }
                 .filter { it.runner.team == team }
-                .groupBy { it.runner.id }.map { it.value }.flatten()
 
     }
 
@@ -63,46 +81,43 @@ class TrainingBasePerformanceService(
     ): List<TrainingBasePerformanceResponse> {
 
         var basePaces = trainingBasePerformanceRepository.findByEventAndSeasonAndYear(event, season, year)
+                .getMostRecentPerRunnerAndEvent()  // Get only the most recent record per runner/event
         var runners = runnerRepository.findByGraduatingClassGreaterThanEqual(year).map { it.id to it }.toMap()
 
         return basePaces.map { TrainingBasePerformanceResponse(runners[it.runnerId]!!, it) }
 
     }
 
+    /**
+     * Creates a new base training performance record.
+     *
+     * Note: This ALWAYS creates a new record to preserve historical tracking of performance changes.
+     * Even if a record with the same UUID exists, a new record is created. This allows the system
+     * to track how a runner's base performance has changed over time.
+     *
+     * The forceCreate parameter in the request is kept for backward compatibility but does not
+     * affect behavior - new records are always created.
+     *
+     * Timestamps (created_at, updated_at) are automatically managed by the database.
+     */
     fun createOrUpdateTrainingBasePerformance(createBaseTrainingPerformanceRequest: CreateBaseTrainingPerformanceRequest): TrainingBasePerformanceResponse {
 
-        var runner = runnerRepository.findById(createBaseTrainingPerformanceRequest.runnerId).get()
-        var existingRecord = trainingBasePerformanceRepository.findByUuid(createBaseTrainingPerformanceRequest.uuid)
+        val runner = runnerRepository.findById(createBaseTrainingPerformanceRequest.runnerId).get()
 
-        if (existingRecord != null) {
-            // update existing record
+        // Always create a new record to preserve historical tracking
+        val newRecord = TrainingBasePerformance(
+                createBaseTrainingPerformanceRequest.runnerId,
+                createBaseTrainingPerformanceRequest.fractionOfMiles,
+                createBaseTrainingPerformanceRequest.seconds,
+                createBaseTrainingPerformanceRequest.season,
+                createBaseTrainingPerformanceRequest.event,
+                createBaseTrainingPerformanceRequest.year,
+                createBaseTrainingPerformanceRequest.uuid
+        )
 
-            existingRecord.event = createBaseTrainingPerformanceRequest.event
-            existingRecord.fractionOfMiles = createBaseTrainingPerformanceRequest.fractionOfMiles
-            existingRecord.season = createBaseTrainingPerformanceRequest.season
-            existingRecord.year = createBaseTrainingPerformanceRequest.year
-            existingRecord.seconds = createBaseTrainingPerformanceRequest.seconds
+        trainingBasePerformanceRepository.save(newRecord)
 
-            trainingBasePerformanceRepository.save(existingRecord)
-
-            return TrainingBasePerformanceResponse(runner, existingRecord)
-
-        } else {
-            val newRecord = TrainingBasePerformance(
-                    createBaseTrainingPerformanceRequest.runnerId,
-                    createBaseTrainingPerformanceRequest.fractionOfMiles,
-                    createBaseTrainingPerformanceRequest.seconds,
-                    createBaseTrainingPerformanceRequest.season,
-                    createBaseTrainingPerformanceRequest.event,
-                    createBaseTrainingPerformanceRequest.year,
-                    createBaseTrainingPerformanceRequest.uuid
-            )
-
-            trainingBasePerformanceRepository.save(newRecord)
-
-            return TrainingBasePerformanceResponse(runner, newRecord)
-        }
-
+        return TrainingBasePerformanceResponse(runner, newRecord)
     }
 
     fun createOrUpdateTrainingBasePerformanceManually(): TrainingBasePerformanceResponse? {
@@ -178,7 +193,9 @@ class TrainingBasePerformanceService(
 
     fun getRunnersPaceRangesForView(runnerId: Int, season: String, year: String, baseTrainingPercentages: List<BaseTrainingPercentage>): List<TrainingPacePercentLabel> {
         val personalPercentages: List<RunnerBaseTrainingPercentage> = runnerBaseTrainingPercentagesRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year)
-        return getRunnersPaceRangesForView(trainingBasePerformanceRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year), baseTrainingPercentages, personalPercentages)
+        val basePerformances = trainingBasePerformanceRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year)
+                .getMostRecentPerRunnerAndEvent()  // Get only the most recent record per event
+        return getRunnersPaceRangesForView(basePerformances, baseTrainingPercentages, personalPercentages)
     }
 
 
@@ -215,16 +232,34 @@ class TrainingBasePerformanceService(
 
     //////////////////////////
 
-    fun getRunnersBaseTrainingPaces(type: String, season: String, year: String, runnerId: Int): TrainingRunPaceRange? {
+    fun getRunnersBaseTrainingPaces(type: String, season: String, year: String, runnerId: Int, date: Date? = null): TrainingRunPaceRange? {
         val baseTrainingPercentages = baseTrainingPercentagesRepository.findByTypeAndSeason(type, season)
-        val paceRanges = getRunnersPaceRanges(runnerId, season, year, baseTrainingPercentages)
+        val paceRanges = getRunnersPaceRanges(runnerId, season, year, baseTrainingPercentages, date)
         return paceRanges;
     }
 
 
-    fun getRunnersPaceRanges(runnerId: Int, season: String, year: String, baseTrainingPercentages: List<BaseTrainingPercentage>): TrainingRunPaceRange? {
+    fun getRunnersPaceRanges(runnerId: Int, season: String, year: String, baseTrainingPercentages: List<BaseTrainingPercentage>, date: Date? = null): TrainingRunPaceRange? {
         val personalPercentages: List<RunnerBaseTrainingPercentage> = runnerBaseTrainingPercentagesRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year)
-        return getRunnersPaceRanges(trainingBasePerformanceRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year), baseTrainingPercentages, personalPercentages)
+
+        // If date is provided, get base performances as of that date (historical lookup)
+        // Otherwise, get the most recent (for current/management views)
+        val basePerformances = if (date != null) {
+            // Get all events this runner has base performances for
+            val allPerformances = trainingBasePerformanceRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year)
+            val events = allPerformances.map { it.event }.distinct()
+
+            // For each event, get the base performance that was active at the specified date
+            events.mapNotNull { event ->
+                getTrainingBasePerformanceAtDate(runnerId, event, season, year, date)
+            }
+        } else {
+            // Get the most recent for each event (current view)
+            trainingBasePerformanceRepository.findByRunnerIdAndSeasonAndYear(runnerId, season, year)
+                    .getMostRecentPerRunnerAndEvent()
+        }
+
+        return getRunnersPaceRanges(basePerformances, baseTrainingPercentages, personalPercentages)
     }
 
     fun getRunnersPaceRanges(basePerformances: List<TrainingBasePerformance>,  baseTrainingPercentages: List<BaseTrainingPercentage>, personalPercentages: List<RunnerBaseTrainingPercentage>): TrainingRunPaceRange? {
@@ -266,13 +301,13 @@ class TrainingBasePerformanceService(
                 .firstOrNull()
     }
 
-    fun getAllRunnersBaseTrainingPaces(type: String, season: String, year: String): List<RunnersTrainingRunPaceRange> {
+    fun getAllRunnersBaseTrainingPaces(type: String, season: String, year: String, date: Date): List<RunnersTrainingRunPaceRange> {
         val baseTrainingPercentages = baseTrainingPercentagesRepository.findByTypeAndSeason(type, season)
-        val paceRanges = getAllRunnersPaceRanges(season, year, baseTrainingPercentages)
+        val paceRanges = getAllRunnersPaceRanges(season, year, baseTrainingPercentages, date)
         return paceRanges
     }
 
-    fun getAllRunnersPaceRanges(season: String, year: String, baseTrainingPercentages: List<BaseTrainingPercentage>): List<RunnersTrainingRunPaceRange> {
+    fun getAllRunnersPaceRanges(season: String, year: String, baseTrainingPercentages: List<BaseTrainingPercentage>, date: Date): List<RunnersTrainingRunPaceRange> {
 
         val runners = if (season == "track") {
             runnerService.getTrackRoster(true, year)
@@ -282,8 +317,9 @@ class TrainingBasePerformanceService(
                 .map { it.id to it }.toMap()
 
         val personalPercentages: List<RunnerBaseTrainingPercentage> = runnerBaseTrainingPercentagesRepository.findBySeasonAndYear(season, year)
-
-        val trainingPaceRanges: List<RunnersTrainingRunPaceRange> = trainingBasePerformanceRepository.findBySeasonAndYear(season, year)
+        val timestamp = Timestamp(date.time)
+        val trainingPaceRanges: List<RunnersTrainingRunPaceRange> = trainingBasePerformanceRepository.findBySeasonAndYearAndCreatedAtLessThanEqualOrderByCreatedAtDesc(season, year, timestamp,
+            PageRequest.of(0, 1))
                 .groupBy { it.runnerId }
                 .filter { runners[it.key] != null }
                 .map {
@@ -418,6 +454,94 @@ class TrainingBasePerformanceService(
 
     }
 
+    // Historical tracking methods - get base performance as of a specific date
+
+    /**
+     * Get the base training performance for a runner that was active at the given date.
+     * Returns the most recent performance created before or on the specified date.
+     */
+    fun getTrainingBasePerformanceAtDate(
+            runnerId: Int,
+            season: String,
+            date: Date
+    ): TrainingBasePerformance? {
+        val timestamp = Timestamp(date.time)
+        val performances = trainingBasePerformanceRepository
+                .findByRunnerIdAndSeasonAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
+                        runnerId,
+                        season,
+                        timestamp,
+                        PageRequest.of(0, 1)
+                )
+        return performances.firstOrNull()
+    }
+
+    /**
+     * Get the base training performance for a runner and event that was active at the given date.
+     */
+    fun getTrainingBasePerformanceAtDate(
+            runnerId: Int,
+            event: String,
+            season: String,
+            date: Date
+    ): TrainingBasePerformance? {
+        val timestamp = Timestamp(date.time)
+        val performances = trainingBasePerformanceRepository
+                .findByRunnerIdAndEventAndSeasonAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
+                        runnerId,
+                        event,
+                        season,
+                        timestamp,
+                        PageRequest.of(0, 1)
+                )
+        return performances.firstOrNull()
+    }
+
+    /**
+     * Get the base training performance for a runner, event, season, and year that was active at the given date.
+     */
+    fun getTrainingBasePerformanceAtDate(
+            runnerId: Int,
+            event: String,
+            season: String,
+            year: String,
+            date: Date
+    ): TrainingBasePerformance? {
+        val timestamp = Timestamp(date.time)
+        val performances = trainingBasePerformanceRepository
+                .findByRunnerIdAndEventAndSeasonAndYearAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
+                        runnerId,
+                        event,
+                        season,
+                        year,
+                        timestamp,
+                        PageRequest.of(0, 1)
+                )
+        return performances.firstOrNull()
+    }
+
+    /**
+     * Get the historical record of all base performances for a runner and season, ordered newest first.
+     */
+    fun getTrainingBasePerformanceHistory(
+            runnerId: Int,
+            season: String
+    ): List<TrainingBasePerformance> {
+        return trainingBasePerformanceRepository
+                .findByRunnerIdAndSeasonOrderByCreatedAtDesc(runnerId, season)
+    }
+
+    /**
+     * Get the historical record of all base performances for a runner, season, and year, ordered newest first.
+     */
+    fun getTrainingBasePerformanceHistory(
+            runnerId: Int,
+            season: String,
+            year: String
+    ): List<TrainingBasePerformance> {
+        return trainingBasePerformanceRepository
+                .findByRunnerIdAndSeasonAndYearOrderByCreatedAtDesc(runnerId, season, year)
+    }
 
 
 }
