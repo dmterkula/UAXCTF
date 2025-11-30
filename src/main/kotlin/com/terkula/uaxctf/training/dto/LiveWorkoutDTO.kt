@@ -1,9 +1,5 @@
 package com.terkula.uaxctf.training.dto
 
-import java.sql.Timestamp
-import javax.persistence.Column
-import javax.persistence.Id
-
 class LiveWorkoutDTO(
 
         var uuid: String,
@@ -29,6 +25,16 @@ class LiveWorkoutDTO(
 
         var avgPower: Int,
 
-        var currentPower: Int
+        var currentPower: Int,
+
+        var predictedMarathonFinishTime: String,
+
+        var rollingMilePace: String,
+
+        var songTitle: String,
+
+        var songArtist: String,
+
+        var mileSplits: List<String>
 ) {
 }

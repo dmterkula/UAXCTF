@@ -16,7 +16,7 @@ class LiveWorkoutController(
 
     @ApiOperation("Creates live workout entry")
     @RequestMapping(value = ["liveWorkout"], method = [RequestMethod.POST])
-    fun createCrossTrainingRun(
+    fun createLiveWorkoutEntry(
             @RequestBody @Valid createLiveWorkoutEntry: CreateLiveWorkoutEntryRequest
     ): LiveWorkoutDTO {
 
@@ -25,7 +25,7 @@ class LiveWorkoutController(
 
     @ApiOperation("Get latest live entry")
     @RequestMapping(value = ["liveWorkout/getLatest"], method = [RequestMethod.GET])
-    fun createCrossTrainingRun(
+    fun getLiveWorkoutEntry(
             @RequestParam username: String
     ): LiveWorkoutDTO? {
         return liveWorkoutService.getLatestLiveWorkout(username)

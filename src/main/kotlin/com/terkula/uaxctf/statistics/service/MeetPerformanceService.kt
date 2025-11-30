@@ -252,6 +252,33 @@ class MeetPerformanceService(@field:Autowired
 
     }
 
+    fun getMeetPerformanceForRunner(
+            runnerId: Int,
+            meetUuid: String
+    ): RunnerPerformanceDTO? {
+        var runnerOptional = runnerRepository.findById(runnerId)
+
+        if (!runnerOptional.isPresent) {
+            return null
+        }
+
+        val runner = runnerOptional.get()
+
+
+        // get meets within date range
+        val meet = meetRepository.findByUuid(meetUuid).firstOrNull()
+                ?: return null
+
+
+        // construct all performances for the meets only for meets in date range, and containing an id of a matching runner
+        val performance = meetPerformanceRepository.findByMeetIdAndRunnerId(meet!!.id, runnerId)
+                ?: return null
+
+        return RunnerPerformanceDTO(runner, listOf(performance.toMeetPerformanceDTO(meet!!)))
+    }
+
+
+
     fun getMeetPerformancesForRunner(runnerId: Int,
                                      startDate: Date,
                                      endDate: Date): List<XCMeetPerformance> {

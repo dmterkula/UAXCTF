@@ -5,7 +5,9 @@ import com.terkula.uaxctf.statistics.dto.leaderboard.SeasonBestDTO
 import com.terkula.uaxctf.statistics.dto.getTimeDifferencesAsStrings
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statisitcs.model.XCMeetPerformance
 import com.terkula.uaxctf.statisitcs.model.toMeetPerformanceDTO
+import com.terkula.uaxctf.statistics.dto.MeetPerformanceDTO
 import com.terkula.uaxctf.statistics.repository.MeetPerformanceRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
@@ -52,6 +54,16 @@ class SeasonBestService(@field:Autowired
                 }
 
         return seasonBestDTOs
+
+    }
+
+    fun getSeasonBestBeforeDate(runnerId: Int, date: Date): XCMeetPerformance? {
+
+        val meets = meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(date.getYearString()), date.subtractDay())
+        val meetMap = meets.map { it.id to it }.toMap()
+        return meets.map { meetPerformanceRepository.findByMeetIdAndRunnerId(it.id, runnerId) }
+                .filterNotNull()
+                .minByOrNull { it.time.calculateSecondsFrom() }
 
     }
 

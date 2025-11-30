@@ -253,6 +253,11 @@ class TrainingRunsService(
         val results = runnersTrainingRunRepository.findByTrainingRunUuid(trainingRunUUID)
         val trainingRun = trainingRunRepository.findByUuid(trainingRunUUID)
 
+        val comments = results.map {
+            getTrainingComments(it.uuid)
+        }
+            .flatten()
+
         return RunnersTrainingRunResponse(results.map {
             val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun.firstOrNull(), it.runnerId)
             RunnerTrainingRunDTO(
@@ -260,7 +265,7 @@ class TrainingRunsService(
                     it.warmUpTime, it.warmUpDistance, it.warmUpPace, it.coachNotes, it.effortLevel, paceRange,
                     it.painLevel, it.painNotes, it.splitsList(), it.avgHr, it.maxHr
             )
-        }, emptyList())
+        }, comments)
 
     }
 
@@ -1045,7 +1050,8 @@ class TrainingRunsService(
                     year = (year.toInt() + 1).toString()
                 }
 
-                paceRange = trainingBasePerformanceService.getRunnersBaseTrainingPaces(trainingRun.effortLabel!!, trainingRun.season, year, runnerId)
+                // Pass the training run date to get the base performance that was active at that time
+                paceRange = trainingBasePerformanceService.getRunnersBaseTrainingPaces(trainingRun.effortLabel!!, trainingRun.season, year, runnerId, trainingRun.date)
             }
             return paceRange
         }

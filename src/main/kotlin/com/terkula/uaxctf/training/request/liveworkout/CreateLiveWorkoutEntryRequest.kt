@@ -12,6 +12,11 @@ class CreateLiveWorkoutEntryRequest(
         var avgPace: Double,
         var currentPace: Double,
         var avgPower: Double,
-        var currentPower: Double
+        var currentPower: Double,
+        var predictedMarathonFinishTime: String,
+        var rollingMilePace: String,
+        var songTitle: String,
+        var songArtist: String,
+        var mileSplits: List<String>
 ) {
 }

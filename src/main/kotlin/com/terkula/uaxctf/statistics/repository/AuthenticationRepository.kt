@@ -9,6 +9,8 @@ interface AuthenticationRepository: CrudRepository<AppUser, Int> {
 
     fun findByUsernameAndPassword(username: String, password: String): AppUser?
 
+    fun findByDeviceId(deviceId: String): AppUser?
+
     fun findByUsername(userName: String): AppUser?
 
     fun deleteByUsernameAndPassword(username: String, password: String): AppUser?

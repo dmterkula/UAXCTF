@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk-alpine
+FROM amazoncorretto:8-alpine
 EXPOSE 8080
 VOLUME /tmp
 #ARG JAR_FILE
