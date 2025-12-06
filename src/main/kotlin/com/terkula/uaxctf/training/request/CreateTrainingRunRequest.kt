@@ -34,7 +34,9 @@ class CreateRunnersTrainingRunRequest(
     val painNotes: String?,
     val splits: List<String>?,
     val avgHr: Int?,
-    val maxHr: Int?
+    val maxHr: Int?,
+    val season: String?,
+    val year: String?
 ) {
     fun splitsString(): String? {
         if (splits == null) {

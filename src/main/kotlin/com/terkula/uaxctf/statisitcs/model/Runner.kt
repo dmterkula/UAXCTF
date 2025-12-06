@@ -19,7 +19,13 @@ class Runner(
          @Column(name = "team")
          var team: String,
          @Column(name = "track_group")
-         var trackGroup: String?
+         var trackGroup: String?,
+         @Column(name = "points")
+         var points: Int = 0,
+         @Column(name = "lifetime_points_earned")
+         var lifetimePointsEarned: Int = 0,
+         @Column(name = "last_points_updated")
+         var lastPointsUpdated: java.sql.Timestamp? = null
 
 ) {
 

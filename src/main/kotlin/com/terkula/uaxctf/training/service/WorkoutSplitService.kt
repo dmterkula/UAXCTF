@@ -21,7 +21,8 @@ class WorkoutSplitService(
         var workoutSplitV2Repository: WorkoutSplitV2Repository,
         var runnerService: RunnerService,
         var workoutDistanceRepository: RunnerWorkoutDistanceRepository,
-        var commentRepository: TrainingCommentRepository
+        var commentRepository: TrainingCommentRepository,
+        var pointsService: com.terkula.uaxctf.statistics.service.PointsService
 ) {
 
     fun createSplits(createSplitsRequest: CreateSplitsRequest): SplitsResponse {
@@ -379,6 +380,20 @@ class WorkoutSplitService(
             distance = runnerWorkoutDistance.distance
             runnerWorkoutDistance.notes = logWorkoutResultsRequest.notes
             runnerWorkoutDistance.coachNotes = logWorkoutResultsRequest.coachNotes
+
+            // Award points for NEW workout only
+            try {
+                pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
+                        runnerId = logWorkoutResultsRequest.runnerId,
+                        activityType = "WORKOUT",
+                        activityUuid = workout.uuid,
+                        season = logWorkoutResultsRequest.season,
+                        year = logWorkoutResultsRequest.year,
+                        description = "Logged workout results"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
         } else {
             val existingRecord = workoutDistance.first()

@@ -24,7 +24,8 @@ class CrossTrainingService(
         val crossTrainingRepository: CrossTrainingRepository,
         val trainingCommentRepository: TrainingCommentRepository,
         val crossTrainingRecordRepository: CrossTrainingRecordRepository,
-        val runnerRepository: RunnerRepository
+        val runnerRepository: RunnerRepository,
+        val pointsService: com.terkula.uaxctf.statistics.service.PointsService
         ) {
 
     fun getCrossTrainingActivities(startDate: Date, endDate: Date): CrossTrainingResponse {
@@ -196,6 +197,20 @@ class CrossTrainingService(
                             createCrossTrainingRecordRequest.maxPower
                     )
             )
+
+            // Award points for NEW cross training only
+            try {
+                pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
+                        runnerId = createCrossTrainingRecordRequest.runnerId,
+                        activityType = "CROSS_TRAINING",
+                        activityUuid = createCrossTrainingRecordRequest.uuid,
+                        season = createCrossTrainingRecordRequest.season,
+                        year = createCrossTrainingRecordRequest.year,
+                        description = "Logged cross training activity"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
             return CrossTrainingRecordResponse(runner, newRecord, emptyList())
 

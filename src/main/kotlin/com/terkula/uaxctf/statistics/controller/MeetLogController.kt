@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @Validated
-class MeetLogController(val meetLogService: MeetLogService) {
+class MeetLogController(
+        val meetLogService: MeetLogService
+) {
 
     @ApiOperation("Gets the meet log entry for a runner at a given meet")
     @RequestMapping(value = ["xc/meet/log"], method = [RequestMethod.GET])

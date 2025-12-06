@@ -18,7 +18,9 @@ class LogWorkoutResultsRequest(
     val painLevel: Double?,
     val painNotes: String?,
     val avgHr: Int?,
-    val maxHr: Int?
+    val maxHr: Int?,
+    val season: String?,
+    val year: String?
 )
 
 

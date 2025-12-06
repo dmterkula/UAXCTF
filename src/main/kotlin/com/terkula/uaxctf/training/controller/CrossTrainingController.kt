@@ -16,7 +16,9 @@ import javax.validation.Valid
 
 @RestController
 @Validated
-class CrossTrainingController(val crossTrainingService: CrossTrainingService) {
+class CrossTrainingController(
+        val crossTrainingService: CrossTrainingService
+) {
 
     @ApiOperation("Returns the planned training run between the given dates")
     @RequestMapping(value = ["cross-training-activity/get"], method = [RequestMethod.GET])
