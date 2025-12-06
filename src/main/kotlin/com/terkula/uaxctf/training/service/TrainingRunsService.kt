@@ -32,7 +32,8 @@ class TrainingRunsService(
     val meetLogService: MeetLogService,
     val trainingBasePerformanceService: TrainingBasePerformanceService,
     val trainingCommentRepository: TrainingCommentRepository,
-    val objectMapper: ObjectMapper
+    val objectMapper: ObjectMapper,
+    val pointsService: com.terkula.uaxctf.statistics.service.PointsService
 ) {
 
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
@@ -307,6 +308,20 @@ class TrainingRunsService(
 
             )
             runnersTrainingRunRepository.save(insertMe)
+
+            // Award points for NEW training run only
+            try {
+                pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
+                        runnerId = createRunnersTrainingRunRequest.runnerId,
+                        activityType = "TRAINING_RUN",
+                        activityUuid = createRunnersTrainingRunRequest.uuid,
+                        season = createRunnersTrainingRunRequest.season,
+                        year = createRunnersTrainingRunRequest.year,
+                        description = "Logged training run"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
             return RunnersTrainingRunResponse(listOf(RunnerTrainingRunDTO(
                     runner.get(), insertMe.uuid, insertMe.trainingRunUuid, insertMe.time, insertMe.distance,

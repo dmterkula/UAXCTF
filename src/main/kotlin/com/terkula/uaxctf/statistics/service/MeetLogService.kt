@@ -28,7 +28,8 @@ class MeetLogService (
         val trackMeetLogRepository: TrackMeetLogRepository,
         val trackMeetRepository: TrackMeetRepository,
         val xcPreMeetLogRepository: XcPreMeetLogRepository,
-        val commentRepository: TrainingCommentRepository
+        val commentRepository: TrainingCommentRepository,
+        val pointsService: PointsService
 ) {
 
     fun getRunnerMeetLogsBetweenDates(runnerId: Int, startDate: Date, endDate: Date): Pair<List<MeetLogResponse>, List<TrackMeetLogResponse>> {
@@ -100,9 +101,23 @@ class MeetLogService (
 
             xcPreMeetLogRepository.save(newPreMeetLog)
 
+            // Award points for NEW pre-meet log only
+            try {
+                pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
+                        runnerId = createMeetLogRequest.runnerId,
+                        activityType = "PRE_MEET_LOG",
+                        activityUuid = createMeetLogRequest.uuid,
+                        season = createMeetLogRequest.season,
+                        year = createMeetLogRequest.year,
+                        description = "Logged pre-meet preparation"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
             return MeetLogResponse(existingMeetLog, meet, newPreMeetLog, emptyList(), commentRepository.findByTrainingEntityUuid(createMeetLogRequest.meetId + "-" + createMeetLogRequest.runnerId))
 
-        } else {
+        } else{
             val preMeetLog = existingPreMeetLog.first()
 
             preMeetLog.goals = createMeetLogRequest.goals
@@ -197,9 +212,21 @@ class MeetLogService (
                     createMeetLogRequest.satisfaction, createMeetLogRequest.happyWith, createMeetLogRequest.notHappyWith
             )
 
-
-
             meetLogRepository.save(newMeetLog)
+
+            // Award points for NEW meet log only
+            try {
+                pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
+                        runnerId = createMeetLogRequest.runnerId,
+                        activityType = "MEET_LOG",
+                        activityUuid = createMeetLogRequest.meetId + "-" + meet.date.toString(),
+                        season = createMeetLogRequest.season,
+                        year = createMeetLogRequest.year,
+                        description = "Logged meet performance"
+                ))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
 
             return MeetLogResponse(newMeetLog, meet, preMeetLog, preMeetComments, postMeetComments)
 

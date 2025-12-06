@@ -13,5 +13,7 @@ class CreateCrossTrainingRecordRequest(
         var maxHr: Int?,
         var avgPower: Int?,
         var maxPower: Int?,
+        var season: String?,
+        var year: String?
 ) {
 }

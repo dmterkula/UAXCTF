@@ -14,6 +14,7 @@ class CreateMeetLogRequest(
     var coolDownPace: String?,
     var coachNotes: String?,
     var season: String = "xc",
+    var year: String?,
     var satisfaction: Int?,
     var happyWith: String?,
     var notHappyWith: String?
@@ -34,4 +35,6 @@ class CreateXcPreMeetLogRequest(
     var fuelingScore: Int?,
     var hydrationScore: Int?,
     var sorenessScore: Int?,
+    var season: String = "xc",
+    var year: String?
 )
