@@ -69,7 +69,8 @@ enum class ActivityType {
     WORKOUT,
     CROSS_TRAINING,
     MEET_LOG,
-    PRE_MEET_LOG
+    PRE_MEET_LOG,
+    TEAM_TALK_COMMENT
 }
 
 enum class FeatureType {
