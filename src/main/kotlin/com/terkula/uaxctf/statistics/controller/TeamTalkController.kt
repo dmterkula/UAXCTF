@@ -98,4 +98,15 @@ class TeamTalkController(
         val response = teamTalkService.createComment(request)
         return ResponseEntity.ok(response)
     }
+
+    // ===== VIEW TRACKING =====
+
+    @ApiOperation("Track a view of a team talk (called by frontend on page load)")
+    @RequestMapping(value = ["/views/track"], method = [RequestMethod.POST])
+    fun trackView(
+        @RequestBody @Valid request: TrackTeamTalkViewRequest
+    ): ResponseEntity<Void> {
+        teamTalkService.trackView(request)
+        return ResponseEntity.ok().build()
+    }
 }
