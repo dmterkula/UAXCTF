@@ -45,3 +45,10 @@ data class RemoveTeamTalkReactionRequest(
     val displayName: String,
     val emoji: String
 )
+
+data class TrackTeamTalkViewRequest(
+    val teamTalkUuid: String,
+    val username: String,
+    val displayName: String,
+    val team: String
+)

@@ -30,13 +30,34 @@ data class NestedComment(
 )
 
 /**
+ * Summary of views for a team talk
+ * Only exposed to coaches on frontend
+ */
+data class ViewSummary(
+    val totalViews: Long,
+    val uniqueViewers: Int,
+    val recentViews: List<ViewDetail>
+)
+
+/**
+ * Individual view detail
+ */
+data class ViewDetail(
+    val username: String,
+    val displayName: String,
+    val team: String,
+    val viewedAt: String
+)
+
+/**
  * Complete team talk with all associated data
  */
 data class TeamTalkResponse(
     val teamTalk: TeamTalk,
     val reactions: List<ReactionSummary>,
     val comments: List<NestedComment>,
-    val totalCommentCount: Int
+    val totalCommentCount: Int,
+    val viewSummary: ViewSummary
 )
 
 /**

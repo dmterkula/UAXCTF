@@ -3,11 +3,13 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statisitcs.model.TeamTalk
 import com.terkula.uaxctf.statisitcs.model.TeamTalkComment
 import com.terkula.uaxctf.statisitcs.model.TeamTalkReaction
+import com.terkula.uaxctf.statisitcs.model.TeamTalkView
 import com.terkula.uaxctf.statistics.repository.AuthenticationRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.TeamTalkCommentRepository
 import com.terkula.uaxctf.statistics.repository.TeamTalkReactionRepository
 import com.terkula.uaxctf.statistics.repository.TeamTalkRepository
+import com.terkula.uaxctf.statistics.repository.TeamTalkViewRepository
 import com.terkula.uaxctf.statistics.request.*
 import com.terkula.uaxctf.statistics.response.*
 import org.springframework.stereotype.Service
@@ -20,6 +22,7 @@ class TeamTalkService(
     val teamTalkRepository: TeamTalkRepository,
     val teamTalkCommentRepository: TeamTalkCommentRepository,
     val teamTalkReactionRepository: TeamTalkReactionRepository,
+    val teamTalkViewRepository: TeamTalkViewRepository,
     val runnerRepository: RunnerRepository,
     val authenticationRepository: AuthenticationRepository,
     val pointsService: PointsService
@@ -44,7 +47,8 @@ class TeamTalkService(
             teamTalk = teamTalk,
             reactions = emptyList(),
             comments = emptyList(),
-            totalCommentCount = 0
+            totalCommentCount = 0,
+            viewSummary = ViewSummary(totalViews = 0, uniqueViewers = 0, recentViews = emptyList())
         )
     }
 
@@ -66,12 +70,14 @@ class TeamTalkService(
         val reactions = getReactionSummary(uuid)
         val comments = getNestedComments(uuid)
         val totalCount = countAllComments(comments)
+        val viewSummary = getViewSummary(uuid)
 
         return TeamTalkResponse(
             teamTalk = teamTalk,
             reactions = reactions,
             comments = comments,
-            totalCommentCount = totalCount
+            totalCommentCount = totalCount,
+            viewSummary = viewSummary
         )
     }
 
@@ -82,12 +88,14 @@ class TeamTalkService(
             val reactions = getReactionSummary(teamTalk.uuid)
             val comments = getNestedComments(teamTalk.uuid)
             val totalCount = countAllComments(comments)
+            val viewSummary = getViewSummary(teamTalk.uuid)
 
             TeamTalkResponse(
                 teamTalk = teamTalk,
                 reactions = reactions,
                 comments = comments,
-                totalCommentCount = totalCount
+                totalCommentCount = totalCount,
+                viewSummary = viewSummary
             )
         }
 
@@ -101,12 +109,14 @@ class TeamTalkService(
             val reactions = getReactionSummary(teamTalk.uuid)
             val comments = getNestedComments(teamTalk.uuid)
             val totalCount = countAllComments(comments)
+            val viewSummary = getViewSummary(teamTalk.uuid)
 
             TeamTalkResponse(
                 teamTalk = teamTalk,
                 reactions = reactions,
                 comments = comments,
-                totalCommentCount = totalCount
+                totalCommentCount = totalCount,
+                viewSummary = viewSummary
             )
         }
 
@@ -307,5 +317,48 @@ class TeamTalkService(
      */
     private fun countAllComments(comments: List<NestedComment>): Int {
         return comments.size + comments.sumOf { countAllComments(it.replies) }
+    }
+
+    // ===== VIEW TRACKING =====
+
+    /**
+     * Track a view of a team talk
+     * Called every time a user loads the team talk page
+     * No deduplication - tracks all views
+     */
+    fun trackView(request: TrackTeamTalkViewRequest): TeamTalkView {
+        val view = TeamTalkView(
+            teamTalkUuid = request.teamTalkUuid,
+            username = request.username,
+            displayName = request.displayName,
+            team = request.team
+        )
+        return teamTalkViewRepository.save(view)
+    }
+
+    /**
+     * Get view summary for a team talk
+     * Returns total count, unique viewers, and recent view history
+     */
+    fun getViewSummary(teamTalkUuid: String): ViewSummary {
+        val allViews = teamTalkViewRepository.findByTeamTalkUuidOrderByViewedAtDesc(teamTalkUuid)
+        val totalViews = allViews.size.toLong()
+        val uniqueViewers = allViews.map { it.username }.toSet().size
+
+        // Get last 20 views for recent activity
+        val recentViews = allViews.take(20).map { view ->
+            ViewDetail(
+                username = view.username,
+                displayName = view.displayName,
+                team = view.team,
+                viewedAt = view.viewedAt.toInstant().toString()
+            )
+        }
+
+        return ViewSummary(
+            totalViews = totalViews,
+            uniqueViewers = uniqueViewers,
+            recentViews = recentViews
+        )
     }
 }
