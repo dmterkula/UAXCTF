@@ -7,7 +7,6 @@ import com.terkula.uaxctf.training.request.journal.CreateDailyJournalEntryReques
 import com.terkula.uaxctf.training.request.journal.CreateJournalCommentRequest
 import com.terkula.uaxctf.training.request.journal.SearchJournalRequest
 import com.terkula.uaxctf.training.service.JournalService
-import io.swagger.annotations.ApiOperation
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
@@ -17,7 +16,6 @@ import javax.validation.Valid
 @Validated
 class JournalController(val journalService: JournalService) {
 
-    @ApiOperation("get journal entry")
     @RequestMapping(value = ["journal/dailyJournalEntry/get"], method = [RequestMethod.GET])
     fun getDailyJournalEntry(
             @RequestParam(name = "date") date: Date,
@@ -27,7 +25,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.getRunnersDailyJournalEntry(date, runnerId)
     }
 
-    @ApiOperation("get journal entry by uuid")
     @RequestMapping(value = ["journal/dailyJournalEntryByUuid/get"], method = [RequestMethod.GET])
     fun getDailyJournalEntry(
             @RequestParam(name = "uuid") uuid: String
@@ -36,7 +33,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.getRunnersDailyJournalEntry(uuid)
     }
 
-    @ApiOperation("get journal entries between dates")
     @RequestMapping(value = ["journal/dailyJournalEntries/get"], method = [RequestMethod.GET])
     fun getDailyJournalEntriesBetweenDatesAndTitle(
             @RequestParam(name = "startDate") startDate: Date,
@@ -48,7 +44,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.getRunnersDailyJournalEntryBetweenDatesWithTitle(startDate, endDate, runnerId, title)
     }
 
-    @ApiOperation("get journal entries between dates")
     @RequestMapping(value = ["journal/dailyJournalEntries/search"], method = [RequestMethod.POST])
     fun searchJournals(
             @RequestBody @Valid searchJournalsRequest: SearchJournalRequest
@@ -57,7 +52,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.searchJournals(searchJournalsRequest)
     }
 
-    @ApiOperation("create or update journal entry")
     @RequestMapping(value = ["journal/dailyJournalEntry/create"], method = [RequestMethod.POST])
     fun createDailyJournalEntry(
         @RequestBody @Valid createDailyJournalEntryRequest: CreateDailyJournalEntryRequest
@@ -66,7 +60,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.createDailyJournalEntry(createDailyJournalEntryRequest)
     }
 
-    @ApiOperation("create or update journal entry")
     @RequestMapping(value = ["journal/journalComment/create"], method = [RequestMethod.POST])
     fun createDailyJournalComment(
             @RequestBody @Valid createJournalCommentRequest: CreateJournalCommentRequest
@@ -75,7 +68,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.createJournalComment(createJournalCommentRequest)
     }
 
-    @ApiOperation("get journal comments")
     @RequestMapping(value = ["journal/journalComment/get"], method = [RequestMethod.GET])
     fun getJournalComments(
             @RequestParam(name = "journalUuid") journalUuid: String,
@@ -83,7 +75,6 @@ class JournalController(val journalService: JournalService) {
         return journalService.getJournalComments(journalUuid)
     }
 
-    @ApiOperation("Get Runner's Journal By UUID")
     @RequestMapping(value = ["journal/runnersJournalEntry"], method = [RequestMethod.GET])
     fun getRunnersJournalEntry(
             @RequestParam(name = "journalUuid") journalUuid: String,

@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statisitcs.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import javax.persistence.*
 
 @Entity
@@ -16,6 +17,8 @@ data class AppUser(
         @Column(name = "sub_role")
         var subRole: String?,
         @Column(name = "is_creator")
+        @param:JsonProperty("creator")
+        @get:JsonProperty("creator")
         var isCreator: Boolean
         ) {
     @Id

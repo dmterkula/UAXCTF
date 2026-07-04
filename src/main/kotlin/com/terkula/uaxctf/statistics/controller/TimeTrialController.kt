@@ -6,8 +6,6 @@ import com.terkula.uaxctf.statistics.dto.TimeTrialDifferenceDTO
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.statistics.response.TimeTrialProgressionResponse
 import com.terkula.uaxctf.statistics.service.TimeTrialService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.RequestMapping
@@ -21,12 +19,9 @@ import javax.validation.constraints.Pattern
 @Validated
 class TimeTrialController (@field:Autowired
                                       internal val timeTrialService: TimeTrialService) {
-    @ApiOperation("Returns information on who improved the most on their 5k adjusted time trial times")
     @RequestMapping(value = ["xc/timeTrial/progression"], method = [RequestMethod.GET])
-    fun getTimeTrialProgressions( @ApiParam("filters results for performances in a given season")
+    fun getTimeTrialProgressions(
                                    @RequestParam("filter.season", defaultValue = "") season: String,
-                                   @ApiParam("The value provided sort.method changes what order the results are returned in. " +
-                                           "Valid values are 'least', 'most'. Use most to see who progressed the most")
                                    @Pattern(
                                            regexp = "least|most|",
                                            message = "Valid values are 'least' to return" +
@@ -47,10 +42,8 @@ class TimeTrialController (@field:Autowired
         return TimeTrialProgressionResponse(timeTrialService.getRankedProgressionSinceTimeTrial(startDate, endDate, adjustForMeetDistance))
     }
 
-    @ApiOperation("Returns tryout result for a given year")
     @RequestMapping(value = ["xc/timeTrialResults"], method = [RequestMethod.GET])
     fun getTimeTrialResults(
-            @ApiParam("filters results for performances in a given season")
             @RequestParam("filter.season", defaultValue = "") season: String,
             @RequestParam("filter.scaleTo5k", defaultValue = "true") scaleTo5k: Boolean
     ) : List<TimeTrialDTO> {
@@ -67,10 +60,8 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.getTimeTrialResults(startDate, endDate, scaleTo5k)
     }
 
-    @ApiOperation("Returns time trial results for returning runners between input year and previous year, sorted by who slowed down this year compared to last year")
     @RequestMapping(value = ["xc/timeTrialResults/compareRunnersBetweenYears"], method = [RequestMethod.GET])
     fun getTimeTrialComparisionsBetweenInputYearAndPreviousYearForReturningRunners(
-            @ApiParam("filters results for performances in a given season")
             @RequestParam("filter.season", defaultValue = "") season: String
     ) : List<TimeTrialDifferenceDTO> {
 
@@ -86,10 +77,8 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.getTimeTrialComparisonsBetweenYearsForSameRunners(startDate, endDate)
     }
 
-    @ApiOperation("Returns statistical comparision between a given year's time trial, and last years SBs. Intent is to use as indicator for relative summer conditioning levels. " +
-            "can be used to get data for multiple years, or just one")
     @RequestMapping(value = ["xc/timeTrial/seasonBestToTimeTrial"], method = [RequestMethod.GET])
-    fun getDifferenceBetweenPreviousSeasonBestAndTimeTrial( @ApiParam("use time trial data from this season and SBs from season prior")
+    fun getDifferenceBetweenPreviousSeasonBestAndTimeTrial(
                                                             @RequestParam("filter.seasons") seasons: List<String>,
                                                             @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
     ): List<StatisticalComparisonDTO> {
@@ -101,10 +90,8 @@ class TimeTrialController (@field:Autowired
         }
     }
 
-    @ApiOperation("Returns T Test between two difference in two given year's time trial, and last years SBs times. Intent is to use as indicator for relative summer conditioning levels. " +
-            "can be used to get data for multiple years, or just one")
     @RequestMapping(value = ["xc/timeTrial/summerConditioningTTest"], method = [RequestMethod.GET])
-    fun runTTestBetweenPreviousSeasonBestsAndTimeTrialTimes( @ApiParam("use time trial data from this season and SBs from season prior")
+    fun runTTestBetweenPreviousSeasonBestsAndTimeTrialTimes(
                                                             @RequestParam("filter.baseSeason") baseSeason: String,
                                                             @RequestParam("filter.comparisonSeason") comparisonSeason: String,
                                                             @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
@@ -119,10 +106,8 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.runTTestBetweenPreviousSBsToTimeTrial(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
-    @ApiOperation("Returns T Test between mean difference in two given year's time trial improvements from the previous year (returning runners only).  Intent is to use as indicator for relative summer conditioning levels. " +
-            "can be used to get data for multiple years, or just one")
     @RequestMapping(value = ["xc/timeTrial/yearToYearImprovementTTest"], method = [RequestMethod.GET])
-    fun runTTestBetweenTimeTrialImprovementsYearToYear( @ApiParam("use time trial data from this season and SBs from season prior")
+    fun runTTestBetweenTimeTrialImprovementsYearToYear(
                                                              @RequestParam("filter.baseSeason") baseSeason: String,
                                                              @RequestParam("filter.comparisonSeason") comparisonSeason: String,
                                                              @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
@@ -137,9 +122,8 @@ class TimeTrialController (@field:Autowired
         return timeTrialService.runTTestBetweenTimeTrialDifferencesForReturningRunners(startDate1, endDate1, startDate2, endDate2, adjustForMeetDistance)
     }
 
-    @ApiOperation("Returns T Test between two difference in two given year's time trial and same year's SBs times. Intent is to use as indicator for relative improvement rate")
     @RequestMapping(value = ["xc/timeTrial/seasonImprovementTTest"], method = [RequestMethod.GET])
-    fun runTTestBetweenTimeTrialAndEndOfSeasonBest( @ApiParam("use time trial and SB data from this season")
+    fun runTTestBetweenTimeTrialAndEndOfSeasonBest(
                                                              @RequestParam("filter.baseSeason") baseSeason: String,
                                                              @RequestParam("filter.comparisonSeason") comparisonSeason: String,
                                                              @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false
@@ -155,9 +139,8 @@ class TimeTrialController (@field:Autowired
     }
 
 
-    @ApiOperation("Creates or updates a time trial result for a runner in a given year")
     @RequestMapping(value = ["xc/timeTrial/result/create"], method = [RequestMethod.POST])
-    fun createTimeTrialResult( @ApiParam("specifies the season")
+    fun createTimeTrialResult(
                                   @RequestParam("season", defaultValue = "") season: String,
                                @RequestParam("runnerId") runnerId: Int,
                                @RequestParam("time") time: String,

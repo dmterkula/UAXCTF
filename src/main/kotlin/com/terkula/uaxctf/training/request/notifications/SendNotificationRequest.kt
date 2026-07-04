@@ -11,3 +11,6 @@ class SendNotificationRequestToTopic(val topic: String, val title: String, val m
 
 class SendNotificationRequestToRunner(val runnerId: Int, val title: String, val message: String, val data: Map<String, String>) {
 }
+
+class SendNotificationRequestToUsername(val username: String, val title: String, val message: String, val data: Map<String, String>) {
+}

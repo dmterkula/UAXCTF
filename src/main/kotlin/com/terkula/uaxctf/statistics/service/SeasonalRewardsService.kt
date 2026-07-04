@@ -263,6 +263,29 @@ class SeasonalRewardsService(
         }
     }
 
+    /**
+     * Transfer seasonal points from one season/year bucket to another.
+     * Called when a training run's season label is corrected after the fact.
+     */
+    @Transactional
+    fun transferSeasonalPoints(runnerId: Int, fromSeason: String, fromYear: String, toSeason: String, toYear: String, points: Int) {
+        val fromTracking = seasonalPointsTrackingRepository
+                .findByRunnerIdAndSeasonAndYear(runnerId, fromSeason, fromYear)
+                .orElse(null)
+
+        if (fromTracking != null && fromTracking.pointsEarned >= points) {
+            fromTracking.pointsEarned -= points
+            seasonalPointsTrackingRepository.save(fromTracking)
+        }
+
+        val toTracking = seasonalPointsTrackingRepository
+                .findByRunnerIdAndSeasonAndYear(runnerId, toSeason, toYear)
+                .orElse(SeasonalPointsTracking(runnerId = runnerId, season = toSeason, year = toYear, pointsEarned = 0))
+
+        toTracking.pointsEarned += points
+        seasonalPointsTrackingRepository.save(toTracking)
+    }
+
     // ===== Private Helper Methods =====
 
     /**

@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statisitcs.model
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import javax.persistence.*
 
 @Entity
@@ -9,6 +10,8 @@ class Runner(
          @Column(name = "graduating_class")
          var graduatingClass: String,
          @Column(name = "is_active")
+         @param:JsonProperty("active")
+         @get:JsonProperty("active")
          var isActive: Boolean = true,
          @Column(name = "xc")
          var doesXc: Boolean = true,

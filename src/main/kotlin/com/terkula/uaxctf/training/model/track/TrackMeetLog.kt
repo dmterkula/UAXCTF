@@ -77,8 +77,10 @@ class TrackMeetLog( @Column(name = "meet_uuid")
         return totalTime
     }
 
-    fun getTotalAveragePace(): String {
-        return (getTotalTimeSeconds() / getTotalDistance()).toMinuteSecondString()
+    fun getTotalAveragePace(): String? {
+        val distance = getTotalDistance()
+        if (distance == 0.0) return null
+        return (getTotalTimeSeconds() / distance).toMinuteSecondString()
     }
 
     fun getRaceOnlyDistance(): Double {

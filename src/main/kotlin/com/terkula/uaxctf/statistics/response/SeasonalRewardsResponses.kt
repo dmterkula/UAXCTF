@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statistics.response
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.sql.Timestamp
 
 /**
@@ -14,6 +15,8 @@ data class SeasonalRewardDTO(
         val description: String,
         val pointThreshold: Int,
         val displayOrder: Int,
+        @param:JsonProperty("achieved")
+        @get:JsonProperty("achieved")
         val isAchieved: Boolean,
         val achievedDate: Timestamp?,
         val progressPercentage: Double? = null  // Only populated for progress endpoint

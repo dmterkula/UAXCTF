@@ -40,6 +40,8 @@ class RunnerWorkoutDistance(
         var avgHr: Int?,
         @Column(name = "max_hr")
         var maxHr: Int?,
+        @Column(name = "effort_level")
+        var effortLevel: Double? = null,
 
 ) {
 

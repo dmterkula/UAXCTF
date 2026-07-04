@@ -28,6 +28,8 @@ class CrossTrainingRecord(
         var avgPower: Int?,
         @Column(name = "max_power")
         var maxPower: Int?,
+        @Column(name = "cross_training_type")
+        var crossTrainingType: String? = null,
 ) {
 
     @JsonIgnore

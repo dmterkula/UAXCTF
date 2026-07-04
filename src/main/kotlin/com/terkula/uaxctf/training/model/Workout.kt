@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.terkula.uaxctf.statisitcs.model.Venue
 import java.sql.Date
 import javax.persistence.*
 
@@ -14,7 +15,9 @@ class Workout (var date: Date,
                var icon: String,
                var uuid: String,
                var season: String,
-               var team: String
+               var team: String,
+               @Column(name = "venue_id")
+               var venueId: Int? = null
 ) {
 
     @JsonIgnore
@@ -22,4 +25,7 @@ class Workout (var date: Date,
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    @Transient
+    var venue: Venue? = null
 }

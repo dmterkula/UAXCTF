@@ -119,6 +119,24 @@ class SummerTrainingAwardService(
 
     }
 
+    fun getMilesRunInWindow(runnerId: Int, startDate: java.sql.Date, endDate: java.sql.Date): Double {
+        var miles = 0.0
+
+        trainingRunRepository.findByDateBetweenAndSeasonAndTeam(startDate, endDate, "xc", "UA")
+            .forEach { run ->
+                runnersTrainingRunRepository.findByTrainingRunUuidAndRunnerId(run.uuid, runnerId)
+                    .forEach { loggedRun -> miles += loggedRun.getTotalDistance() }
+            }
+
+        workoutRepository.findByDateBetweenAndSeasonAndTeam(startDate, endDate, "xc", "UA")
+            .forEach { workout ->
+                workoutDistanceRepository.findByWorkoutUuidAndRunnerId(workout.uuid, runnerId)
+                    .forEach { distance -> miles += distance.getTotalDistance() }
+            }
+
+        return miles
+    }
+
     fun getSeasonTrainingCountsForRunner(runnerId: Int, season: String, year: String, team: String): RunnerSeasonTrainingCount? {
         val awardMiles = 200.0
         val awardTrainingCount = 40
@@ -181,6 +199,7 @@ class SummerTrainingAwardService(
 
         crossTrainingRecords.forEach {
             crossTrainingRecordRepository.findByCrossTrainingUuidAndRunnerId(it.uuid, runnerId)
+                .filter {crossTraining -> runners[crossTraining.runnerId] != null }
                     .forEach { crossTraining ->
                         val entry = runnersToCount[runners[crossTraining.runnerId]]
                         if (entry == null) {

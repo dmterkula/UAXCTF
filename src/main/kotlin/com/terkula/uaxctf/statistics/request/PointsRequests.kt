@@ -29,3 +29,11 @@ data class EarnPointsRequest(
         val year: String? = null,
         val description: String? = null
 )
+
+data class UpsertSummerConditioningConfigRequest(
+        val year: String,
+        val startDate: String,
+        val endDate: String,
+        val pointsThreshold: Int = 300,
+        val createdBy: String? = null
+)

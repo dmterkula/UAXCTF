@@ -3,8 +3,6 @@ package com.terkula.uaxctf.statistics.controller
 import com.terkula.uaxctf.statistics.request.*
 import com.terkula.uaxctf.statistics.response.*
 import com.terkula.uaxctf.statistics.service.TeamTalkService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -19,7 +17,6 @@ class TeamTalkController(
 
     // ===== TEAM TALK CRUD =====
 
-    @ApiOperation("Create a new team talk (coaches only)")
     @RequestMapping(value = [""], method = [RequestMethod.POST])
     fun createTeamTalk(
         @RequestBody @Valid request: CreateTeamTalkRequest
@@ -28,7 +25,6 @@ class TeamTalkController(
         return ResponseEntity.ok(response)
     }
 
-    @ApiOperation("Update an existing team talk (coaches only)")
     @RequestMapping(value = [""], method = [RequestMethod.PUT])
     fun updateTeamTalk(
         @RequestBody @Valid request: UpdateTeamTalkRequest
@@ -37,40 +33,53 @@ class TeamTalkController(
         return ResponseEntity.ok(response)
     }
 
-    @ApiOperation("Get a specific team talk by UUID with all reactions and nested comments")
     @RequestMapping(value = ["/{uuid}"], method = [RequestMethod.GET])
     fun getTeamTalk(
-        @ApiParam("Team talk UUID")
         @PathVariable uuid: String
     ): ResponseEntity<TeamTalkResponse> {
         val response = teamTalkService.getTeamTalk(uuid)
         return ResponseEntity.ok(response)
     }
 
-    @ApiOperation("Get all team talks for a specific season and year")
     @RequestMapping(value = ["/season"], method = [RequestMethod.GET])
     fun getTeamTalksBySeason(
-        @ApiParam("Season (xc or track)")
         @RequestParam season: String,
-        @ApiParam("Year (e.g., 2024)")
         @RequestParam year: String,
-        @ApiParam("Team (default UA)")
-        @RequestParam(required = false, defaultValue = "UA") team: String
+        @RequestParam(required = false, defaultValue = "UA") team: String,
+        @RequestParam(required = false, defaultValue = "false") includeDrafts: Boolean
     ): ResponseEntity<TeamTalkListResponse> {
-        val response = teamTalkService.getTeamTalksBySeason(season, year, team)
+        val response = teamTalkService.getTeamTalksBySeason(season, year, team, includeDrafts)
         return ResponseEntity.ok(response)
     }
 
-    @ApiOperation("Get all team talks across all seasons")
     @RequestMapping(value = ["/all"], method = [RequestMethod.GET])
-    fun getAllTeamTalks(): ResponseEntity<TeamTalkListResponse> {
-        val response = teamTalkService.getAllTeamTalks()
+    fun getAllTeamTalks(
+        @RequestParam(required = false, defaultValue = "false") includeDrafts: Boolean
+    ): ResponseEntity<TeamTalkListResponse> {
+        val response = teamTalkService.getAllTeamTalks(includeDrafts)
+        return ResponseEntity.ok(response)
+    }
+
+    @RequestMapping(value = ["/{uuid}/publish"], method = [RequestMethod.POST])
+    fun publishTeamTalk(
+        @PathVariable uuid: String,
+        @RequestBody @Valid request: PublishTeamTalkRequest
+    ): ResponseEntity<PublishTeamTalkResponse> {
+        val response = teamTalkService.publishTeamTalk(uuid, request.author)
+        return ResponseEntity.ok(response)
+    }
+
+    @RequestMapping(value = ["/{uuid}/unpublish"], method = [RequestMethod.POST])
+    fun unpublishTeamTalk(
+        @PathVariable uuid: String,
+        @RequestBody @Valid request: PublishTeamTalkRequest
+    ): ResponseEntity<TeamTalkResponse> {
+        val response = teamTalkService.unpublishTeamTalk(uuid, request.author)
         return ResponseEntity.ok(response)
     }
 
     // ===== REACTIONS =====
 
-    @ApiOperation("Add an emoji reaction to a team talk")
     @RequestMapping(value = ["/reactions/add"], method = [RequestMethod.POST])
     fun addReaction(
         @RequestBody @Valid request: AddTeamTalkReactionRequest
@@ -79,7 +88,6 @@ class TeamTalkController(
         return ResponseEntity.ok(reactions)
     }
 
-    @ApiOperation("Remove an emoji reaction from a team talk")
     @RequestMapping(value = ["/reactions/remove"], method = [RequestMethod.POST])
     fun removeReaction(
         @RequestBody @Valid request: RemoveTeamTalkReactionRequest
@@ -90,7 +98,6 @@ class TeamTalkController(
 
     // ===== COMMENTS =====
 
-    @ApiOperation("Add a comment to a team talk (awards 3 pride points to the athlete)")
     @RequestMapping(value = ["/comments"], method = [RequestMethod.POST])
     fun createComment(
         @RequestBody @Valid request: CreateTeamTalkCommentRequest
@@ -101,7 +108,6 @@ class TeamTalkController(
 
     // ===== VIEW TRACKING =====
 
-    @ApiOperation("Track a view of a team talk (called by frontend on page load)")
     @RequestMapping(value = ["/views/track"], method = [RequestMethod.POST])
     fun trackView(
         @RequestBody @Valid request: TrackTeamTalkViewRequest

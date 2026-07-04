@@ -14,6 +14,7 @@ class CreateCrossTrainingRequest(
         val season: String,
         val team: String,
         val effortLabel: String?,
-        val crossTrainingType: String
+        val crossTrainingType: String,
+        val venueId: Int? = null
     ) {
 }

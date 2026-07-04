@@ -19,7 +19,7 @@ import com.terkula.uaxctf.training.model.TrainingRunResults
 import com.terkula.uaxctf.training.response.RankedRunnerDistanceRunDTO
 import com.terkula.uaxctf.training.response.RunnerWorkoutResultResponse
 import com.terkula.uaxctf.training.response.crosstraining.CrossTrainingRecordProfileResponse
-import com.terkula.uaxctf.training.response.runnerseasontrainingcount.RunnerSeasonTrainingCount
+import com.terkula.uaxctf.statistics.response.RunnerSummerConditioningDTO
 import com.terkula.uaxctf.training.service.*
 import com.terkula.uaxctf.util.*
 import org.springframework.scheduling.annotation.Async
@@ -47,7 +47,8 @@ open class RunnerProfileAsyncHelper (
     val trackPRService: TrackPRService,
     val trackSBService: TrackSBService,
     val crossTrainingService: CrossTrainingService,
-    val summerTrainingAwardService: SummerTrainingAwardService
+    val summerTrainingAwardService: SummerTrainingAwardService,
+    val pointsService: PointsService
 ) {
 
 
@@ -73,8 +74,8 @@ open class RunnerProfileAsyncHelper (
     }
 
     @Async
-    open fun getSummerTrainingAwardStatus(runnerId: Int, season: String, year: String, team: String): Future<RunnerSeasonTrainingCount?> {
-        return AsyncResult(summerTrainingAwardService.getSeasonTrainingCountsForRunner(runnerId, season, year, team))
+    open fun getSummerConditioningPoints(runnerId: Int, year: String): Future<RunnerSummerConditioningDTO?> {
+        return AsyncResult(pointsService.getSummerConditioningPointsForRunner(runnerId, year))
     }
 
     @Async

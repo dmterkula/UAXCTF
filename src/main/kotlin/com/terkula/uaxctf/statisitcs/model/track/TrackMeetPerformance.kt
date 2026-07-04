@@ -109,7 +109,9 @@ fun String.getMilesDistanceFromLogicalEvent(): Double {
         return 1.0
     }
 
-    return this.filter{ it.isDigit() }.toDouble() / 1609
+    val digits = this.filter { it.isDigit() }
+    if (digits.isEmpty()) return 0.0
+    return digits.toDouble() / 1609
 }
 
 //fun List<TrackMeetPerformance>.toTrackMeetPerformanceDTO(meet: TrackMeet, runner: Runner): List<TrackMeetPerformanceDTO> {

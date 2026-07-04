@@ -7,5 +7,6 @@ class CreateMeetRequest(
     val date: Date,
     val uuid: String,
     val icon: String,
-    var team: String
+    var team: String,
+    val venueId: Int? = null
 )

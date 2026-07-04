@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.model.CrossTraining
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.terkula.uaxctf.statisitcs.model.Venue
 import java.sql.Date
 import javax.persistence.*
 
@@ -23,7 +24,9 @@ class CrossTraining (
         @Column(name = "effort_label")
         var effortLabel: String?,
         @Column(name = "cross_training_type")
-        var crossTrainingType: String
+        var crossTrainingType: String,
+        @Column(name = "venue_id")
+        var venueId: Int? = null
 ) {
 
     @JsonIgnore
@@ -31,4 +34,7 @@ class CrossTraining (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    @Transient
+    var venue: Venue? = null
 }

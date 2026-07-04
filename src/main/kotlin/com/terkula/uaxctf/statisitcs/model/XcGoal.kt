@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statisitcs.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import javax.persistence.*
 
 //@Entity
@@ -28,6 +29,8 @@ class XcGoal (
     var type: String,
     var value: String,
     @Column(name = "is_met")
+    @param:JsonProperty("met")
+    @get:JsonProperty("met")
     var isMet: Boolean,
     @Column(name = "track_goal")
     var trackGoal: Boolean,

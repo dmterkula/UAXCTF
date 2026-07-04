@@ -1,12 +1,16 @@
 package com.terkula.uaxctf.training.service
 
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.VenueRepository
+import com.terkula.uaxctf.statistics.response.ReactionSummary
 import com.terkula.uaxctf.training.model.CrossTraining.CrossTraining
 import com.terkula.uaxctf.training.model.CrossTraining.CrossTrainingRecord
 import com.terkula.uaxctf.training.model.TrainingComment
 import com.terkula.uaxctf.training.model.journal.JournalComment
 import com.terkula.uaxctf.training.repository.CrossTrainingRecordRepository
 import com.terkula.uaxctf.training.repository.CrossTrainingRepository
+import com.terkula.uaxctf.training.repository.EventVisibilityRepository
+import com.terkula.uaxctf.training.repository.TrainingCommentReactionRepository
 import com.terkula.uaxctf.training.repository.TrainingCommentRepository
 import com.terkula.uaxctf.training.request.crosstraining.CreateCommentRequest
 import com.terkula.uaxctf.training.request.crosstraining.CreateCrossTrainingRecordRequest
@@ -23,16 +27,46 @@ import java.sql.Date
 class CrossTrainingService(
         val crossTrainingRepository: CrossTrainingRepository,
         val trainingCommentRepository: TrainingCommentRepository,
+        val trainingCommentReactionRepository: TrainingCommentReactionRepository,
         val crossTrainingRecordRepository: CrossTrainingRecordRepository,
         val runnerRepository: RunnerRepository,
-        val pointsService: com.terkula.uaxctf.statistics.service.PointsService
+        val pointsService: com.terkula.uaxctf.statistics.service.PointsService,
+        val venueRepository: VenueRepository,
+        val eventVisibilityRepository: EventVisibilityRepository
         ) {
 
+    private fun getCommentsWithReactions(entityUuid: String): List<TrainingComment> {
+        return trainingCommentRepository.findByTrainingEntityUuid(entityUuid)
+            .sortedBy { it.timestamp }
+            .map { comment ->
+                comment.reactions = trainingCommentReactionRepository.findByCommentUuid(comment.uuid)
+                    .groupBy { it.emoji }
+                    .map { (emoji, reactions) ->
+                        val distinctByUser = reactions.distinctBy { it.reactorUsername }
+                        ReactionSummary(
+                            emoji = emoji,
+                            count = reactions.size,
+                            usernames = distinctByUser.map { it.reactorUsername },
+                            displayNames = distinctByUser.map { it.reactorDisplayName.ifEmpty { it.reactorUsername } }
+                        )
+                    }
+                    .sortedByDescending { it.count }
+                comment
+            }
+    }
+
+    private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
+
     fun getCrossTrainingActivities(startDate: Date, endDate: Date): CrossTrainingResponse {
+        val activities = crossTrainingRepository.findByDateBetween(startDate, endDate)
+        val visibilityMap = eventVisibilityRepository.findByEventUuidIn(activities.map { it.uuid })
+            .groupBy { it.eventUuid }
+            .mapValues { (_, entries) -> entries.map { it.runnerId } }
         return CrossTrainingResponse(
-                crossTrainingRepository.findByDateBetween(startDate, endDate).map {
+                activities.map {
                     CrossTrainingDTO(it.date, it.distance, it.distanceUnit, it.duration, it.icon, it.uuid,
-                            it.name, it.description, it.season, it.team, it.effortLabel, it.crossTrainingType)
+                            it.name, it.description, it.season, it.team, it.effortLabel, it.crossTrainingType,
+                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() })
                 }
         )
     }
@@ -73,7 +107,8 @@ class CrossTrainingService(
                     createCrossTrainingRequest.season,
                     createCrossTrainingRequest.team,
                     createCrossTrainingRequest.effortLabel,
-                    createCrossTrainingRequest.crossTrainingType
+                    createCrossTrainingRequest.crossTrainingType,
+                    createCrossTrainingRequest.venueId
             )
 
             crossTrainingRepository.save(
@@ -83,7 +118,8 @@ class CrossTrainingService(
             return CrossTrainingResponse(listOf(
                     CrossTrainingDTO(crossTrainingActivity.date, crossTrainingActivity.distance, crossTrainingActivity.distanceUnit, crossTrainingActivity.duration, crossTrainingActivity.icon,
                             crossTrainingActivity.uuid, crossTrainingActivity.name, crossTrainingActivity.description,
-                            crossTrainingActivity.season, crossTrainingActivity.team, crossTrainingActivity.effortLabel, crossTrainingActivity.crossTrainingType)
+                            crossTrainingActivity.season, crossTrainingActivity.team, crossTrainingActivity.effortLabel, crossTrainingActivity.crossTrainingType,
+                            resolveVenue(crossTrainingActivity.venueId))
             ))
 
         } else {
@@ -111,6 +147,7 @@ class CrossTrainingService(
                     createCrossTrainingRequest.team,
                     createCrossTrainingRequest.effortLabel,
                     createCrossTrainingRequest.crossTrainingType,
+                    createCrossTrainingRequest.venueId
             )
 
             crossTrainingRepository.save(
@@ -120,10 +157,14 @@ class CrossTrainingService(
             return CrossTrainingResponse(listOf(
                     CrossTrainingDTO(crossTraining.date, crossTraining.distance, crossTraining.distanceUnit, crossTraining.duration, crossTraining.icon,
                             crossTraining.uuid, crossTraining.name, crossTraining.description,
-                            crossTraining.season, crossTraining.team, crossTraining.effortLabel, crossTraining.crossTrainingType)
+                            crossTraining.season, crossTraining.team, crossTraining.effortLabel, crossTraining.crossTrainingType,
+                            resolveVenue(crossTraining.venueId))
             ))
 
         } else {
+
+            val oldSeason = foundCrossTraining.season
+            val seasonChanged = oldSeason != null && oldSeason != createCrossTrainingRequest.season
 
             foundCrossTraining.date = createCrossTrainingRequest.date
             foundCrossTraining.icon = createCrossTrainingRequest.icon
@@ -136,14 +177,31 @@ class CrossTrainingService(
             foundCrossTraining.team = createCrossTrainingRequest.team
             foundCrossTraining.effortLabel = createCrossTrainingRequest.effortLabel
             foundCrossTraining.crossTrainingType = createCrossTrainingRequest.crossTrainingType
+            foundCrossTraining.venueId = createCrossTrainingRequest.venueId
 
             crossTrainingRepository.save(foundCrossTraining)
+
+            if (seasonChanged) {
+                try {
+                    val recordUuids = crossTrainingRecordRepository
+                            .findByCrossTrainingUuid(createCrossTrainingRequest.uuid)
+                            .map { it.uuid }
+                    pointsService.reattributePointsForSeasonChange(
+                            activityUuids = recordUuids,
+                            oldSeason = oldSeason!!,
+                            newSeason = createCrossTrainingRequest.season,
+                            runDate = createCrossTrainingRequest.date
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
 
             return CrossTrainingResponse(listOf(
                     CrossTrainingDTO(foundCrossTraining.date, foundCrossTraining.distance, foundCrossTraining.distanceUnit, foundCrossTraining.duration,
                             foundCrossTraining.icon, foundCrossTraining.uuid, foundCrossTraining.name, foundCrossTraining.description,
-                             foundCrossTraining.season,
-                            foundCrossTraining.team, foundCrossTraining.effortLabel, foundCrossTraining.crossTrainingType)
+                            foundCrossTraining.season, foundCrossTraining.team, foundCrossTraining.effortLabel, foundCrossTraining.crossTrainingType,
+                            resolveVenue(foundCrossTraining.venueId))
             ))
         }
 
@@ -194,7 +252,8 @@ class CrossTrainingService(
                             createCrossTrainingRecordRequest.avgHr,
                             createCrossTrainingRecordRequest.maxHr,
                             createCrossTrainingRecordRequest.avgPower,
-                            createCrossTrainingRecordRequest.maxPower
+                            createCrossTrainingRecordRequest.maxPower,
+                            createCrossTrainingRecordRequest.crossTrainingType
                     )
             )
 
@@ -224,11 +283,11 @@ class CrossTrainingService(
             existingRecord.maxHr = createCrossTrainingRecordRequest.maxHr
             existingRecord.avgPower = createCrossTrainingRecordRequest.avgPower
             existingRecord.maxPower = createCrossTrainingRecordRequest.maxPower
+            existingRecord.crossTrainingType = createCrossTrainingRecordRequest.crossTrainingType
 
             crossTrainingRecordRepository.save(existingRecord)
 
-            val comments = trainingCommentRepository.findByTrainingEntityUuid(createCrossTrainingRecordRequest.uuid)
-                    .sortedBy { it.timestamp }
+            val comments = getCommentsWithReactions(createCrossTrainingRecordRequest.uuid)
 
             return CrossTrainingRecordResponse(runner, existingRecord, comments)
 
@@ -241,7 +300,7 @@ class CrossTrainingService(
         val runner = runnerRepository.findById(runnerId).orElseGet(null)
 
         return if (record != null) {
-            val comments = trainingCommentRepository.findByTrainingEntityUuid(record.uuid).sortedBy { it.timestamp }
+            val comments = getCommentsWithReactions(record.uuid)
             CrossTrainingRecordResponse(runner, record, comments)
         } else {
             null
@@ -253,7 +312,7 @@ class CrossTrainingService(
         val record = crossTrainingRecordRepository.findByUuid(uuid).firstOrNull()
 
         return if (record != null) {
-            val comments = trainingCommentRepository.findByTrainingEntityUuid(record.uuid).sortedBy { it.timestamp }
+            val comments = getCommentsWithReactions(record.uuid)
             val runner = runnerRepository.findById(record.runnerId).get()
             CrossTrainingRecordResponse(runner, record, comments)
         } else {
@@ -264,10 +323,32 @@ class CrossTrainingService(
 
     fun getAllCrossTrainingRecordsForActivity(crossTrainingUuid: String): List<CrossTrainingRecordResponse> {
         return crossTrainingRecordRepository.findByCrossTrainingUuid(crossTrainingUuid).map {
-            val comments = trainingCommentRepository.findByTrainingEntityUuid(it.uuid).sortedBy { it.timestamp }
+            val comments = getCommentsWithReactions(it.uuid)
             val runner = runnerRepository.findById(it.runnerId).get()
             return@map CrossTrainingRecordResponse(runner, it, comments)
         }
+    }
+
+    fun forceReattributePoints(crossTrainingUuid: String, fromSeason: String, toSeason: String): String {
+        val crossTraining = crossTrainingRepository.findByUuid(crossTrainingUuid).firstOrNull()
+                ?: return "Cross training activity not found: $crossTrainingUuid"
+
+        val recordUuids = crossTrainingRecordRepository
+                .findByCrossTrainingUuid(crossTrainingUuid)
+                .map { it.uuid }
+
+        if (recordUuids.isEmpty()) {
+            return "No runner records found for cross training activity: $crossTrainingUuid"
+        }
+
+        pointsService.reattributePointsForSeasonChange(
+                activityUuids = recordUuids,
+                oldSeason = fromSeason,
+                newSeason = toSeason,
+                runDate = crossTraining.date
+        )
+
+        return "Re-attributed points for ${recordUuids.size} runner(s): $fromSeason → $toSeason"
     }
 
     fun createComment(createCommentRequest: CreateCommentRequest): TrainingComment {

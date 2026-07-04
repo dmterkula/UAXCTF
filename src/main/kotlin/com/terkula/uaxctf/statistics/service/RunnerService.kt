@@ -110,4 +110,21 @@ class RunnerService (val runnerRepository: RunnerRepository) {
         return runnerRepository.findByTeam(team).sortedByDescending { it.graduatingClass }
     }
 
+    fun getRosterByTeam(active: Boolean, season: String, team: String): List<Runner> {
+        var runners = runnerRepository.findByTeam(team)
+                .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+
+        if (active) {
+            runners = runners.filter { it.isActive }
+        }
+
+        return runners
+                .groupBy { it.graduatingClass }.map {
+                    it.key to it.value.sortedBy { runner -> runner.name }
+                }
+                .sortedBy { it.first }
+                .map { it.second }
+                .flatten()
+    }
+
 }

@@ -12,7 +12,8 @@ class RunnerWorkoutResultResponse(val runner: Runner, val workout: WorkoutRespon
                                   val warmUpTime: String?, val warmUpPace: String?,
                                   val coolDownDistance: Double?, val coolDownTime: String?, val coolDownPace: String?,
                                   val notes: String?, val coachNotes: String?, val painLevel: Double?, val painNotes: String?,
-                                  val comments: List<TrainingComment>, val avgHr: Int?, val maxHr: Int?)
+                                  val comments: List<TrainingComment>, val avgHr: Int?, val maxHr: Int?,
+                                  val effortLevel: Double? = null)
 
 fun RunnerWorkoutResultResponse.getTotalDistance(): Double {
 

@@ -21,6 +21,8 @@ import com.terkula.uaxctf.training.model.TargetedPace
 import com.terkula.uaxctf.training.model.Workout
 import com.terkula.uaxctf.training.model.WorkoutComponent
 import com.terkula.uaxctf.training.model.trainingbase.TrainingBasePerformance
+import com.terkula.uaxctf.statistics.repository.VenueRepository
+import com.terkula.uaxctf.training.repository.EventVisibilityRepository
 import com.terkula.uaxctf.training.repository.WorkoutComponentRepository
 import com.terkula.uaxctf.training.repository.WorkoutRepository
 import com.terkula.uaxctf.training.request.CreateWorkoutRequest
@@ -46,8 +48,12 @@ class WorkoutService (
      var runnerService: RunnerService,
      var trackPRService: TrackPRService,
      val trackSBService: TrackSBService,
-     val trainingBasePerformanceService: TrainingBasePerformanceService
+     val trainingBasePerformanceService: TrainingBasePerformanceService,
+     val venueRepository: VenueRepository,
+     val eventVisibilityRepository: EventVisibilityRepository
 ) {
+
+    private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
 
     fun getWorkoutsV2(startDate: Date, endDate: Date): List<WorkoutResponseDTO> {
 
@@ -55,6 +61,11 @@ class WorkoutService (
                 workoutRepositoryV2.findByDateBetween(startDate, endDate)
 
         workouts.forEach { it.date.addDay() }
+
+        val uuids = workouts.map { it.uuid }
+        val visibilityMap = eventVisibilityRepository.findByEventUuidIn(uuids)
+            .groupBy { it.eventUuid }
+            .mapValues { (_, entries) -> entries.map { it.runnerId } }
 
         return workouts.map {
             WorkoutResponseDTO(
@@ -65,7 +76,9 @@ class WorkoutService (
                     it.uuid,
                     workoutComponentRepository.findByWorkoutUuid(it.uuid),
                     it.season,
-                    it.team
+                    it.team,
+                    resolveVenue(it.venueId),
+                    visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }
             )
         }
 
@@ -79,7 +92,8 @@ class WorkoutService (
             throw RuntimeException("Workout with that date and title already exists")
         } else {
            val workoutV2 = Workout(createWorkoutRequest.date, createWorkoutRequest.description, createWorkoutRequest.title,
-           createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season, createWorkoutRequest.team)
+           createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season, createWorkoutRequest.team,
+           createWorkoutRequest.venueId)
 
            val workoutComponents: List<WorkoutComponent> = createWorkoutRequest.components.map {
                WorkoutComponent(it.uuid, workoutV2.uuid, it.type, it.description, it.targetDistance,
@@ -98,7 +112,8 @@ class WorkoutService (
                     workoutV2.uuid,
                     workoutComponents,
                     workoutV2.season,
-                    workoutV2.team
+                    workoutV2.team,
+                    resolveVenue(workoutV2.venueId)
             )
         }
 
@@ -119,6 +134,7 @@ class WorkoutService (
             workoutToUpdate.icon = createWorkoutRequest.icon
             workoutToUpdate.season = createWorkoutRequest.season
             workoutToUpdate.team = createWorkoutRequest.team
+            workoutToUpdate.venueId = createWorkoutRequest.venueId
             workoutRepositoryV2.save(workoutToUpdate)
 
 
@@ -141,15 +157,30 @@ class WorkoutService (
                     component.recoveryType = it.recoveryType
                     component.recoveryDistance = it.recoveryDistance
                     component.percent = it.percent
+                    return@map component
+                } else {
+                    // Component with this uuid doesn't exist yet -> it was newly added
+                    // during the update. Create it so it gets persisted rather than dropped.
+                    return@map WorkoutComponent(it.uuid, workoutToUpdate.uuid, it.type, it.description,
+                            it.targetDistance, it.targetCount, it.pace, it.duration, it.targetPaceAdjustment,
+                            it.ratio, it.sets, it.recovery, it.setRecovery, it.targetEvent, it.recoveryType,
+                            it.recoveryDistance, it.percent)
                 }
-
-                return@map component
 
             }
 
            workoutComponentRepository.saveAll(updatedComponents.filter { it != null })
 
-           return return WorkoutResponseDTO(
+           // Delete components that were removed during the update -> any existing
+           // component whose uuid is no longer present in the incoming request.
+           val requestUuids = createWorkoutRequest.components.map { it.uuid }.toSet()
+           val componentsToDelete = workoutComponentRepository.findByWorkoutUuid(workoutToUpdate.uuid)
+                   .filter { it.uuid !in requestUuids }
+           if (componentsToDelete.isNotEmpty()) {
+               workoutComponentRepository.deleteAll(componentsToDelete)
+           }
+
+           return WorkoutResponseDTO(
                    workoutToUpdate.date,
                    workoutToUpdate.description,
                    workoutToUpdate.title,
@@ -157,7 +188,8 @@ class WorkoutService (
                    workoutToUpdate.uuid,
                    updatedComponents.filterNotNull(),
                    workoutToUpdate.season,
-                   workoutToUpdate.team
+                   workoutToUpdate.team,
+                   resolveVenue(workoutToUpdate.venueId)
            )
         } else {
             throw (RuntimeException("Workout not found"))

@@ -20,7 +20,8 @@ class LogWorkoutResultsRequest(
     val avgHr: Int?,
     val maxHr: Int?,
     val season: String?,
-    val year: String?
+    val year: String?,
+    val effortLevel: Double?
 )
 
 
