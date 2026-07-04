@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.terkula.uaxctf.statistics.response.ReactionSummary
 import java.sql.Timestamp
 import javax.persistence.*
 
@@ -26,4 +27,7 @@ class TrainingComment (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    @Transient
+    var reactions: List<ReactionSummary>? = null
 }

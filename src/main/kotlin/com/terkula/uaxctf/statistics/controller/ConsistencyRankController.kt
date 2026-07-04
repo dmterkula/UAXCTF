@@ -2,8 +2,6 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.response.ConsistencyResponse
 import com.terkula.uaxctf.statistics.service.ConsistencyRankService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,17 +16,13 @@ import javax.validation.constraints.Pattern
 class ConsistencyRankController (@field:Autowired
                                  internal val consistencyRankService: ConsistencyRankService) {
 
-    @ApiOperation("Returns all runners for a given season ranked by consistency based on either workouts or races")
     @RequestMapping(value = ["xc/consistency/"], method = [RequestMethod.GET])
     fun getConsistencyRanks(
-            @ApiParam("filters results for performances in a given season")
             @RequestParam("filter.season", defaultValue = "") filterSeason: String,
-            @ApiParam("Basis consistency rank on the specified performances. Valid values are 'races', 'workouts', or 'all'")
             @Pattern(
                     regexp = "races|workouts|all|",
                     message = "The value provided for measureBy is invalid. Valid values are 'races', 'workouts' or 'all'")
             @RequestParam("measureBy", defaultValue = "races", required = false) measureBy: String,
-            @ApiParam("The value provided for 'weight' scales the effect of workouts to races. default value is 1.0 to indicate equal importance")
             @RequestParam("weight", defaultValue = ".", required = false) weight: Double = 1.0): ConsistencyResponse {
 
         var startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")

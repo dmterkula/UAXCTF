@@ -34,7 +34,13 @@ class TeamTalk(
     var createdAt: Timestamp = Timestamp(System.currentTimeMillis()),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: Timestamp = Timestamp(System.currentTimeMillis())
+    var updatedAt: Timestamp = Timestamp(System.currentTimeMillis()),
+
+    @Column(name = "published", nullable = false)
+    var published: Boolean = false,
+
+    @Column(name = "published_at")
+    var publishedAt: Timestamp? = null
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

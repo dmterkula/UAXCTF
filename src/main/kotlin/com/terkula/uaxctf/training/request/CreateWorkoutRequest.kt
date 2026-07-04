@@ -13,7 +13,8 @@ class CreateWorkoutRequest (
     @Valid
     var components: List<ComponentCreationElement>,
     var season: String,
-    var team: String
+    var team: String,
+    var venueId: Int? = null
     )
 
 class ComponentCreationElement(

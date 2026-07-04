@@ -65,7 +65,7 @@ class RunnerProfileService (
         val trackSBsFuture = runnerProfileAsyncHelper.getTrackSBs(runnerId, season)
         val achievementsFuture = runnerProfileAsyncHelper.getAchievements(runnerId = runner.id)
         val crossTrainingFuture = runnerProfileAsyncHelper.getCrossTrainingWorkouts(runnerId, season, type)
-        val seasonTrainingCountFuture = runnerProfileAsyncHelper.getSummerTrainingAwardStatus(runnerId, type, season, team)
+        val seasonTrainingCountFuture = runnerProfileAsyncHelper.getSummerConditioningPoints(runnerId, season)
 
 
 
@@ -89,7 +89,7 @@ class RunnerProfileService (
         val trackSBs = trackSBsFuture.get()
         val achievements = achievementsFuture.get()
         val crossTrainingRecords = crossTrainingFuture.get()
-        val summerTrainingCount = seasonTrainingCountFuture.get()
+        val summerTrainingCount = seasonTrainingCountFuture.get() // now RunnerSummerConditioningDTO?
 
 
 

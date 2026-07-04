@@ -7,8 +7,6 @@ import com.terkula.uaxctf.statistics.response.RunnerSeasonalPointsResponse
 import com.terkula.uaxctf.statistics.response.SeasonalProgressResponse
 import com.terkula.uaxctf.statistics.response.SeasonalRewardDTO
 import com.terkula.uaxctf.statistics.service.SeasonalRewardsService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -40,12 +38,9 @@ class SeasonalRewardsController(
      *
      * Example: GET /api/v1/points/seasonal/progress?season=xc&year=2024
      */
-    @ApiOperation("Get team progress with all rewards and progress percentages")
     @RequestMapping(value = ["/progress"], method = [RequestMethod.GET])
     fun getTeamProgress(
-            @ApiParam("Season: xc or track", required = true)
             @RequestParam(value = "season", required = true) season: String,
-            @ApiParam("Year (e.g., \"2024\")", required = true)
             @RequestParam(value = "year", required = true) year: String
     ): ResponseEntity<SeasonalProgressResponse> {
         val progress = seasonalRewardsService.getTeamProgress(season, year)
@@ -58,12 +53,9 @@ class SeasonalRewardsController(
      *
      * Example: GET /api/v1/points/seasonal/rewards?season=xc&year=2024
      */
-    @ApiOperation("Get all seasonal rewards for a season/year")
     @RequestMapping(value = ["/rewards"], method = [RequestMethod.GET])
     fun getRewards(
-            @ApiParam("Season: xc or track", required = true)
             @RequestParam(value = "season", required = true) season: String,
-            @ApiParam("Year (e.g., \"2024\")", required = true)
             @RequestParam(value = "year", required = true) year: String
     ): ResponseEntity<List<SeasonalRewardDTO>> {
         val rewards = seasonalRewardsService.getRewards(season, year)
@@ -88,7 +80,6 @@ class SeasonalRewardsController(
      *   "createdBy": "Coach Smith"
      * }
      */
-    @ApiOperation("Create a new seasonal reward (coach only)")
     @RequestMapping(value = ["/rewards"], method = [RequestMethod.POST])
     fun createReward(
             @RequestBody request: CreateSeasonalRewardRequest
@@ -118,7 +109,6 @@ class SeasonalRewardsController(
      *   "pointThreshold": 1200
      * }
      */
-    @ApiOperation("Update a seasonal reward (coach only)")
     @RequestMapping(value = ["/rewards/{id}"], method = [RequestMethod.PUT])
     fun updateReward(
             @PathVariable("id") rewardId: Long,
@@ -147,7 +137,6 @@ class SeasonalRewardsController(
      *
      * Example: DELETE /api/v1/points/seasonal/rewards/123
      */
-    @ApiOperation("Delete a seasonal reward (coach only)")
     @RequestMapping(value = ["/rewards/{id}"], method = [RequestMethod.DELETE])
     fun deleteReward(
             @PathVariable("id") rewardId: Long
@@ -171,13 +160,10 @@ class SeasonalRewardsController(
      *
      * Example: GET /api/v1/points/seasonal/123?season=xc&year=2024
      */
-    @ApiOperation("Get a specific runner's seasonal points")
     @RequestMapping(value = ["/{runnerId}"], method = [RequestMethod.GET])
     fun getRunnerSeasonalPoints(
             @PathVariable("runnerId") runnerId: Int,
-            @ApiParam("Season: xc or track", required = true)
             @RequestParam(value = "season", required = true) season: String,
-            @ApiParam("Year (e.g., \"2024\")", required = true)
             @RequestParam(value = "year", required = true) year: String
     ): ResponseEntity<RunnerSeasonalPointsResponse> {
         val points = seasonalRewardsService.getRunnerSeasonalPoints(runnerId, season, year)
@@ -198,14 +184,10 @@ class SeasonalRewardsController(
      *
      * Example: GET /api/v1/points/seasonal/leaderboard?season=xc&year=2024&limit=10
      */
-    @ApiOperation("Get seasonal points leaderboard")
     @RequestMapping(value = ["/leaderboard"], method = [RequestMethod.GET])
     fun getSeasonalLeaderboard(
-            @ApiParam("Season: xc or track", required = true)
             @RequestParam(value = "season", required = true) season: String,
-            @ApiParam("Year (e.g., \"2024\")", required = true)
             @RequestParam(value = "year", required = true) year: String,
-            @ApiParam("Optional limit on number of results (e.g., 10 for top 10)", required = false)
             @RequestParam(value = "limit", required = false) limit: Int?
     ): ResponseEntity<List<RunnerSeasonalPointsResponse>> {
         val leaderboard = seasonalRewardsService.getSeasonalLeaderboard(season, year, limit)

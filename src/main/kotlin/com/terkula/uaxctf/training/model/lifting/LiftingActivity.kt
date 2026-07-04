@@ -2,6 +2,7 @@ package com.terkula.uaxctf.training.model.lifting
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.terkula.uaxctf.statisitcs.model.Venue
 import java.sql.Date
 import java.sql.Timestamp
 import javax.persistence.*
@@ -37,6 +38,9 @@ class LiftingActivity(
     @Column(name = "suggested_exercises", columnDefinition = "TEXT")
     var suggestedExercises: String?, // JSON array of exercise UUIDs
 
+    @Column(name = "venue_id")
+    var venueId: Int? = null,
+
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Timestamp = Timestamp(System.currentTimeMillis()),
 
@@ -47,6 +51,9 @@ class LiftingActivity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonIgnore
     val id: Int = 0
+
+    @Transient
+    var venue: Venue? = null
 
     @PrePersist
     protected fun onCreate() {

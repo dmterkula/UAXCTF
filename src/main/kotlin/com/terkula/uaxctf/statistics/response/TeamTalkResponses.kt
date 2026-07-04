@@ -9,7 +9,8 @@ import com.terkula.uaxctf.statisitcs.model.TeamTalkComment
 data class ReactionSummary(
     val emoji: String,
     val count: Int,
-    val usernames: List<String>  // List of usernames who reacted
+    val usernames: List<String>,  // List of usernames who reacted
+    val displayNames: List<String> = emptyList()  // Parallel list of display names (when available)
 )
 
 /**
@@ -75,4 +76,14 @@ data class CommentCreatedResponse(
     val comment: TeamTalkComment,
     val pointsEarned: Int,
     val newPointBalance: Int
+)
+
+/**
+ * Response for publish/unpublish.
+ * `wasFirstPublish` is true only when this call transitioned the talk from
+ * never-published to published, so iOS knows whether to fire the runner push.
+ */
+data class PublishTeamTalkResponse(
+    val teamTalk: TeamTalkResponse,
+    val wasFirstPublish: Boolean
 )

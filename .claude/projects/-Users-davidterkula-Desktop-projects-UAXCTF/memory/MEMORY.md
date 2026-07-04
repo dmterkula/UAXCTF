@@ -1,0 +1,2 @@
+- [PRs are season-agnostic](feedback_prs_no_season_distinction.md) — PR is a PR regardless of outdoor/indoor season type
+- [Don't double-post meet results](feedback_no_double_post.md) — Use --redo without --post to regenerate HTML after already posting

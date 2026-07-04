@@ -4,8 +4,6 @@ import com.terkula.uaxctf.statistics.response.SeasonBestResponse
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.statistics.service.SeasonBestService
 import com.terkula.uaxctf.statistics.service.TimeTrialService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 import java.sql.Date
@@ -18,12 +16,9 @@ class SeasonBestController(@field:Autowired
                    var timeTrialService: TimeTrialService) {
 
 
-    @ApiOperation("Returns Season Bests for all runners in the given season(s)")
     @RequestMapping(value = ["/xc/seasonBests/all"], method = [RequestMethod.GET])
     fun getAllSeasonBestsByYear(
-    @ApiParam("Filters results for meets with a date after 01-01 of the input year")
     @RequestParam(value = "filter.season", required = false, defaultValue = "") season: String,
-    @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
     @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
     ) : SeasonBestResponse {
 
@@ -42,14 +37,10 @@ class SeasonBestController(@field:Autowired
 
     }
 
-    @ApiOperation("Returns a singular runner's Season Bests within the last number of given years")
     @RequestMapping(value = ["xc/seasonBests/"], method = [RequestMethod.GET])
     fun getRunnerSeasonBestsByYear(
-            @ApiParam("Limits results for the last number of years based on the input")
             @RequestParam(value = "limit.numYears", required = false, defaultValue = "1") numSeasons: Int,
-            @ApiParam("Filters results athletes whose name matches/partially matches the input name")
             @RequestParam(value = "filter.name") partialName: String,
-            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
             @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false) : SeasonBestResponse {
 
         val startEndPairs = IntStream.range(1, numSeasons + 1).toList().map {
@@ -67,7 +58,6 @@ class SeasonBestController(@field:Autowired
 
     @RequestMapping(value = ["xc/seasonBests/lastMeet"], method = [RequestMethod.GET])
     fun getSeasonBestsAtLastMeet(
-            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
             @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
     ): SeasonBestResponse {
         val startDate = Date.valueOf("${MeetPerformanceController.CURRENT_YEAR}-01-01")
@@ -78,10 +68,8 @@ class SeasonBestController(@field:Autowired
         return SeasonBestResponse(seasonBests.size, seasonBests)
     }
 
-    @ApiOperation("Returns runner's season best if their current season best is still the first meet")
     @RequestMapping(value = ["xc/seasonBests/isAtFirstMeet"], method = [RequestMethod.GET])
     fun findWhoseSeasonBestIsFirstMeet(
-            @ApiParam("Adjusts seasons bests for true distance of the meet if value passed is true")
             @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false
     ): SeasonBestResponse {
 
@@ -95,9 +83,8 @@ class SeasonBestController(@field:Autowired
 
     }
 
-    @ApiOperation("Returns T Test between two difference in runners SBs times between consecutive years. Intent is to use as indicator training of a given season")
     @RequestMapping(value = ["xc/seasonBests/yearToYearTTest"], method = [RequestMethod.GET])
-    fun runTTestBetweenSBAndPreviousSB( @ApiParam("use time trial and SB data from this season")
+    fun runTTestBetweenSBAndPreviousSB(
                                                     @RequestParam("filter.baseSeason") baseSeason: String,
                                                     @RequestParam("filter.comparisonSeason") comparisonSeason: String,
                                                     @RequestParam(value = "adjustForMeetDistance", required = false, defaultValue = "false") adjustForMeetDistance: Boolean = false

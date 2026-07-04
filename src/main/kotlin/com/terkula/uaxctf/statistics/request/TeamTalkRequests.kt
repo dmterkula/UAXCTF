@@ -14,8 +14,13 @@ data class CreateTeamTalkRequest(
 
 data class UpdateTeamTalkRequest(
     val uuid: String,
+    val author: String,
     val title: String,
     val content: String
+)
+
+data class PublishTeamTalkRequest(
+    val author: String
 )
 
 data class CreateTeamTalkCommentRequest(

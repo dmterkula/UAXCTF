@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statisitcs.model
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.sql.Timestamp
 import javax.persistence.*
 
@@ -31,6 +32,8 @@ class SeasonalReward(
         var displayOrder: Int = 0,
 
         @Column(name = "is_achieved")
+        @param:JsonProperty("achieved")
+        @get:JsonProperty("achieved")
         var isAchieved: Boolean = false,
 
         @Column(name = "achieved_date")

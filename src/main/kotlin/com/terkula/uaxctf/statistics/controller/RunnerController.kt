@@ -6,7 +6,6 @@ import com.terkula.uaxctf.statistics.request.CreateRunnerRequest
 import com.terkula.uaxctf.statistics.service.RunnerService
 import com.terkula.uaxctf.util.TimeUtilities
 import com.terkula.uaxctf.util.getYearString
-import io.swagger.annotations.ApiOperation
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -15,8 +14,6 @@ class RunnerController(
     val runnerService: RunnerService
 ) {
 
-    @ApiOperation("Returns runners in the the given class constraints, if no filter.class value is provided," +
-            "returns all runners with a grad class greater than current year")
     @RequestMapping(value = ["xc/runnersGivenClass/"], method = [RequestMethod.GET])
     fun getAllRunners(
             @RequestParam(value = "filter.class", required = false, defaultValue = "")
@@ -32,7 +29,6 @@ class RunnerController(
         }
     }
 
-    @ApiOperation("Returns runners, by oldest grad class, then sorted by name")
     @RequestMapping(value = ["xc/allRunners/"], method = [RequestMethod.GET])
     fun getAllRunnersRegardlessOfClass(
 
@@ -48,7 +44,6 @@ class RunnerController(
         return runners
     }
 
-    @ApiOperation("Returns roster of runners for given season sorted by seniors first")
     @RequestMapping(value = ["xc/runners"], method = [RequestMethod.GET])
     fun getRunnersForSeason(
             @RequestParam(value = "filter.season", required = false, defaultValue = "")
@@ -76,7 +71,6 @@ class RunnerController(
 
     }
 
-    @ApiOperation("Returns runners on team")
     @RequestMapping(value = ["xc/runners/byTeam"], method = [RequestMethod.GET])
     fun getRunnersForSeason(
             @RequestParam(value = "filter.team", required = true, defaultValue = "UA")
@@ -87,7 +81,6 @@ class RunnerController(
 
     }
 
-    @ApiOperation("Create Runner")
     @RequestMapping(value = ["xc/runners/create"], method = [RequestMethod.POST])
     fun createRunner(
             @RequestBody createRunnerRequest: CreateRunnerRequest
@@ -96,7 +89,6 @@ class RunnerController(
         return runnerService.createRunner(createRunnerRequest)
     }
 
-    @ApiOperation("Update Runner")
     @RequestMapping(value = ["xc/runners/update"], method = [RequestMethod.PUT])
     fun update(
             @RequestParam(value = "runnerId", required = true)

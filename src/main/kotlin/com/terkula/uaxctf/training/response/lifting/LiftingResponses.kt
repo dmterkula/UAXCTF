@@ -1,6 +1,8 @@
 package com.terkula.uaxctf.training.response.lifting
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statisitcs.model.Venue
 import com.terkula.uaxctf.training.model.TrainingComment
 import java.sql.Timestamp
 
@@ -24,6 +26,7 @@ data class ExercisesResponse(
 
 // ===== Activity Responses =====
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class LiftingActivityDTO(
     val uuid: String,
     val name: String,
@@ -33,7 +36,9 @@ data class LiftingActivityDTO(
     val icon: String,
     val season: String,
     val team: String,
-    val suggestedExercises: List<String>?
+    val suggestedExercises: List<String>?,
+    val venue: Venue? = null,
+    val assignedRunnerIds: List<Int>? = null
 )
 
 data class LiftingActivitiesResponse(

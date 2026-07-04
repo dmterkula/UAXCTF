@@ -1,4 +1,4 @@
-FROM amazoncorretto:8-alpine
+FROM amazoncorretto:17-alpine
 EXPOSE 8080
 VOLUME /tmp
 #ARG JAR_FILE

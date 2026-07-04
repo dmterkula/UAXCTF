@@ -2,7 +2,6 @@ package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statistics.exception.UnauthenticatedException
 import com.terkula.uaxctf.statistics.service.MeetPerformanceService
-import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.env.Environment
 import org.springframework.core.env.get
@@ -18,7 +17,6 @@ class XcDataLoaderController(
     internal var env: Environment
 ) {
 
-    @ApiOperation("Loads meet data that has manually been entered in the load table.")
     @RequestMapping(value = ["xc/load/{meetId}"], method = [RequestMethod.GET])
     fun loadPerformances(
             @PathVariable("meetId") meetId: Int,
@@ -33,7 +31,6 @@ class XcDataLoaderController(
         }
     }
 
-    @ApiOperation("Loads milesplit data for meet that has been entered in the mile split table.")
     @RequestMapping(value = ["xc/load/mileSplit/{meetId}"], method = [RequestMethod.GET])
     fun loadMileSplits(
         @PathVariable("meetId") meetId: Int,
@@ -48,7 +45,6 @@ class XcDataLoaderController(
         }
     }
 
-    @ApiOperation("Load Time Trial Data")
     @RequestMapping(value = ["xc/load/TimeTrialResult"], method = [RequestMethod.GET])
     fun loadTimeTrialData(
         @RequestParam(value = "season") season: String,
@@ -63,7 +59,6 @@ class XcDataLoaderController(
         }
     }
 
-    @ApiOperation("Create Meet Info")
     @RequestMapping(value = ["xc/createMeetInfoEntry/"], method = [RequestMethod.POST])
     fun createMeetInfoEntry(
             @RequestParam(value = "meetName") meetName: String,
@@ -94,7 +89,6 @@ class XcDataLoaderController(
         }
     }
 
-    @ApiOperation("Read Workout Results From raw result table and post the results")
     @RequestMapping(value = ["xc/readWorkoutResults/"], method = [RequestMethod.GET])
     fun loadWorkoutResults(
             @RequestParam(value = "workoutId") workoutId: Int,

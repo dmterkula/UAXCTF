@@ -4,13 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.VenueRepository
 import com.terkula.uaxctf.statistics.service.MeetLogService
 import com.terkula.uaxctf.training.model.*
 import com.terkula.uaxctf.training.repository.*
+import com.terkula.uaxctf.training.model.TrainingCommentReaction
 import com.terkula.uaxctf.training.request.CreateRunnersTrainingRunRequest
 import com.terkula.uaxctf.training.request.CreateTrainingRunRequest
+import com.terkula.uaxctf.training.request.crosstraining.AddTrainingCommentReactionRequest
 import com.terkula.uaxctf.training.request.crosstraining.CreateCommentRequest
+import com.terkula.uaxctf.training.request.crosstraining.RemoveTrainingCommentReactionRequest
 import com.terkula.uaxctf.training.response.*
+import com.terkula.uaxctf.statistics.response.ReactionSummary
 import com.terkula.uaxctf.training.response.track.TrackMeetLogResponse
 import com.terkula.uaxctf.util.*
 import org.springframework.stereotype.Service
@@ -32,22 +37,32 @@ class TrainingRunsService(
     val meetLogService: MeetLogService,
     val trainingBasePerformanceService: TrainingBasePerformanceService,
     val trainingCommentRepository: TrainingCommentRepository,
+    val trainingCommentReactionRepository: TrainingCommentReactionRepository,
     val objectMapper: ObjectMapper,
-    val pointsService: com.terkula.uaxctf.statistics.service.PointsService
+    val pointsService: com.terkula.uaxctf.statistics.service.PointsService,
+    val venueRepository: VenueRepository,
+    val eventVisibilityRepository: EventVisibilityRepository
 ) {
 
+    private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
+
     fun getTrainingRuns(startDate: Date, endDate: Date): TrainingRunResponse {
+        val runs = trainingRunRepository.findByDateBetween(startDate, endDate)
+        val visibilityMap = eventVisibilityRepository.findByEventUuidIn(runs.map { it.uuid })
+            .groupBy { it.eventUuid }
+            .mapValues { (_, entries) -> entries.map { it.runnerId } }
         return TrainingRunResponse(
-                trainingRunRepository.findByDateBetween(startDate, endDate).map {
+                runs.map {
                     TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
-                            it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel)
+                            it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel,
+                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() })
                 }
         )
     }
 
     fun getTrainingRun(uuid: String): TrainingRunDTO? {
         return trainingRunRepository.findByUuid(uuid).map { TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
-                it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel)  }.firstOrNull()
+                it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel, resolveVenue(it.venueId)) }.firstOrNull()
     }
 
     fun createTrainingRun(createTrainingRunRequest: CreateTrainingRunRequest): TrainingRunResponse {
@@ -66,7 +81,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.season,
                     createTrainingRunRequest.team,
                     createTrainingRunRequest.useTrainingPercent,
-                    createTrainingRunRequest.effortLabel
+                    createTrainingRunRequest.effortLabel,
+                    createTrainingRunRequest.venueId
             )
 
             trainingRunRepository.save(
@@ -76,7 +92,7 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel)
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId))
             ))
 
         } else {
@@ -103,7 +119,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.season,
                     createTrainingRunRequest.team,
                     createTrainingRunRequest.useTrainingPercent,
-                    createTrainingRunRequest.effortLabel
+                    createTrainingRunRequest.effortLabel,
+                    createTrainingRunRequest.venueId
             )
 
             trainingRunRepository.save(
@@ -113,10 +130,13 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel)
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId))
             ))
 
         } else {
+
+            val oldSeason = foundTrainingRun.season
+            val seasonChanged = oldSeason != null && oldSeason != createTrainingRunRequest.season
 
             foundTrainingRun.date = createTrainingRunRequest.date
             foundTrainingRun.icon = createTrainingRunRequest.icon
@@ -129,14 +149,31 @@ class TrainingRunsService(
             foundTrainingRun.team = createTrainingRunRequest.team
             foundTrainingRun.useTrainingPercent = createTrainingRunRequest.useTrainingPercent
             foundTrainingRun.effortLabel = createTrainingRunRequest.effortLabel
+            foundTrainingRun.venueId = createTrainingRunRequest.venueId
 
             trainingRunRepository.save(foundTrainingRun)
+
+            if (seasonChanged) {
+                try {
+                    val runnerUuids = runnersTrainingRunRepository
+                            .findByTrainingRunUuid(createTrainingRunRequest.uuid)
+                            .map { it.uuid }
+                    pointsService.reattributePointsForSeasonChange(
+                            activityUuids = runnerUuids,
+                            oldSeason = oldSeason!!,
+                            newSeason = createTrainingRunRequest.season,
+                            runDate = createTrainingRunRequest.date
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
 
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                             foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
                             foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season,
-                            foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel)
+                            foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel, resolveVenue(foundTrainingRun.venueId))
             ))
         }
 
@@ -158,7 +195,7 @@ class TrainingRunsService(
                         foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                         foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
                         foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season,
-                        foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel
+                        foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel, null
                 )))
             } else {
                 // if there are training runs logged for this already, don't delete
@@ -390,7 +427,7 @@ class TrainingRunsService(
                     createRunnersTrainingRunRequest.warmUpPace,
                     createRunnersTrainingRunRequest.coachNotes,
                     createRunnersTrainingRunRequest.effortLevel,
-                    createRunnersTrainingRunRequest.effortLevel,
+                    createRunnersTrainingRunRequest.painLevel,
                     createRunnersTrainingRunRequest.painNotes,
                     createRunnersTrainingRunRequest.splitsString(),
                     createRunnersTrainingRunRequest.avgHr,
@@ -1086,6 +1123,28 @@ class TrainingRunsService(
         }
     }
 
+    fun forceReattributePoints(trainingRunUuid: String, fromSeason: String, toSeason: String): String {
+        val trainingRun = trainingRunRepository.findByUuid(trainingRunUuid).firstOrNull()
+                ?: return "Training run not found: $trainingRunUuid"
+
+        val runnerUuids = runnersTrainingRunRepository
+                .findByTrainingRunUuid(trainingRunUuid)
+                .map { it.uuid }
+
+        if (runnerUuids.isEmpty()) {
+            return "No runner logs found for training run: $trainingRunUuid"
+        }
+
+        pointsService.reattributePointsForSeasonChange(
+                activityUuids = runnerUuids,
+                oldSeason = fromSeason,
+                newSeason = toSeason,
+                runDate = trainingRun.date
+        )
+
+        return "Re-attributed points for ${runnerUuids.size} runner(s): $fromSeason → $toSeason"
+    }
+
     fun createComment(createCommentRequest: CreateCommentRequest): TrainingComment {
         return trainingCommentRepository.save(
                 TrainingComment(
@@ -1098,10 +1157,54 @@ class TrainingRunsService(
         )
     }
 
-    fun getTrainingComments(runnersTrainingRunUUID: String):List<TrainingComment> {
-        return trainingCommentRepository.findByTrainingEntityUuid(runnersTrainingRunUUID).sortedBy { it.timestamp }
+    fun getTrainingComments(runnersTrainingRunUUID: String): List<TrainingComment> {
+        return trainingCommentRepository.findByTrainingEntityUuid(runnersTrainingRunUUID)
+            .sortedBy { it.timestamp }
+            .map { comment ->
+                comment.reactions = getCommentReactionSummary(comment.uuid)
+                comment
+            }
     }
 
+    fun addCommentReaction(request: AddTrainingCommentReactionRequest): List<ReactionSummary> {
+        val existing = trainingCommentReactionRepository.findByCommentUuidAndReactorUsernameAndEmoji(
+            request.commentUuid, request.reactorUsername, request.emoji
+        )
+        if (existing == null) {
+            trainingCommentReactionRepository.save(
+                TrainingCommentReaction(
+                    commentUuid = request.commentUuid,
+                    reactorUsername = request.reactorUsername,
+                    reactorDisplayName = request.reactorDisplayName,
+                    emoji = request.emoji
+                )
+            )
+        }
+        return getCommentReactionSummary(request.commentUuid)
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    fun removeCommentReaction(request: RemoveTrainingCommentReactionRequest): List<ReactionSummary> {
+        trainingCommentReactionRepository.deleteByCommentUuidAndReactorUsernameAndEmoji(
+            request.commentUuid, request.reactorUsername, request.emoji
+        )
+        return getCommentReactionSummary(request.commentUuid)
+    }
+
+    private fun getCommentReactionSummary(commentUuid: String): List<ReactionSummary> {
+        return trainingCommentReactionRepository.findByCommentUuid(commentUuid)
+            .groupBy { it.emoji }
+            .map { (emoji, reactions) ->
+                val distinctByUser = reactions.distinctBy { it.reactorUsername }
+                ReactionSummary(
+                    emoji = emoji,
+                    count = reactions.size,
+                    usernames = distinctByUser.map { it.reactorUsername },
+                    displayNames = distinctByUser.map { it.reactorDisplayName.ifEmpty { it.reactorUsername } }
+                )
+            }
+            .sortedByDescending { it.count }
+    }
 
     fun getRunnersTrainingRunRecord(uuid: String): RunnersTrainingRunResponse? {
         val record = runnersTrainingRunRepository.findByUuid(uuid).firstOrNull()
@@ -1114,7 +1217,7 @@ class TrainingRunsService(
 
         return run {
             val paceRange: TrainingRunPaceRange? = getRunnersPaceRangeForTrainingRun(trainingRun, record.runnerId)
-            val comments = trainingCommentRepository.findByTrainingEntityUuid(record.uuid).sortedBy { it.timestamp }
+            val comments = getTrainingComments(record.uuid)
             val runner = runnerRepository.findById(record.runnerId).get()
             RunnersTrainingRunResponse(listOf(record).map {
                 RunnerTrainingRunDTO(
@@ -1125,5 +1228,75 @@ class TrainingRunsService(
             }, comments)
         }
 
+    }
+
+    fun getCoachTrainingRunInsights(
+        team: String,
+        season: String,
+        seasonType: String,
+        runnerIds: List<Int>,
+        startDate: Date,
+        endDate: Date
+    ): CoachTrainingRunInsightsDTO {
+
+        val teamRunners = runnerRepository.findByTeam(team).filter { it.isActive }
+        val rosterRunners = teamRunners
+            .filter { it.graduatingClass.toInt() > season.toInt() && it.graduatingClass.toInt() <= season.toInt() + 4 }
+            .filter { if (seasonType.equals("track", ignoreCase = true)) it.doesTrack else it.doesXc }
+
+        val targetRunners = if (runnerIds.isEmpty()) {
+            rosterRunners
+        } else {
+            rosterRunners.filter { runnerIds.contains(it.id) }
+        }
+        val runnerById = targetRunners.associateBy { it.id }
+
+        val trainingRuns = trainingRunRepository
+            .findByDateBetween(startDate, endDate)
+            .filter { it.team == team }
+
+        val loggedRuns = trainingRuns.flatMap { event ->
+            runnersTrainingRunRepository.findByTrainingRunUuid(event.uuid)
+                .filter { runnerById.containsKey(it.runnerId) }
+                .map { it to event }
+        }
+
+        val logsByRunner = loggedRuns.groupBy { it.first.runnerId }
+
+        val runnerInsights = targetRunners.map { runner ->
+            val runnerLogs = logsByRunner[runner.id] ?: emptyList()
+
+            val longestRun = runnerLogs.maxByOrNull { it.first.distance }?.let { (log, event) ->
+                LongestRunDTO(
+                    date = event.date,
+                    distance = log.distance.round(2),
+                    durationMinutes = (log.time.calculateSecondsFrom() / 60.0).toInt(),
+                    avgPace = log.avgPace
+                )
+            }
+
+            val paceByEffort = runnerLogs
+                .mapNotNull { (log, event) ->
+                    val label = event.effortLabel
+                    if (label.isNullOrBlank() || label == "N/A") null
+                    else label to log.avgPace.calculateSecondsFrom()
+                }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, paceSecondsList) -> paceSecondsList.average().toMinuteSecondString() }
+
+            RunnerTrainingInsightDTO(
+                runnerId = runner.id,
+                runnerName = runner.name,
+                loggedRunCount = runnerLogs.size,
+                longestRun = longestRun,
+                paceByEffort = paceByEffort
+            )
+        }.filter { it.loggedRunCount > 0 }.sortedBy { it.runnerName }
+
+        return CoachTrainingRunInsightsDTO(
+            startDate = startDate,
+            endDate = endDate,
+            runners = runnerInsights
+        )
     }
 }

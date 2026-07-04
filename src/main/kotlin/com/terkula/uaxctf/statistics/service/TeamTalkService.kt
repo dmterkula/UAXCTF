@@ -4,6 +4,7 @@ import com.terkula.uaxctf.statisitcs.model.TeamTalk
 import com.terkula.uaxctf.statisitcs.model.TeamTalkComment
 import com.terkula.uaxctf.statisitcs.model.TeamTalkReaction
 import com.terkula.uaxctf.statisitcs.model.TeamTalkView
+import com.terkula.uaxctf.statistics.controller.firebase.FirebaseMessageService
 import com.terkula.uaxctf.statistics.repository.AuthenticationRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
 import com.terkula.uaxctf.statistics.repository.TeamTalkCommentRepository
@@ -14,6 +15,7 @@ import com.terkula.uaxctf.statistics.request.*
 import com.terkula.uaxctf.statistics.response.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,7 +27,8 @@ class TeamTalkService(
     val teamTalkViewRepository: TeamTalkViewRepository,
     val runnerRepository: RunnerRepository,
     val authenticationRepository: AuthenticationRepository,
-    val pointsService: PointsService
+    val pointsService: PointsService,
+    val firebaseMessageService: FirebaseMessageService
 ) {
 
     // ===== TEAM TALK CRUD =====
@@ -56,11 +59,52 @@ class TeamTalkService(
         val teamTalk = teamTalkRepository.findByUuid(request.uuid)
             ?: throw RuntimeException("Team talk not found: ${request.uuid}")
 
+        if (teamTalk.author != request.author) {
+            throw RuntimeException("Only the author can edit this team talk")
+        }
+
         teamTalk.title = request.title
         teamTalk.content = request.content
         teamTalkRepository.save(teamTalk)
 
         return getTeamTalk(request.uuid)
+    }
+
+    @Transactional
+    fun publishTeamTalk(uuid: String, author: String): PublishTeamTalkResponse {
+        val teamTalk = teamTalkRepository.findByUuid(uuid)
+            ?: throw RuntimeException("Team talk not found: $uuid")
+
+        if (teamTalk.author != author) {
+            throw RuntimeException("Only the author can publish this team talk")
+        }
+
+        val wasFirstPublish = teamTalk.publishedAt == null
+        teamTalk.published = true
+        if (wasFirstPublish) {
+            teamTalk.publishedAt = Timestamp(System.currentTimeMillis())
+        }
+        teamTalkRepository.save(teamTalk)
+
+        return PublishTeamTalkResponse(
+            teamTalk = getTeamTalk(uuid),
+            wasFirstPublish = wasFirstPublish
+        )
+    }
+
+    @Transactional
+    fun unpublishTeamTalk(uuid: String, author: String): TeamTalkResponse {
+        val teamTalk = teamTalkRepository.findByUuid(uuid)
+            ?: throw RuntimeException("Team talk not found: $uuid")
+
+        if (teamTalk.author != author) {
+            throw RuntimeException("Only the author can unpublish this team talk")
+        }
+
+        teamTalk.published = false
+        teamTalkRepository.save(teamTalk)
+
+        return getTeamTalk(uuid)
     }
 
     fun getTeamTalk(uuid: String): TeamTalkResponse {
@@ -81,8 +125,13 @@ class TeamTalkService(
         )
     }
 
-    fun getTeamTalksBySeason(season: String, year: String, team: String = "UA"): TeamTalkListResponse {
-        val teamTalks = teamTalkRepository.findBySeasonAndYearAndTeamOrderByCreatedAtDesc(season, year, team)
+    fun getTeamTalksBySeason(
+        season: String,
+        year: String,
+        team: String = "UA",
+        includeDrafts: Boolean = false
+    ): TeamTalkListResponse {
+        val teamTalks = teamTalkRepository.findForList(season, year, team, includeDrafts)
 
         val responses = teamTalks.map { teamTalk ->
             val reactions = getReactionSummary(teamTalk.uuid)
@@ -102,8 +151,8 @@ class TeamTalkService(
         return TeamTalkListResponse(responses)
     }
 
-    fun getAllTeamTalks(): TeamTalkListResponse {
-        val teamTalks = teamTalkRepository.findAllByOrderByCreatedAtDesc()
+    fun getAllTeamTalks(includeDrafts: Boolean = false): TeamTalkListResponse {
+        val teamTalks = teamTalkRepository.findAllForList(includeDrafts)
 
         val responses = teamTalks.map { teamTalk ->
             val reactions = getReactionSummary(teamTalk.uuid)
@@ -140,9 +189,30 @@ class TeamTalkService(
                 emoji = request.emoji
             )
             teamTalkReactionRepository.save(reaction)
+            notifyAuthorOfReaction(request)
         }
 
         return getReactionSummary(request.teamTalkUuid)
+    }
+
+    private fun notifyAuthorOfReaction(request: AddTeamTalkReactionRequest) {
+        try {
+            val teamTalk = teamTalkRepository.findByUuid(request.teamTalkUuid) ?: return
+            if (teamTalk.author == request.username) return
+            val author = authenticationRepository.findByUsername(teamTalk.author) ?: return
+            val deviceId = author.deviceId
+            if (deviceId.isNullOrEmpty()) return
+
+            val title = "${request.displayName} reacted ${request.emoji} to your team talk"
+            val body = "\"${teamTalk.title}\""
+            val data = mapOf(
+                "type" to "team_talk_reaction",
+                "teamTalkUuid" to teamTalk.uuid
+            )
+            firebaseMessageService.sendMessageToDeviceId(deviceId, title, body, data)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     @Transactional
@@ -160,10 +230,12 @@ class TeamTalkService(
 
         return reactions.groupBy { it.emoji }
             .map { (emoji, reactionList) ->
+                val distinctByUser = reactionList.distinctBy { it.username }
                 ReactionSummary(
                     emoji = emoji,
                     count = reactionList.size,
-                    usernames = reactionList.mapNotNull { it.username }.distinct()
+                    usernames = distinctByUser.mapNotNull { it.username },
+                    displayNames = distinctByUser.map { it.displayName.ifEmpty { it.username } }
                 )
             }
             .sortedByDescending { it.count }

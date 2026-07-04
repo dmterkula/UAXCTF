@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.training.model
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.terkula.uaxctf.statisitcs.model.Venue
 import java.sql.Date
 import javax.persistence.*
 
@@ -22,7 +23,9 @@ class TrainingRun (
     @Column(name = "use_training_percent")
     var useTrainingPercent: Boolean?,
     @Column(name = "effort_label")
-    var effortLabel: String?
+    var effortLabel: String?,
+    @Column(name = "venue_id")
+    var venueId: Int? = null
 ) {
 
     @JsonIgnore
@@ -30,4 +33,7 @@ class TrainingRun (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JoinColumn
     val id: Int = 0
+
+    @Transient
+    var venue: Venue? = null
 }

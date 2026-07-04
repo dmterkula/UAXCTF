@@ -14,7 +14,8 @@ class CreateTrainingRunRequest(
         var season: String,
         var team: String,
         var useTrainingPercent: Boolean?,
-        var effortLabel: String?
+        var effortLabel: String?,
+        val venueId: Int? = null
 )
 
 class CreateRunnersTrainingRunRequest(

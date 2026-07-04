@@ -52,7 +52,7 @@ class IndividualMeetSummaryAsync(
                 TimeUtilities.getLastDayOfGivenYear(meet.date.getYearString()), false)
                 .firstOrNull { it.runner.id == runnerId }
 
-        val isSBAtSameMeet: Boolean = seasonBest?.seasonBest?.firstOrNull()?.meetDate == meet.date && seasonBest?.seasonBest.firstOrNull()?.meetName == meet.name
+        val isSBAtSameMeet: Boolean = seasonBest?.seasonBest?.firstOrNull()?.meetDate == meet.date && seasonBest?.seasonBest?.firstOrNull()?.meetName == meet.name
 
 //        val pastPerformancesAtSameMeet =
 //                meetPerformanceService.getMeetPerformancesForRunner(runnerId, TimeUtilities.getFirstDayOfGivenYear((runner.graduatingClass.toInt() - 4).toString()), TimeUtilities.getLastDayOfGivenYear(runner.graduatingClass))

@@ -3,6 +3,7 @@ package com.terkula.uaxctf.training.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.VenueRepository
 import com.terkula.uaxctf.statistics.request.EarnPointsRequest
 import com.terkula.uaxctf.statistics.service.PointsService
 import com.terkula.uaxctf.training.model.TrainingComment
@@ -26,8 +27,12 @@ class LiftingService(
     private val trainingCommentRepository: TrainingCommentRepository,
     private val runnerRepository: RunnerRepository,
     private val pointsService: PointsService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val venueRepository: VenueRepository,
+    private val eventVisibilityRepository: EventVisibilityRepository
 ) {
+
+    private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
 
     // ===== Exercise Management =====
 
@@ -92,7 +97,11 @@ class LiftingService(
             liftingActivityRepository.findByDateBetween(startDate, endDate)
         }
 
-        return LiftingActivitiesResponse(activities.map { it.toDTO() })
+        val visibilityMap = eventVisibilityRepository.findByEventUuidIn(activities.map { it.uuid })
+            .groupBy { it.eventUuid }
+            .mapValues { (_, entries) -> entries.map { it.runnerId } }
+
+        return LiftingActivitiesResponse(activities.map { it.toDTO(visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }) })
     }
 
     @Transactional
@@ -106,7 +115,8 @@ class LiftingService(
             icon = request.icon,
             season = request.season,
             team = request.team,
-            suggestedExercises = request.suggestedExercises?.let { objectMapper.writeValueAsString(it) }
+            suggestedExercises = request.suggestedExercises?.let { objectMapper.writeValueAsString(it) },
+            venueId = request.venueId
         )
 
         val saved = liftingActivityRepository.save(activity)
@@ -126,6 +136,7 @@ class LiftingService(
         activity.season = request.season
         activity.team = request.team
         activity.suggestedExercises = request.suggestedExercises?.let { objectMapper.writeValueAsString(it) }
+        activity.venueId = request.venueId
 
         val saved = liftingActivityRepository.save(activity)
         return saved.toDTO()
@@ -937,7 +948,7 @@ class LiftingService(
         defaultWeightUnit = this.defaultWeightUnit
     )
 
-    private fun LiftingActivity.toDTO() = LiftingActivityDTO(
+    private fun LiftingActivity.toDTO(assignedRunnerIds: List<Int>? = null) = LiftingActivityDTO(
         uuid = this.uuid,
         name = this.name,
         description = this.description,
@@ -948,7 +959,9 @@ class LiftingService(
         team = this.team,
         suggestedExercises = this.suggestedExercises?.let {
             objectMapper.readValue<List<String>>(it)
-        }
+        },
+        venue = resolveVenue(this.venueId),
+        assignedRunnerIds = assignedRunnerIds
     )
 
     private fun LiftingPR.toDTO(): LiftingPRDTO {

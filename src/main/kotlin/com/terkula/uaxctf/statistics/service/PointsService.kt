@@ -3,17 +3,23 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statisitcs.model.PointTransaction
 import com.terkula.uaxctf.statisitcs.model.PointsConfiguration
 import com.terkula.uaxctf.statisitcs.model.Runner
+import com.terkula.uaxctf.statisitcs.model.SummerConditioningConfig
 import com.terkula.uaxctf.statistics.repository.PointTransactionRepository
 import com.terkula.uaxctf.statistics.repository.PointsConfigurationRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.SummerConditioningConfigRepository
 import com.terkula.uaxctf.statistics.request.*
 import com.terkula.uaxctf.statistics.response.*
+import com.terkula.uaxctf.statistics.service.RunnerService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Isolation
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Date
 import java.sql.Timestamp
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Duration
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
@@ -21,7 +27,10 @@ class PointsService(
         val runnerRepository: RunnerRepository,
         val pointTransactionRepository: PointTransactionRepository,
         val pointsConfigurationRepository: PointsConfigurationRepository,
-        val seasonalRewardsService: SeasonalRewardsService
+        val seasonalRewardsService: SeasonalRewardsService,
+        val summerConditioningConfigRepository: SummerConditioningConfigRepository,
+        val runnerService: RunnerService,
+        val summerTrainingAwardService: com.terkula.uaxctf.training.service.SummerTrainingAwardService
 ) {
 
     // Cache configuration in memory, refresh every 5 minutes
@@ -229,6 +238,42 @@ class PointsService(
     }
 
     /**
+     * Re-attribute existing point transactions from one season to another.
+     * Called when a TrainingRun's season label is corrected after runners have already logged it.
+     * Only EARNED transactions for the given activity UUIDs are updated.
+     */
+    @Transactional
+    fun reattributePointsForSeasonChange(activityUuids: List<String>, oldSeason: String, newSeason: String, runDate: java.sql.Date) {
+        if (activityUuids.isEmpty() || oldSeason == newSeason) return
+
+        val oldYear = computeYearForSeason(oldSeason, runDate)
+        val newYear = computeYearForSeason(newSeason, runDate)
+
+        val transactions = pointTransactionRepository.findByActivityUuidIn(activityUuids)
+                .filter { it.transactionType == "EARNED" && it.season == oldSeason }
+
+        transactions.forEach { txn ->
+            txn.season = newSeason
+            pointTransactionRepository.save(txn)
+            seasonalRewardsService.transferSeasonalPoints(
+                    runnerId = txn.runnerId,
+                    fromSeason = oldSeason,
+                    fromYear = oldYear,
+                    toSeason = newSeason,
+                    toYear = newYear,
+                    points = txn.pointsAmount
+            )
+        }
+    }
+
+    private fun computeYearForSeason(season: String, date: java.sql.Date): String {
+        val localDate = date.toLocalDate()
+        val month = localDate.monthValue
+        val year = localDate.year
+        return if (season == "track" && month >= 11) (year + 1).toString() else year.toString()
+    }
+
+    /**
      * Get transaction history for a runner
      */
     fun getTransactionHistory(runnerId: Int, limit: Int = 50): List<PointTransaction> {
@@ -261,6 +306,119 @@ class PointsService(
 
         // Invalidate cache
         lastConfigRefresh = null
+    }
+
+    /**
+     * Get summer conditioning points for all active XC runners for a given year.
+     * Uses the stored config window for that year; the end date is capped at today
+     * if the window has not yet closed, so future points never bleed in.
+     */
+    fun getSummerConditioningPoints(year: String): SummerConditioningResponse {
+        val config = summerConditioningConfigRepository.findByYear(year)
+                .orElseThrow { RuntimeException("No summer conditioning config found for year $year") }
+
+        val (startTs, endTs, windowClosed) = resolveDateWindow(config)
+
+        val transactions = pointTransactionRepository.findByTransactionTypeAndCreatedAtBetween("EARNED", startTs, endTs)
+        val pointsByRunner = transactions.groupBy { it.runnerId }.mapValues { (_, txns) -> txns.sumOf { it.pointsAmount } }
+
+        val runners = runnerService.getXcRoster(true, year)
+                .filter { it.team == "UA" }
+                .map { runner -> RunnerSummerConditioningDTO(runner = runner, pointsEarned = pointsByRunner.getOrDefault(runner.id, 0), pointsThreshold = config.pointsThreshold) }
+                .sortedByDescending { it.pointsEarned }
+
+        return SummerConditioningResponse(
+                year = year,
+                startDate = config.startDate.toString(),
+                endDate = config.endDate.toString(),
+                pointsThreshold = config.pointsThreshold,
+                windowClosed = windowClosed,
+                runners = runners
+        )
+    }
+
+    fun getSummerConditioningPointsForRunner(runnerId: Int, year: String): RunnerSummerConditioningDTO? {
+        val config = summerConditioningConfigRepository.findByYear(year).orElse(null) ?: return null
+        val runner = runnerRepository.findById(runnerId).orElse(null) ?: return null
+
+        val (startTs, endTs, _) = resolveDateWindow(config)
+        val pointsEarned = pointTransactionRepository
+                .findByRunnerIdAndTransactionTypeAndCreatedAtBetween(runnerId, "EARNED", startTs, endTs)
+                .sumOf { it.pointsAmount }
+
+        return RunnerSummerConditioningDTO(runner = runner, pointsEarned = pointsEarned, pointsThreshold = config.pointsThreshold)
+    }
+
+    fun getSummerConditioningBreakdown(runnerId: Int, year: String): SummerConditioningBreakdownResponse {
+        val config = summerConditioningConfigRepository.findByYear(year)
+                .orElseThrow { RuntimeException("No summer conditioning config for year $year") }
+
+        val (startTs, endTs, _) = resolveDateWindow(config)
+
+        val transactions = pointTransactionRepository
+                .findByRunnerIdAndTransactionTypeAndCreatedAtBetween(runnerId, "EARNED", startTs, endTs)
+
+        val runningTypes = setOf("TRAINING_RUN", "WORKOUT")
+        val crossTypes = setOf("CROSS_TRAINING")
+
+        val runningTxns = transactions.filter { it.activityType in runningTypes }
+        val crossTxns = transactions.filter { it.activityType in crossTypes }
+        val otherTxns = transactions.filter { it.activityType != null && it.activityType !in runningTypes && it.activityType !in crossTypes }
+
+        val miles = summerTrainingAwardService.getMilesRunInWindow(
+                runnerId,
+                java.sql.Date(startTs.time),
+                java.sql.Date(endTs.time)
+        )
+
+        return SummerConditioningBreakdownResponse(
+                runnerId = runnerId,
+                year = year,
+                runningPoints = runningTxns.sumOf { it.pointsAmount },
+                crossTrainingPoints = crossTxns.sumOf { it.pointsAmount },
+                otherPoints = otherTxns.sumOf { it.pointsAmount },
+                runningSessions = runningTxns.size,
+                crossTrainingSessions = crossTxns.size,
+                milesRun = miles
+        )
+    }
+
+    fun getSummerConditioningConfig(year: String): SummerConditioningConfig {
+        return summerConditioningConfigRepository.findByYear(year)
+                .orElseThrow { RuntimeException("No summer conditioning config found for year $year") }
+    }
+
+    @Transactional
+    fun upsertSummerConditioningConfig(request: UpsertSummerConditioningConfigRequest): SummerConditioningConfig {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val start = Date.valueOf(LocalDate.parse(request.startDate, formatter))
+        val end = Date.valueOf(LocalDate.parse(request.endDate, formatter))
+
+        val existing = summerConditioningConfigRepository.findByYear(request.year)
+        return if (existing.isPresent) {
+            val config = existing.get()
+            config.startDate = start
+            config.endDate = end
+            config.pointsThreshold = request.pointsThreshold
+            summerConditioningConfigRepository.save(config)
+        } else {
+            summerConditioningConfigRepository.save(SummerConditioningConfig(
+                    year = request.year, startDate = start, endDate = end,
+                    pointsThreshold = request.pointsThreshold, createdBy = request.createdBy))
+        }
+    }
+
+    private data class DateWindow(val startTs: Timestamp, val endTs: Timestamp, val windowClosed: Boolean)
+
+    private fun resolveDateWindow(config: SummerConditioningConfig): DateWindow {
+        val today = LocalDate.now()
+        val configEnd = config.endDate.toLocalDate()
+        val effectiveEnd = if (today.isBefore(configEnd)) today else configEnd
+        return DateWindow(
+                startTs = Timestamp.valueOf(config.startDate.toLocalDate().atStartOfDay()),
+                endTs = Timestamp.valueOf(effectiveEnd.plusDays(1).atStartOfDay()),
+                windowClosed = !today.isBefore(configEnd)
+        )
     }
 
     /**

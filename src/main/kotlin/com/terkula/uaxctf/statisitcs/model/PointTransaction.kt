@@ -32,7 +32,7 @@ class PointTransaction(
         val balanceAfter: Int,
 
         @Column(name = "season", length = 20)
-        val season: String? = null,
+        var season: String? = null,
 
         @Column(name = "is_refunded")
         var isRefunded: Boolean = false,

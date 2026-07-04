@@ -3,8 +3,6 @@ package com.terkula.uaxctf.training.controller
 import com.terkula.uaxctf.training.response.trainingdashboard.IndividualTrainingDashboardResponse
 import com.terkula.uaxctf.training.response.trainingdashboard.TrainingDashboardResponse
 import com.terkula.uaxctf.training.service.TrainingDashboardService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -16,35 +14,26 @@ import java.sql.Date
 @Validated
 class TrainingDashboardController(val dashboardService: TrainingDashboardService) {
 
-    @ApiOperation("Returns training dashboard for team")
     @RequestMapping(value = ["training-dashboard/team"], method = [RequestMethod.GET])
     fun getTeamTrainingDashboard(
 
-        @ApiParam("season, xc or track")
         @RequestParam(value = "season", required = true) season: String,
-        @ApiParam("Earliest Date to look for")
         @RequestParam(value = "startDate", required = true) startDate: Date,
 
-        @ApiParam("Latest date to look for")
         @RequestParam(value = "endDate", required = true) endDate: Date,
 
-        @ApiParam("team")
         @RequestParam(value = "team", required = false) team: String? = "UA",
         ): TrainingDashboardResponse  {
 
         return dashboardService.getTeamTrainingDashboard(season, startDate, endDate, team)
     }
 
-    @ApiOperation("Returns training dashboard for runner")
     @RequestMapping(value = ["training-dashboard/individual"], method = [RequestMethod.GET])
     fun getIndividualTrainingDashboard(
-            @ApiParam("runnerId")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("Earliest Date to look for")
             @RequestParam(value = "startDate", required = true) startDate: Date,
 
-            @ApiParam("Latest date to look for")
             @RequestParam(value = "endDate", required = true) endDate: Date,
 
     ): IndividualTrainingDashboardResponse  {

@@ -5,8 +5,6 @@ import com.terkula.uaxctf.training.request.CreateBaseTrainingPerformanceRequest
 import com.terkula.uaxctf.training.request.CreateRunnerBaseTrainingPercentageRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.service.TrainingBasePerformanceService
-import io.swagger.annotations.ApiOperation
-import io.swagger.annotations.ApiParam
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.threeten.bp.Instant
@@ -19,17 +17,13 @@ class TrainingBasePerformanceController(
         val trainingBasePerformanceService: TrainingBasePerformanceService
 ) {
 
-    @ApiOperation("Returns the planned training run between the given dates")
     @RequestMapping(value = ["training/base-performances"], method = [RequestMethod.GET])
     fun getBaseTrainingPerformance(
 
-        @ApiParam("The runner to select the base pace for")
         @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-        @ApiParam("Track or XC?")
         @RequestParam(value = "season", required = true) season: String,
 
-        @ApiParam("The year")
         @RequestParam(value = "year", required = true)  year: String,
 
     ): TrainingBasePerformanceResponse {
@@ -37,7 +31,6 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getRunnersTrainingBasePerformance(runnerId, season, year)
     }
 
-    @ApiOperation("Create base training performance")
     @RequestMapping(value = ["training/base-performances/create"], method = [RequestMethod.POST])
     fun createBaseTrainingPerformance(
         @RequestBody @Valid createBaseTrainingPerformanceRequest: CreateBaseTrainingPerformanceRequest
@@ -46,25 +39,18 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.createOrUpdateTrainingBasePerformance(createBaseTrainingPerformanceRequest)
     }
 
-    @ApiOperation("Create base training performance manually")
     @RequestMapping(value = ["training/base-performances/createManually"], method = [RequestMethod.POST])
     fun createBaseTrainingPerformanceManually(
-        @ApiParam("The runner to select the base pace for")
         @RequestParam(value = "runnerName", required = true) runnerName: String,
 
-        @ApiParam("Track or XC?")
         @RequestParam(value = "season", required = true) season: String,
 
-        @ApiParam("The year")
         @RequestParam(value = "year", required = true)  year: String,
 
-        @ApiParam("The event")
         @RequestParam(value = "event", required = true)  event: String,
 
-        @ApiParam("Time: minutes and seconds")
         @RequestParam(value = "time", required = true)  time: String,
 
-        @ApiParam("Time: minutes and seconds")
         @RequestParam(value = "time", required = true)  uuid: String,
 
     ): TrainingBasePerformanceResponse? {
@@ -72,16 +58,12 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.createOrUpdateTrainingBasePerformanceManually()
     }
 
-    @ApiOperation("Get Base Training Paces")
     @RequestMapping(value = ["training/base-performances/getAll"], method = [RequestMethod.GET])
     fun getBaseTrainingPerformances(
-            @ApiParam("Track or XC?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("Team")
             @RequestParam(value = "team", required = false) team: String?,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
     ): List<TrainingBasePerformanceResponse> {
         var teamValue: String = "UA"
@@ -92,75 +74,56 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getBaseTrainingPerformances(season, year, teamValue)
     }
 
-    @ApiOperation("Get Base Training Paces")
     @RequestMapping(value = ["training/base-paces/for-runner"], method = [RequestMethod.GET])
     fun getBaseTrainingPacesForRunner(
-            @ApiParam("type of run (recovery or base building")
             @RequestParam(value = "type", required = true) type: String,
 
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("The runner to select the base pace for")
             @RequestParam(value = "runnerId", required = true) runnerId: Int
     ): TrainingRunPaceRange? {
 
         return trainingBasePerformanceService.getRunnersBaseTrainingPaces(type, season, year, runnerId)
     }
 
-    @ApiOperation("Get Base Training Paces")
     @RequestMapping(value = ["training/base-paces/for-runner/managementView"], method = [RequestMethod.GET])
     fun getBaseTrainingPacesForRunnerForView(
 
-            @ApiParam("type of run (recovery or base building")
             @RequestParam(value = "event", required = true) event: String,
 
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("The runner to select the base pace for")
             @RequestParam(value = "runnerId", required = true) runnerId: Int
     ): RunnersTrainingPacePercentLabels {
 
         return trainingBasePerformanceService.getRunnersBaseTrainingPacesForView(event, season, year, runnerId)
     }
 
-    @ApiOperation("Get All Base Training Paces")
     @RequestMapping(value = ["training/base-paces/for-all-runners/managementView"], method = [RequestMethod.GET])
     fun getBaseTrainingPacesForAllRunnersForView(
 
-            @ApiParam("type of run (recovery or base building")
             @RequestParam(value = "event", required = true) event: String,
 
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
     ): List<RunnersTrainingPacePercentLabels> {
         return trainingBasePerformanceService.getAllRunnersBaseTrainingPacesForView(event, season, year)
     }
 
-    @ApiOperation("Get Base Training Paces")
     @RequestMapping(value = ["training/base-paces/for-all-runners"], method = [RequestMethod.GET])
     fun getBaseTrainingPacesForAllRunners(
-            @ApiParam("type of run (recovery or base building)")
             @RequestParam(value = "type", required = true) type: String,
 
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("The date (YYYY-MM-DD format)")
             @RequestParam(value = "date", required = true)  date: String?,
 
     ): List<RunnersTrainingRunPaceRange> {
@@ -175,16 +138,12 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getAllRunnersBaseTrainingPaces(type, season, year, dateToUse)
     }
 
-    @ApiOperation("Get All Runners Personal Pace Percentages")
     @RequestMapping(value = ["training/base-paces/custom-percentages"], method = [RequestMethod.GET])
     fun getPersonalBaseTrainingPercentagesForAllRunners(
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("Team")
             @RequestParam(value = "team", required = true)  team: String,
 
             ): List<RunnerBaseTrainingPercentageResponse> {
@@ -192,7 +151,6 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getAllRunnersBaseTrainingPercentages(season, year, team)
     }
 
-    @ApiOperation("Set Base Training Percentages For Runner")
     @RequestMapping(value = ["training/base-paces/custom-percentages/create"], method = [RequestMethod.POST])
     fun setPersonalBaseTrainingPercentagesForRunner(
             @RequestBody @Valid createRunnerBaseTrainingPercentage: CreateRunnerBaseTrainingPercentageRequest
@@ -201,7 +159,6 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.createRunnersBaseTrainingPercentage(createRunnerBaseTrainingPercentage)
     }
 
-    @ApiOperation("Re-Set Base Training Percentages For Runner to Default")
     @RequestMapping(value = ["training/base-paces/custom-percentages/runner-reset"], method = [RequestMethod.POST])
     fun reSetPersonalBaseTrainingPercentagesForRunnerToEventDefault(
             @RequestBody @Valid createRunnerBaseTrainingPercentage: CreateRunnerBaseTrainingPercentageRequest
@@ -211,17 +168,13 @@ class TrainingBasePerformanceController(
     }
 
 
-    @ApiOperation("Get All Runners Personal Pace Percentages")
     @RequestMapping(value = ["training/base-paces/labels/paceTypes"], method = [RequestMethod.GET])
     fun getTrainingPaceLabels(
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
 
-            @ApiParam("year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("event")
             @RequestParam(value = "event", required = true)  event: String,
 
             ): List<String> {
@@ -229,25 +182,18 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getPaceTypes(season, year, event)
     }
 
-    @ApiOperation("Get Runners Training Pace For Pace Type and Pace Name")
     @RequestMapping(value = ["training/base-paces/runners-assigned-pace"], method = [RequestMethod.GET])
     fun getRunnersAssignedPace(
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("year")
             @RequestParam(value = "year", required = true) year: String,
 
-            @ApiParam("event")
             @RequestParam(value = "event", required = true) event: String,
 
-            @ApiParam("runnerId")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("paceType")
             @RequestParam(value = "paceType", required = true) paceType: String,
 
-            @ApiParam("paceName")
             @RequestParam(value = "paceName", required = true) paceName: String,
 
             ): BasePercentPerformanceAndPacePerMile {
@@ -255,22 +201,16 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.getCurrentBasePercentAndPacePerMile(event, season, year, paceType, paceName, runnerId)
     }
 
-    @ApiOperation("Get Runners Training Pace For Pace Type and Pace Name")
     @RequestMapping(value = ["training/base-paces/runners-assigned-pace/calculate"], method = [RequestMethod.GET])
     fun calculateRunnersAssignedPace(
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("year")
             @RequestParam(value = "year", required = true) year: String,
 
-            @ApiParam("event")
             @RequestParam(value = "event", required = true) event: String,
 
-            @ApiParam("runnerId")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("percent")
             @RequestParam(value = "percent", required = true) percent: Int
 
             ): BasePercentPerformanceAndPacePerMile {
@@ -278,17 +218,13 @@ class TrainingBasePerformanceController(
         return trainingBasePerformanceService.calculatePacePerMileForNewPercent(event, season, year, percent, runnerId)
     }
 
-    @ApiOperation("Get All Runners Personal Pace Percentages")
     @RequestMapping(value = ["training/base-paces/labels/paceNames"], method = [RequestMethod.GET])
     fun getTrainingPaceNames(
-            @ApiParam("track or xc?")
             @RequestParam(value = "season", required = true) season: String,
 
 
-            @ApiParam("year")
             @RequestParam(value = "year", required = true)  year: String,
 
-            @ApiParam("event")
             @RequestParam(value = "event", required = true)  event: String,
 
             ): List<String> {
@@ -298,16 +234,12 @@ class TrainingBasePerformanceController(
 
     // Historical tracking endpoints
 
-    @ApiOperation("Get historical base performance records for a runner in a season")
     @RequestMapping(value = ["training/base-performances/history"], method = [RequestMethod.GET])
     fun getBaseTrainingPerformanceHistory(
-            @ApiParam("The runner to get history for")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("Track or XC?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The year (optional)")
             @RequestParam(value = "year", required = false) year: String?
     ): TrainingBasePerformanceHistoryResponse {
         val runner = trainingBasePerformanceService.runnerRepository.findById(runnerId).get()
@@ -319,22 +251,16 @@ class TrainingBasePerformanceController(
         return TrainingBasePerformanceHistoryResponse(runner, history)
     }
 
-    @ApiOperation("Get the base performance that was active at a specific date")
     @RequestMapping(value = ["training/base-performances/at-date"], method = [RequestMethod.GET])
     fun getBaseTrainingPerformanceAtDate(
-            @ApiParam("The runner to get base performance for")
             @RequestParam(value = "runnerId", required = true) runnerId: Int,
 
-            @ApiParam("Track or XC?")
             @RequestParam(value = "season", required = true) season: String,
 
-            @ApiParam("The date (YYYY-MM-DD format)")
             @RequestParam(value = "date", required = true) dateString: String,
 
-            @ApiParam("The event (optional)")
             @RequestParam(value = "event", required = false) event: String?,
 
-            @ApiParam("The year (optional)")
             @RequestParam(value = "year", required = false) year: String?
     ): TrainingBasePerformanceResponse {
         val date = Date.valueOf(dateString)

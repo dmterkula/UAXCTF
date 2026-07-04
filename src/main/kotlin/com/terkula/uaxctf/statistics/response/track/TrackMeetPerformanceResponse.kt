@@ -1,5 +1,6 @@
 package com.terkula.uaxctf.statistics.response.track
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.sql.Date
 
 class TrackMeetPerformanceResponse (
@@ -11,6 +12,8 @@ class TrackMeetPerformanceResponse (
         var time: String,
         var place: Int,
         var event: String,
+        @param:JsonProperty("split")
+        @get:JsonProperty("split")
         var isSplit: Boolean,
         var splits: List<TrackSplit>
 )

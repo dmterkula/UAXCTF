@@ -39,7 +39,8 @@ data class CreateLiftingActivityRequest(
     val icon: String = "dumbbell",
     val season: String,
     val team: String,
-    val suggestedExercises: List<String>? // Exercise UUIDs
+    val suggestedExercises: List<String>?,
+    val venueId: Int? = null
 )
 
 data class UpdateLiftingActivityRequest(
@@ -52,7 +53,8 @@ data class UpdateLiftingActivityRequest(
     val icon: String,
     val season: String,
     val team: String,
-    val suggestedExercises: List<String>?
+    val suggestedExercises: List<String>?,
+    val venueId: Int? = null
 )
 
 // ===== Record Requests =====

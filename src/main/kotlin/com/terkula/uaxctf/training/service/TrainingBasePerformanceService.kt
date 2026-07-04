@@ -14,6 +14,7 @@ import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.removeDecimal
 import com.terkula.uaxctf.util.secondsPerMileToPercentPacePerMile
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import java.sql.Date
 import java.sql.Timestamp
@@ -319,7 +320,8 @@ class TrainingBasePerformanceService(
         val personalPercentages: List<RunnerBaseTrainingPercentage> = runnerBaseTrainingPercentagesRepository.findBySeasonAndYear(season, year)
         val timestamp = Timestamp(date.time)
         val trainingPaceRanges: List<RunnersTrainingRunPaceRange> = trainingBasePerformanceRepository.findBySeasonAndYearAndCreatedAtLessThanEqualOrderByCreatedAtDesc(season, year, timestamp,
-            PageRequest.of(0, 1))
+            Pageable.unpaged())
+                .getMostRecentPerRunnerAndEvent()
                 .groupBy { it.runnerId }
                 .filter { runners[it.key] != null }
                 .map {

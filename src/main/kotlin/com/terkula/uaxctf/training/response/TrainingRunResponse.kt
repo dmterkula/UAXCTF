@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.training.response
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.terkula.uaxctf.statisitcs.model.Venue
 import java.util.*
 
 class TrainingRunResponse(val trainingRuns: List<TrainingRunDTO>)
@@ -18,5 +19,7 @@ class TrainingRunDTO(
     val season: String,
     val team: String,
     val useTrainingPercent: Boolean?,
-    val effortLabel: String?
+    val effortLabel: String?,
+    val venue: Venue? = null,
+    val assignedRunnerIds: List<Int>? = null
 )

@@ -31,16 +31,17 @@ class TrainingDashboardService(
 
 
         val runners = if (team != null && !team.equals("UA", ignoreCase = true)) {
-            runnerService.getRunnersByTeam(team)
+            runnerService.getRosterByTeam(true, startDate.getYearString(), team)
         } else if (season == "track") {
             if (startDate.toLocalDate().monthValue >= 11) {
                 runnerService.getTrackRoster(true, (startDate.getYearString().toInt()+1).toString())
             } else {
                 runnerService.getTrackRoster(true, startDate.getYearString())
-            }
+            }.filter { it.team.equals("UA", ignoreCase = true) }
 
         } else {
             runnerService.getXcRoster(true, startDate.getYearString())
+                .filter { it.team.equals("UA", ignoreCase = true) }
         }
 
         val dashboardRows: List<RunnerTrainingDashboardEntry> = runners.map {

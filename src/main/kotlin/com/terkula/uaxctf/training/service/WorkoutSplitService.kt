@@ -140,7 +140,8 @@ class WorkoutSplitService(
                 workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                 workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
                 notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
-                workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
+                workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr,
+                workoutDistance.firstOrNull()?.effortLevel)
 
     }
 
@@ -207,7 +208,8 @@ class WorkoutSplitService(
                     workoutTime, workoutPace, it.second.warmUpDistance,
                     it.second.warmUpTime, it.second.warmUpPace,
                     it.second.coolDownDistance, it.second.coolDownTime, it.second.coolDownPace,
-                    notes, coachNotes, it.second.painLevel, it.second.painNotes, comments, it.second.avgHr, it.second.maxHr)
+                    notes, coachNotes, it.second.painLevel, it.second.painNotes, comments, it.second.avgHr, it.second.maxHr,
+                    it.second.effortLevel)
         }
 
     }
@@ -250,7 +252,8 @@ class WorkoutSplitService(
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
                     notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
-                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
+                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr,
+                    workoutDistance.firstOrNull()?.effortLevel)
         }
 
         return results.filter { it.componentResults.isNotEmpty()  }
@@ -340,7 +343,8 @@ class WorkoutSplitService(
                     workoutDistance.firstOrNull()?.warmUpTime, workoutDistance.firstOrNull()?.warmUpPace,
                     workoutDistance.firstOrNull()?.coolDownDistance, workoutDistance.firstOrNull()?.coolDownTime, workoutDistance.firstOrNull()?.coolDownPace,
                     notes, coachNotes, workoutDistance.firstOrNull()?.painLevel, workoutDistance.firstOrNull()?.painNotes, comments,
-                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr)
+                    workoutDistance.firstOrNull()?.avgHr, workoutDistance.firstOrNull()?.maxHr,
+                    workoutDistance.firstOrNull()?.effortLevel)
         }
 
         return results.filter { it.time != "00:00" && it.totalDistance != 0.0}
@@ -374,7 +378,7 @@ class WorkoutSplitService(
                     logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                     logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
                     logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel, logWorkoutResultsRequest.painNotes,
-                    logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr
+                    logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr, logWorkoutResultsRequest.effortLevel
             )
             workoutDistanceRepository.save(runnerWorkoutDistance)
             distance = runnerWorkoutDistance.distance
@@ -386,7 +390,9 @@ class WorkoutSplitService(
                 pointsService.earnPoints(com.terkula.uaxctf.statistics.request.EarnPointsRequest(
                         runnerId = logWorkoutResultsRequest.runnerId,
                         activityType = "WORKOUT",
-                        activityUuid = workout.uuid,
+                        // Per-runner key: workout.uuid alone is shared by every runner who
+                        // logs this workout, so earnPoints would dedup all but the first.
+                        activityUuid = workout.uuid + "_" + logWorkoutResultsRequest.runnerId,
                         season = logWorkoutResultsRequest.season,
                         year = logWorkoutResultsRequest.year,
                         description = "Logged workout results"
@@ -413,6 +419,7 @@ class WorkoutSplitService(
             existingRecord.painNotes = logWorkoutResultsRequest.painNotes
             existingRecord.avgHr = logWorkoutResultsRequest.avgHr
             existingRecord.maxHr = logWorkoutResultsRequest.maxHr
+            existingRecord.effortLevel = logWorkoutResultsRequest.effortLevel
 
             distance = existingRecord.distance
 
@@ -425,7 +432,8 @@ class WorkoutSplitService(
                 logWorkoutResultsRequest.time, logWorkoutResultsRequest.pace, logWorkoutResultsRequest.warmUpDistance, logWorkoutResultsRequest.warmUpTime, logWorkoutResultsRequest.warmUpPace,
                 logWorkoutResultsRequest.coolDownDistance, logWorkoutResultsRequest.coolDownTime, logWorkoutResultsRequest.coolDownPace,
                 logWorkoutResultsRequest.notes, logWorkoutResultsRequest.coachNotes, logWorkoutResultsRequest.painLevel,
-                logWorkoutResultsRequest.painNotes, comments, logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr)
+                logWorkoutResultsRequest.painNotes, comments, logWorkoutResultsRequest.avgHr, logWorkoutResultsRequest.maxHr,
+                logWorkoutResultsRequest.effortLevel)
 
     }
 
