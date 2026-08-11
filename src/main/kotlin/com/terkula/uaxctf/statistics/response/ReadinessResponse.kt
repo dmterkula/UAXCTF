@@ -10,6 +10,14 @@ data class ReadinessSignal(
     // PAIN: pain level · EFFORT_HIGH: overage above ceiling · LOAD_SPIKE: WoW% · LOGGING_GAP: sessions missing
 )
 
+data class WeeklyAttendance(
+    val weekStart: String,          // Monday of the current week, yyyy-MM-dd
+    val expectedDays: List<String>, // elapsed Mon–Sat days strictly before the reference date
+    val loggedDays: List<String>,   // expected days that have at least one logged activity
+    val missingDays: List<String>,  // expected days with no logged activity of any kind
+    val missingCount: Int
+)
+
 data class RunnerReadinessResponse(
     val runner: Runner,
     val status: String,             // GREEN, YELLOW, RED
@@ -20,7 +28,8 @@ data class RunnerReadinessResponse(
     val loggedSessions7d: Int,      // activity count in trailing 7 days
     val daysSinceLastLog: Int,      // days since most recent logged activity
     val dataComplete: Boolean,      // false if logging gap makes mileage untrustworthy
-    val weeklyLoads: List<Double>   // sRPE load per week, index 0 = this week, index 4 = oldest
+    val weeklyLoads: List<Double>,  // sRPE load per week, index 0 = this week, index 4 = oldest
+    val attendance: WeeklyAttendance
 )
 
 data class TeamReadinessResponse(val runners: List<RunnerReadinessResponse>)
