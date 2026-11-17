@@ -1,0 +1,15 @@
+{
+  "venue": "Elvin R. King Cross Country Course",
+  "address": "251 State Route 72 N, Cedarville",
+  "address_note": "(^Use the course name for routing; 251 State Route 72 N as backup, routes to the university across the street^)",
+  "date": "Saturday September 26, 2026",
+  "arrive_min": 85,
+  "team_cheer": true,
+  "races": [
+    {"name": "Women's Championship Race", "time": "9:45 am",
+     "athletes": ["Emily Castilla","Maggie McCarren","Lucy Geoppinger","Amy Bollinger","Abby Machon","Stella Laurence","Rowan Paulson","Ava Sarver","Avery Baus","Ella Dressing","Johanna Ray","Vera Foote","Addy Middleton","Vivan Owen","Eleanor Schutte","Leslie Sabbagh","Kate Finnan","Evangeline Resch","Lucy Giordano","Rachel Stites","Molly Einwald","Grace Melchers","Macey Beyrer*","Lilly Weingartner","Julia Galles","Sarah Anderson","Ali Faile","Ava Vitucci","Lara Feeney","Kaira Sarawagi*","Eva Casto","Addison Thieman","Amelie Cobb","Hannah Schmid","Tori Yeazell"]}
+  ],
+  "not_running": ["Caitlin", "Macy S", "Macie G", "Caroline"],
+  "awards_time": "10:45",
+  "awards": ["Top 20 individuals and top 2 teams awarded in each division."]
+}

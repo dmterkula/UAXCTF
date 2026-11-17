@@ -23,7 +23,9 @@ data class XCMeetPerformance(
          @Column(name = "passes_last_mile")
          var passesLastMile: Int,
          @Column(name = "skulls_earned")
-         var skullsEarned: Int
+         var skullsEarned: Int,
+         @Column(name = "division_id")
+         var divisionId: Int? = null
 )
 
 {

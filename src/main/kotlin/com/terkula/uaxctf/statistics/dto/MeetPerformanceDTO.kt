@@ -4,11 +4,14 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.terkula.uaxctf.util.calculateSecondsFrom
 import com.terkula.uaxctf.util.round
 import com.terkula.uaxctf.util.toMinuteSecondString
+import com.terkula.uaxctf.weather.HeatPaceAdjustmentService
 import java.sql.Date
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 class MeetPerformanceDTO(var meetName: String, var meetDate: Date, var time: String, var place: Int, var adjustedTimeAmount: Double?,
-    var passesSecondMile: Int, var passesLastMile: Int, var skullsEarned: Int)
+    var passesSecondMile: Int, var passesLastMile: Int, var skullsEarned: Int,
+    var heatAdjustedTime: String? = null, var divisionId: Int? = null, var divisionName: String? = null,
+    var conditionsTempF: Double? = null, var conditionsHumidityPct: Double? = null)
 
 fun List<MeetPerformanceDTO>.getTimeDifferencesAsStrings(): MutableList<String> {
     val timeDifferences: MutableList<String> = mutableListOf()
@@ -68,10 +71,19 @@ fun MeetPerformanceDTO.adjustForDistance(distance: Int): MeetPerformanceDTO {
         val timeDifference = newTime - this.time.calculateSecondsFrom()
 
         MeetPerformanceDTO(this.meetName, this.meetDate, newTimeString, this.place, timeDifference.round(2),
-        this.passesSecondMile, this.passesLastMile, this.skullsEarned)
+        this.passesSecondMile, this.passesLastMile, this.skullsEarned, this.heatAdjustedTime, this.divisionId, this.divisionName,
+        this.conditionsTempF, this.conditionsHumidityPct)
     } else {
         this
     }
+}
+
+fun MeetPerformanceDTO.adjustForHeat(tempC: Double, humidityPct: Double, heatPaceAdjustmentService: HeatPaceAdjustmentService): MeetPerformanceDTO {
+    val normalized = heatPaceAdjustmentService.normalizeResultTimeForHeat(this.time, tempC, humidityPct)
+    val tempF = (tempC * 9.0 / 5.0 + 32.0).round(1)
+    return MeetPerformanceDTO(this.meetName, this.meetDate, this.time, this.place, this.adjustedTimeAmount,
+        this.passesSecondMile, this.passesLastMile, this.skullsEarned, normalized, this.divisionId, this.divisionName,
+        tempF, humidityPct.round(1))
 }
 
 

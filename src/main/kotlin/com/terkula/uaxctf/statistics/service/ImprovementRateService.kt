@@ -13,6 +13,7 @@ import com.terkula.uaxctf.util.toMinuteSecondString
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 @Component
 class ImprovementRateService (@field:Autowired
@@ -23,7 +24,7 @@ class ImprovementRateService (@field:Autowired
 
     fun getImprovementRateForRunner(runnerName: String, seasonStartDate: Date, seasonEndDate: Date, excludedMeet: String): List<ImprovementRateDTO> {
 
-        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate)
+        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate).statsEligible().toMutableList()
 
         // filters out meet by name within a particular season. if not for date range, might filter out same meet difference year
         if (excludedMeet.isNotEmpty()) {
@@ -61,7 +62,7 @@ class ImprovementRateService (@field:Autowired
     fun getImprovementRateForAllRunners(seasonStartDate: Date, seasonEndDate: Date, excludedMeet: String): List<ImprovementRateDTO> {
 
         // get all meets in season/date range
-        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate)
+        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate).statsEligible().toMutableList()
 
         // filters out meet by name within a particular season. if not for date range, might filter out same meet difference year
         if (excludedMeet.isNotEmpty()) {
@@ -97,7 +98,7 @@ class ImprovementRateService (@field:Autowired
         val summaryMeet = meetRepository.findByNameAndDateBetween(givenMeet, seasonStartDate, seasonEndDate).first()
 
         // get all meets in season/date range
-        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate).toMutableList().sortedBy { it.date }
+        var meets = meetRepository.findByDateBetween(seasonStartDate, seasonEndDate).statsEligible().toMutableList().sortedBy { it.date }
         meets = meets.subList(0, meets.indexOf(summaryMeet) + 1).toMutableList().sortedByDescending { it.date }.toMutableList()
 
 

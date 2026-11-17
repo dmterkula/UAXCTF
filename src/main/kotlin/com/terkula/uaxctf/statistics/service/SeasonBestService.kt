@@ -16,6 +16,7 @@ import com.terkula.uaxctf.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 @Component
 class SeasonBestService(@field:Autowired
@@ -31,7 +32,7 @@ class SeasonBestService(@field:Autowired
     fun getAllSeasonBests(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         // get all meets in season/date range
-        val meets = meetRepository.findByDateBetween(startDate, endDate)
+        val meets = meetRepository.findByDateBetween(startDate, endDate).statsEligible()
 
         // look up map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()
@@ -59,7 +60,7 @@ class SeasonBestService(@field:Autowired
 
     fun getSeasonBestBeforeDate(runnerId: Int, date: Date): XCMeetPerformance? {
 
-        val meets = meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(date.getYearString()), date.subtractDay())
+        val meets = meetRepository.findByDateBetween(TimeUtilities.getFirstDayOfGivenYear(date.getYearString()), date.subtractDay()).statsEligible()
         val meetMap = meets.map { it.id to it }.toMap()
         return meets.map { meetPerformanceRepository.findByMeetIdAndRunnerId(it.id, runnerId) }
                 .filterNotNull()
@@ -68,7 +69,7 @@ class SeasonBestService(@field:Autowired
     }
 
     fun getSeasonBestTimeOrTrout(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<Pair<Runner, String>> {
-        val meets = meetRepository.findByDateBetween(startDate, endDate)
+        val meets = meetRepository.findByDateBetween(startDate, endDate).statsEligible()
 
         // look up map for meet id to meet
         val meetMap = meets.map { it.id to it }.toMap()
@@ -113,7 +114,7 @@ class SeasonBestService(@field:Autowired
 
 
         for (startEndDate: Pair<Date, Date> in startEndDates) {
-            val meets = meetRepository.findByDateBetween(startEndDate.first, startEndDate.second)
+            val meets = meetRepository.findByDateBetween(startEndDate.first, startEndDate.second).statsEligible()
 
             // look up map for meet id to meet
             val meetMap = meets.map { it.id to it }.toMap()
@@ -159,7 +160,7 @@ class SeasonBestService(@field:Autowired
 
     fun getSeasonBestsAtLastMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
-        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.firstOrNull()
+        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).statsEligible().sortedByDescending { it.date }.firstOrNull()
                 ?: return emptyList()
 
         return getAllSeasonBests(startDate, endDate, false)
@@ -173,7 +174,7 @@ class SeasonBestService(@field:Autowired
     fun findWhoseSeasonBestIsFirstMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<SeasonBestDTO> {
 
         // get all meets in season/date range
-        val meets = meetRepository.findByDateBetween(startDate, endDate).sortedBy { it.date }
+        val meets = meetRepository.findByDateBetween(startDate, endDate).statsEligible().sortedBy { it.date }
 
         return getAllSeasonBests(startDate, endDate, false).filter {
             it.seasonBest.first().meetDate == meets.first().date }.toMutableList().sortedByDescending { it.improvedUpon.timeDifference }

@@ -11,6 +11,9 @@ interface RunnersTrainingRunRepository: CrudRepository<RunnersTrainingRun, Int> 
 
     fun findByTrainingRunUuid(uuid: String): List<RunnersTrainingRun>
 
+    /** Batch variant, so a whole date range of runs costs one query instead of one per run. */
+    fun findByTrainingRunUuidIn(uuids: List<String>): List<RunnersTrainingRun>
+
     fun findByRunnerId(runnerId: Int): List<RunnersTrainingRun>
 
     fun findByUuid(uuid: String): List<RunnersTrainingRun>

@@ -196,6 +196,38 @@ class MeetSplitsController(@field:Autowired
         return meetMileSplitService.getPersonalizedSplitsToHitCertainTime(runnerId, time, lastNRaces, meetName)
     }
 
+    @RequestMapping(value = ["/xc/meetSplit/paceComparison"], method = [RequestMethod.GET])
+    fun getPaceComparison(
+            @RequestParam(value = "base.season", required = true) baseSeason: String,
+            @RequestParam(value = "base.meet", required = true) baseMeet: String,
+            @RequestParam(value = "compare", required = false, defaultValue = "") compare: List<String>,
+            @RequestParam(value = "paceAnchor", required = false, defaultValue = "PR") paceAnchor: String,
+            @RequestParam(value = "adjust.forHeat", required = false, defaultValue = "false") adjustForHeat: Boolean = false,
+            @RequestParam(value = "adjust.forGrade", required = false, defaultValue = "false") adjustForGrade: Boolean = false
+    ): PaceComparisonResponse {
+
+        val compareKeys = compare.filter { it.isNotBlank() }.map {
+            val parts = it.split(":", limit = 2)
+            parts[0] to parts[1]
+        }
+
+        return meetMileSplitService.getPaceComparison(baseSeason, baseMeet, compareKeys, paceAnchor, adjustForHeat, adjustForGrade)
+    }
+
+    @RequestMapping(value = ["/xc/meetSplit/seasonPaceComparison"], method = [RequestMethod.GET])
+    fun getSeasonPaceComparison(
+            @RequestParam(value = "base.season", required = true) baseSeason: String,
+            @RequestParam(value = "compare", required = false, defaultValue = "") compareSeasons: List<String>,
+            @RequestParam(value = "paceAnchor", required = false, defaultValue = "PR") paceAnchor: String,
+            @RequestParam(value = "adjust.forHeat", required = false, defaultValue = "false") adjustForHeat: Boolean = false,
+            @RequestParam(value = "adjust.forGrade", required = false, defaultValue = "false") adjustForGrade: Boolean = false
+    ): SeasonPaceComparisonResponse {
+
+        val seasons = compareSeasons.filter { it.isNotBlank() }
+
+        return meetMileSplitService.getSeasonPaceComparison(baseSeason, seasons, paceAnchor, adjustForHeat, adjustForGrade)
+    }
+
     fun getSplitOption(option: String): MeetSplitsOption {
         return MeetSplitsOption.fromString(option)!!
     }

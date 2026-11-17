@@ -201,9 +201,9 @@ open class RunnerProfileAsyncHelper (
 
     @Async
     open fun getMeetResults(runnerId: Int, season: String,
-                                         sortingMethodContainer: SortingMethodContainer, count: Int): Future<List<RunnerPerformanceDTO>> {
+                                         sortingMethodContainer: SortingMethodContainer, count: Int, adjustForHeat: Boolean = false): Future<List<RunnerPerformanceDTO>> {
         return AsyncResult(meetPerformanceService.getMeetPerformancesForRunner(runnerId, TimeUtilities.getFirstDayOfGivenYear(season), TimeUtilities.getLastDayOfGivenYear(season),
-                sortingMethodContainer, count, false))
+                sortingMethodContainer, count, false, adjustForHeat))
     }
 
     @Async

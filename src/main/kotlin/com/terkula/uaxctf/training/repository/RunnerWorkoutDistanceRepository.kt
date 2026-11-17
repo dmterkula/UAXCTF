@@ -9,6 +9,9 @@ interface RunnerWorkoutDistanceRepository: CrudRepository<RunnerWorkoutDistance,
 
     fun findByWorkoutUuid(workoutUuid: String): List<RunnerWorkoutDistance>
 
+    /** Batch variant, so a whole date range of workouts costs one query instead of one each. */
+    fun findByWorkoutUuidIn(workoutUuids: List<String>): List<RunnerWorkoutDistance>
+
     fun findByRunnerId(runnerId: Int): List<RunnerWorkoutDistance>
 
     fun findByWorkoutUuidAndRunnerId(workoutUuid: String, runnerId: Int): List<RunnerWorkoutDistance>

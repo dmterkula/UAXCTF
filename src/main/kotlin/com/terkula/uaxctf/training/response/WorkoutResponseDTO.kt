@@ -16,5 +16,7 @@ class WorkoutResponseDTO(
         var season: String,
         var team: String,
         var venue: Venue? = null,
-        var assignedRunnerIds: List<Int>? = null
+        var assignedRunnerIds: List<Int>? = null,
+        var startTime: java.sql.Time? = null,
+        var assignedGroups: List<String>? = null
 )

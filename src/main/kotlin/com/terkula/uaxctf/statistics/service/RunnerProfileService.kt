@@ -43,7 +43,7 @@ class RunnerProfileService (
         ) {
 
 
-    fun buildRunnerProfileV2(runnerId: Int, season: String, type: String, team: String, includeWarmUps: Boolean): RunnerProfileDTOV2 {
+    fun buildRunnerProfileV2(runnerId: Int, season: String, type: String, team: String, includeWarmUps: Boolean, adjustForHeat: Boolean = false): RunnerProfileDTOV2 {
         val runner = runnerRepository.findById(runnerId).get()
 
 
@@ -58,7 +58,7 @@ class RunnerProfileService (
         val trainingRunsFuture = runnerProfileAsyncHelper.getTrainingRuns(runnerId, season, type)
         val workoutResultsFuture = runnerProfileAsyncHelper.getWorkoutResults(runnerId, season, type)
         val goalsFuture = runnerProfileAsyncHelper.getGoalForRunner(runnerId, season, type)
-        val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20)
+        val meetResultsFuture = runnerProfileAsyncHelper.getMeetResults(runnerId, season, SortingMethodContainer.RECENT_DATE, 20, adjustForHeat)
         val trackResultsFuture = runnerProfileAsyncHelper.getTrackMeetPerformances(runnerId, season)
         val trainingRunSummaryFuture = runnerProfileAsyncHelper.getTrainingRunSummary(runnerId, season, includeWarmUps, type)
         val trackPRsFuture = runnerProfileAsyncHelper.getTrackPRs(runnerId)

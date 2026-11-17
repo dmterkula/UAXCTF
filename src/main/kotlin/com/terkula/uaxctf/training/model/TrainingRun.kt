@@ -25,7 +25,9 @@ class TrainingRun (
     @Column(name = "effort_label")
     var effortLabel: String?,
     @Column(name = "venue_id")
-    var venueId: Int? = null
+    var venueId: Int? = null,
+    @Column(name = "start_time")
+    var startTime: java.sql.Time? = null
 ) {
 
     @JsonIgnore

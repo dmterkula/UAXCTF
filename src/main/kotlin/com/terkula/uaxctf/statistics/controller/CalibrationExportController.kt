@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 /**
  * Read-only export of raw race data in the exact shape the xc-coach-sim calibration harness consumes
@@ -56,7 +57,7 @@ class CalibrationExportController(
     fun export(@RequestParam(value = "team", required = false) team: String?): RawExportResponse {
 
         val runners = runnerRepository.findAll().associateBy { it.id }
-        val meets = meetRepository.findAll().associateBy { it.id }
+        val meets = meetRepository.findAll().statsEligible().associateBy { it.id }
 
         val performances = meetPerformanceRepository.findAll()
             .mapNotNull { perf ->

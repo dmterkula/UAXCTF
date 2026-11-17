@@ -9,6 +9,13 @@ interface TrainingCommentRepository : CrudRepository<TrainingComment, Int> {
 
     fun findByTrainingEntityUuid(trainingEntityUuid: String): List<TrainingComment>
 
+    /**
+     * Batch lookup across many logs at once. The reply queue needs the comments for a whole
+     * roster's worth of logs to decide which ones a coach has already answered; fetching them
+     * one entity at a time would be hundreds of round trips.
+     */
+    fun findByTrainingEntityUuidIn(trainingEntityUuids: List<String>): List<TrainingComment>
+
     fun deleteByTrainingEntityUuid(trainingEntityUuid: String): List<TrainingComment>
 
 }

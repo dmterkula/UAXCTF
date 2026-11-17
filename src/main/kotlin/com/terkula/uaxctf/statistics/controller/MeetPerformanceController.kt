@@ -112,6 +112,7 @@ class MeetPerformanceController(@field:Autowired
             @RequestParam(value = "sort.method", required = false, defaultValue = "time") sortMethod: String,
             @RequestParam(value = "page.size", required = false, defaultValue = "10") count: Int,
             @RequestParam(value = "adjust.forDistance", required = false, defaultValue = "false") adjustForDistance: Boolean = false,
+            @RequestParam(value = "adjust.forHeat", required = false, defaultValue = "false") adjustForHeat: Boolean = false,
             @RequestParam(value = "team", required = false, defaultValue = "UA") team: String? = "UA"): List<RunnerMeetPerformanceDTO>  {
 
         var startDate = Date.valueOf("$season-01-01")
@@ -122,7 +123,7 @@ class MeetPerformanceController(@field:Autowired
         var teamString = team ?: "UA"
 
         return meetPerformanceService.getTotalMeetPerformancesAtMeet(partialName,
-                startDate, endDate, sortingMethodContainer, count, adjustForDistance, teamString)
+                startDate, endDate, sortingMethodContainer, count, adjustForDistance, teamString, adjustForHeat)
     }
 
     @RequestMapping(value = ["xc/meetResults/createForRunner"], method = [RequestMethod.POST])
@@ -138,11 +139,12 @@ class MeetPerformanceController(@field:Autowired
     @RequestMapping(value = ["xc/individualMeetSummary"], method = [RequestMethod.GET])
     fun getIndividualMeetSummaryForRunner(
             @RequestParam(value = "filter.meetUuid") meetUuid: String,
-            @RequestParam(value = "filter.runnerId") runnerId: Int
+            @RequestParam(value = "filter.runnerId") runnerId: Int,
+            @RequestParam(value = "adjust.forHeat", required = false, defaultValue = "false") adjustForHeat: Boolean = false
     )
             : IndividualMeetSummaryResponse? {
 
-        return individualMeetSummaryServiceAsync.getIndividualMeetSummary(runnerId, meetUuid).get()
+        return individualMeetSummaryServiceAsync.getIndividualMeetSummary(runnerId, meetUuid, adjustForHeat).get()
     }
 
     @RequestMapping(value = ["xc/individualMeetSummaries"], method = [RequestMethod.GET])

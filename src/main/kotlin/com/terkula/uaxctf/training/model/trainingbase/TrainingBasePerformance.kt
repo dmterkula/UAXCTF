@@ -27,6 +27,10 @@ class TrainingBasePerformance (
         var source: String = "COACH_ESTIMATE",
         @Column(name = "derived_from_meet_id", nullable = true)
         var derivedFromMeetId: Int? = null,
+        @Column(name = "derived_from_base_performance_id", nullable = true)
+        var derivedFromBasePerformanceId: Int? = null,
+        @Column(name = "source_detail", nullable = true)
+        var sourceDetail: String? = null,
         @Column(name = "created_at", nullable = false, updatable = false)
         var createdAt: Timestamp? = null,
         @Column(name = "updated_at", nullable = false)

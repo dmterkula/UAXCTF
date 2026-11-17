@@ -32,7 +32,8 @@ class CrossTrainingService(
         val runnerRepository: RunnerRepository,
         val pointsService: com.terkula.uaxctf.statistics.service.PointsService,
         val venueRepository: VenueRepository,
-        val eventVisibilityRepository: EventVisibilityRepository
+        val eventVisibilityRepository: EventVisibilityRepository,
+        val eventGroupService: EventGroupService
         ) {
 
     private fun getCommentsWithReactions(entityUuid: String): List<TrainingComment> {
@@ -62,11 +63,13 @@ class CrossTrainingService(
         val visibilityMap = eventVisibilityRepository.findByEventUuidIn(activities.map { it.uuid })
             .groupBy { it.eventUuid }
             .mapValues { (_, entries) -> entries.map { it.runnerId } }
+        val groupsMap = eventGroupService.buildGroupsMap(activities.map { it.uuid })
         return CrossTrainingResponse(
                 activities.map {
                     CrossTrainingDTO(it.date, it.distance, it.distanceUnit, it.duration, it.icon, it.uuid,
                             it.name, it.description, it.season, it.team, it.effortLabel, it.crossTrainingType,
-                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() })
+                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() },
+                            groupsMap[it.uuid]?.takeIf { g -> g.isNotEmpty() })
                 }
         )
     }

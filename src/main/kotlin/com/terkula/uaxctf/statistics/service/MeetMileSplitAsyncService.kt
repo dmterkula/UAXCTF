@@ -5,6 +5,7 @@ import com.terkula.uaxctf.statistics.dto.TStatDTO
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
 import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.util.*
 import org.apache.commons.math3.stat.inference.TestUtils
@@ -20,8 +21,21 @@ class MeetMileSplitAsyncService(
         private val meetMileSplitRepository: MeetMileSplitRepository,
         private val seasonBestService: SeasonBestService,
         private val personalRecordService: PersonalRecordService,
-        private val runnerRepository: RunnerRepository
+        private val runnerRepository: RunnerRepository,
+        private val timeTrialRepository: TimeTrialRepository
         ) {
+
+    /**
+     * Fallback pace-per-mile for runners with no PR on record before this meet (e.g. freshmen debuting).
+     * Uses that runner's time trial for the meet's season, scaled from 3 miles to 5k-equivalent pace,
+     * the same conversion TimeTrialService uses elsewhere.
+     */
+    private fun getTimeTrialFallbackPacePerMile(runnerId: Int, meetDate: Date): Double? {
+        val timeTrial = timeTrialRepository.findByRunnerIdAndSeason(runnerId, meetDate.getYearString()).firstOrNull()
+                ?: return null
+        val adjusted5kSeconds = timeTrial.time.calculateSecondsFrom().scaleTimeTo5k(4827.0)
+        return adjusted5kSeconds / 3.10686
+    }
 
     @Async
     fun runTwoSampleTTestForMileSplitsForAllMeets(
@@ -112,16 +126,15 @@ class MeetMileSplitAsyncService(
             splits.map {
                 runnerRepository.findById(it.runnerId).get() to it
             }.map {
-                personalRecordService.getPRsByNameBeforeTargetDate(it.first.name, false, meets[0].date.subtractDay()).firstOrNull() to it.second
+                val prPace = personalRecordService.getPRsByNameBeforeTargetDate(it.first.name, false, meets[0].date.subtractDay())
+                        .firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
+                (prPace ?: getTimeTrialFallbackPacePerMile(it.first.id, meets[0].date)) to it.second
             }
                     .filter { it.first != null }
-                    .map { it.first!!.pr to it.second}
-                    .filter { it.first.isNotEmpty() }
-                    .map { it.first.first().time.getPacePerMile() to it.second}
                     .map {
-                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first,
-                                it.second.mileTwo.calculateSecondsFrom() / it.first,
-                                it.second.mileThree.calculateSecondsFrom() / it.first)
+                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first!!,
+                                it.second.mileTwo.calculateSecondsFrom() / it.first!!,
+                                it.second.mileThree.calculateSecondsFrom() / it.first!!)
                     }
 
         } else {
