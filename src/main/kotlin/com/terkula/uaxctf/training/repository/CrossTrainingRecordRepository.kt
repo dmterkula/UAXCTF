@@ -10,6 +10,9 @@ interface CrossTrainingRecordRepository: CrudRepository<CrossTrainingRecord, Int
 
     fun findByCrossTrainingUuid(uuid: String): List<CrossTrainingRecord>
 
+    /** Batch variant, so a whole date range of activities costs one query instead of one each. */
+    fun findByCrossTrainingUuidIn(uuids: List<String>): List<CrossTrainingRecord>
+
     fun findByRunnerId(runnerId: Int): List<CrossTrainingRecord>
 
     fun findByUuid(uuid: String): List<CrossTrainingRecord>

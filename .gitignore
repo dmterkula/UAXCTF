@@ -29,3 +29,8 @@ build/
 
 ### VS Code ###
 .vscode/
+scripts/meet_info/out/
+
+### Python ###
+__pycache__/
+*.pyc

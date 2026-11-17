@@ -1,10 +1,12 @@
 package com.terkula.uaxctf.training.controller
 
 import com.terkula.uaxctf.training.model.trainingbase.BasePercentPerformanceAndPacePerMile
+import com.terkula.uaxctf.training.request.CopyBaseTrainingPacesRequest
 import com.terkula.uaxctf.training.request.CreateBaseTrainingPerformanceRequest
 import com.terkula.uaxctf.training.request.CreateRunnerBaseTrainingPercentageRequest
 import com.terkula.uaxctf.training.response.*
 import com.terkula.uaxctf.training.service.TrainingBasePerformanceService
+import com.terkula.uaxctf.training.service.TrainingBaseSeasonCopyService
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import org.threeten.bp.Instant
@@ -14,7 +16,8 @@ import javax.validation.Valid
 @RestController
 @Validated
 class TrainingBasePerformanceController(
-        val trainingBasePerformanceService: TrainingBasePerformanceService
+        val trainingBasePerformanceService: TrainingBasePerformanceService,
+        val trainingBaseSeasonCopyService: TrainingBaseSeasonCopyService
 ) {
 
     @RequestMapping(value = ["training/base-performances"], method = [RequestMethod.GET])
@@ -37,6 +40,18 @@ class TrainingBasePerformanceController(
     ): TrainingBasePerformanceResponse {
 
         return trainingBasePerformanceService.createOrUpdateTrainingBasePerformance(createBaseTrainingPerformanceRequest)
+    }
+
+    /**
+     * Copy base training paces from one season to another (e.g. XC 5k -> track 5000m) with an optional
+     * slow-down adjustment. dryRun = true (the default) previews without writing anything.
+     */
+    @RequestMapping(value = ["training/base-performances/copy-season"], method = [RequestMethod.POST])
+    fun copyBaseTrainingPerformancesToSeason(
+        @RequestBody copyRequest: CopyBaseTrainingPacesRequest
+    ): CopyBaseTrainingPacesResponse {
+
+        return trainingBaseSeasonCopyService.copyBaseTrainingPaces(copyRequest)
     }
 
     @RequestMapping(value = ["training/base-performances/createManually"], method = [RequestMethod.POST])

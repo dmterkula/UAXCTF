@@ -26,13 +26,13 @@ class IndividualMeetSummaryAsync(
 ) {
 
     @Async
-    fun getIndividualMeetSummary(runnerId: Int, meetUuid: String): Future<IndividualMeetSummaryResponse?> {
+    fun getIndividualMeetSummary(runnerId: Int, meetUuid: String, adjustForHeat: Boolean = false): Future<IndividualMeetSummaryResponse?> {
 
         val meet = meetRepository.findByUuid(meetUuid).first()
         val meets = meetRepository.findAll().map { it.id to it }.toMap()
 
         val allMeetResults = meetPerformanceService.getTotalMeetPerformancesAtMeet(meet.name, TimeUtilities.getFirstDayOfGivenYear(meet.date.getYearString()),
-                TimeUtilities.getLastDayOfGivenYear(meet.date.getYearString()), SortingMethodContainer.NOSORT, 100, false, "UA")
+                TimeUtilities.getLastDayOfGivenYear(meet.date.getYearString()), SortingMethodContainer.NOSORT, 100, false, "UA", adjustForHeat)
 
 
         val result = allMeetResults.firstOrNull{ it.runner.id == runnerId } ?: return CompletableFuture.completedFuture(null)

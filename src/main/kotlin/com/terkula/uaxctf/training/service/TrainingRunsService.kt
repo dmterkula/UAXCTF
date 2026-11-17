@@ -41,7 +41,8 @@ class TrainingRunsService(
     val objectMapper: ObjectMapper,
     val pointsService: com.terkula.uaxctf.statistics.service.PointsService,
     val venueRepository: VenueRepository,
-    val eventVisibilityRepository: EventVisibilityRepository
+    val eventVisibilityRepository: EventVisibilityRepository,
+    val eventGroupService: EventGroupService
 ) {
 
     private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
@@ -51,18 +52,20 @@ class TrainingRunsService(
         val visibilityMap = eventVisibilityRepository.findByEventUuidIn(runs.map { it.uuid })
             .groupBy { it.eventUuid }
             .mapValues { (_, entries) -> entries.map { it.runnerId } }
+        val groupsMap = eventGroupService.buildGroupsMap(runs.map { it.uuid })
         return TrainingRunResponse(
                 runs.map {
                     TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
                             it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel,
-                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() })
+                            resolveVenue(it.venueId), visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }, it.startTime,
+                            groupsMap[it.uuid]?.takeIf { g -> g.isNotEmpty() })
                 }
         )
     }
 
     fun getTrainingRun(uuid: String): TrainingRunDTO? {
         return trainingRunRepository.findByUuid(uuid).map { TrainingRunDTO(it.date, it.distance, it.time, it.icon, it.uuid,
-                it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel, resolveVenue(it.venueId)) }.firstOrNull()
+                it.name, it.minTime, it.minDistance, it.season, it.team, it.useTrainingPercent, it.effortLabel, resolveVenue(it.venueId), null, it.startTime) }.firstOrNull()
     }
 
     fun createTrainingRun(createTrainingRunRequest: CreateTrainingRunRequest): TrainingRunResponse {
@@ -82,7 +85,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.team,
                     createTrainingRunRequest.useTrainingPercent,
                     createTrainingRunRequest.effortLabel,
-                    createTrainingRunRequest.venueId
+                    createTrainingRunRequest.venueId,
+                    createTrainingRunRequest.startTime
             )
 
             trainingRunRepository.save(
@@ -92,7 +96,7 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId))
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId), null, trainingRun.startTime)
             ))
 
         } else {
@@ -120,7 +124,8 @@ class TrainingRunsService(
                     createTrainingRunRequest.team,
                     createTrainingRunRequest.useTrainingPercent,
                     createTrainingRunRequest.effortLabel,
-                    createTrainingRunRequest.venueId
+                    createTrainingRunRequest.venueId,
+                    createTrainingRunRequest.startTime
             )
 
             trainingRunRepository.save(
@@ -130,7 +135,7 @@ class TrainingRunsService(
             return TrainingRunResponse(listOf(
                     TrainingRunDTO(trainingRun.date, trainingRun.distance, trainingRun.time, trainingRun.icon,
                             trainingRun.uuid, trainingRun.name, trainingRun.minTime, trainingRun.minDistance,
-                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId))
+                            trainingRun.season, trainingRun.team, trainingRun.useTrainingPercent, trainingRun.effortLabel, resolveVenue(trainingRun.venueId), null, trainingRun.startTime)
             ))
 
         } else {
@@ -150,6 +155,7 @@ class TrainingRunsService(
             foundTrainingRun.useTrainingPercent = createTrainingRunRequest.useTrainingPercent
             foundTrainingRun.effortLabel = createTrainingRunRequest.effortLabel
             foundTrainingRun.venueId = createTrainingRunRequest.venueId
+            foundTrainingRun.startTime = createTrainingRunRequest.startTime
 
             trainingRunRepository.save(foundTrainingRun)
 
@@ -173,7 +179,7 @@ class TrainingRunsService(
                     TrainingRunDTO(foundTrainingRun.date, foundTrainingRun.distance, foundTrainingRun.time,
                             foundTrainingRun.icon, foundTrainingRun.uuid, foundTrainingRun.name,
                             foundTrainingRun.minTime, foundTrainingRun.minDistance, foundTrainingRun.season,
-                            foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel, resolveVenue(foundTrainingRun.venueId))
+                            foundTrainingRun.team, foundTrainingRun.useTrainingPercent, foundTrainingRun.effortLabel, resolveVenue(foundTrainingRun.venueId), null, foundTrainingRun.startTime)
             ))
         }
 

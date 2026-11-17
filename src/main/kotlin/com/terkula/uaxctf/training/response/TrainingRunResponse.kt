@@ -21,5 +21,7 @@ class TrainingRunDTO(
     val useTrainingPercent: Boolean?,
     val effortLabel: String?,
     val venue: Venue? = null,
-    val assignedRunnerIds: List<Int>? = null
+    val assignedRunnerIds: List<Int>? = null,
+    val startTime: java.sql.Time? = null,
+    val assignedGroups: List<String>? = null
 )

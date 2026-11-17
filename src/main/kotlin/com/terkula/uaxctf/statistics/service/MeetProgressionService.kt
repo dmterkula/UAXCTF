@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.lang.Exception
 import java.sql.Date
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 @Component
 class MeetProgressionService(@field:Autowired
@@ -31,7 +32,7 @@ class MeetProgressionService(@field:Autowired
             adjustForDistance: Boolean
     ): List<MeetProgressionDTO> {
 
-        val meets = meetRepository.findByNameContains(meetName)
+        val meets = meetRepository.findByNameContains(meetName).statsEligible()
 
         val meetMap = meets.map { it.id to it }.toMap()
 
@@ -62,7 +63,7 @@ class MeetProgressionService(@field:Autowired
             adjustForDistance: Boolean
     ): List<MeetProgressionDTO> {
 
-        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate)
+        val meets = meetRepository.findByNameAndDateBetween(meetName, startDate, endDate).statsEligible()
 
         val meetMap = meets.map { it.id to it }.toMap()
 
@@ -113,10 +114,10 @@ class MeetProgressionService(@field:Autowired
 
         val meets =
                 if(excludedMeet.isEmpty()) {
-                    meetRepository.findByDateBetween(startDate, endDate)
+                    meetRepository.findByDateBetween(startDate, endDate).statsEligible()
                             .toMutableList().sortedByDescending { it.date }
                 } else {
-                    meetRepository.findByDateBetween(startDate, endDate)
+                    meetRepository.findByDateBetween(startDate, endDate).statsEligible()
                             .filter{ !it.name.contains(excludedMeet, ignoreCase = true) }.toMutableList().sortedByDescending { it.date }
                 }
 

@@ -30,3 +30,5 @@ data class AppUser(
 }
 
 data class RunnerAccount(var runner: Runner, var appUser: AppUser)
+
+data class CoachOptionDTO(val username: String, val subRole: String)

@@ -15,6 +15,9 @@ interface LiftingRecordRepository : CrudRepository<LiftingRecord, Int> {
 
     fun findByLiftingActivityUuid(activityUuid: String): List<LiftingRecord>
 
+    /** Batch variant, so a whole date range of activities costs one query instead of one each. */
+    fun findByLiftingActivityUuidIn(activityUuids: List<String>): List<LiftingRecord>
+
     fun findByLiftingActivityUuidAndRunnerId(activityUuid: String, runnerId: Int): LiftingRecord?
 
     fun findByRunnerIdOrderByDateLoggedDesc(runnerId: Int): List<LiftingRecord>

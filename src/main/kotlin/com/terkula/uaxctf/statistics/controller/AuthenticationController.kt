@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.controller
 
 import com.terkula.uaxctf.statisitcs.model.AppUser
+import com.terkula.uaxctf.statisitcs.model.CoachOptionDTO
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.RunnerAccount
 import com.terkula.uaxctf.statistics.dto.authentication.AuthenticationResponse
@@ -62,6 +63,11 @@ class AuthenticationController(val authenticationService: AuthenticationService)
 
     ): List<RunnerAccount> {
         return authenticationService.getAllAppUsers()
+    }
+
+    @RequestMapping(value = ["xc/appUsers/coaches"], method = [RequestMethod.GET])
+    fun getCoachOptions(): List<CoachOptionDTO> {
+        return authenticationService.getCoachOptions()
     }
 
     @RequestMapping(value = ["xc/appUsers/create"], method = [RequestMethod.PUT])

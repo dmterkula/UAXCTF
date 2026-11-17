@@ -21,6 +21,7 @@ class CrossTrainingDTO(
         val effortLabel: String?,
         val crossTrainingType: String,
         val venue: Venue? = null,
-        val assignedRunnerIds: List<Int>? = null
+        val assignedRunnerIds: List<Int>? = null,
+        val assignedGroups: List<String>? = null
 ) {
 }

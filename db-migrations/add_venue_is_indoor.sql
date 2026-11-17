@@ -1,0 +1,2 @@
+ALTER TABLE uaxc.venues
+    ADD COLUMN is_indoor TINYINT(1) NOT NULL DEFAULT 0;

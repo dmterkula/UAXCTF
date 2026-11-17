@@ -29,7 +29,8 @@ class LiftingService(
     private val pointsService: PointsService,
     private val objectMapper: ObjectMapper,
     private val venueRepository: VenueRepository,
-    private val eventVisibilityRepository: EventVisibilityRepository
+    private val eventVisibilityRepository: EventVisibilityRepository,
+    private val eventGroupService: EventGroupService
 ) {
 
     private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
@@ -101,7 +102,9 @@ class LiftingService(
             .groupBy { it.eventUuid }
             .mapValues { (_, entries) -> entries.map { it.runnerId } }
 
-        return LiftingActivitiesResponse(activities.map { it.toDTO(visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }) })
+        val groupsMap = eventGroupService.buildGroupsMap(activities.map { it.uuid })
+
+        return LiftingActivitiesResponse(activities.map { it.toDTO(visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }, groupsMap[it.uuid]?.takeIf { g -> g.isNotEmpty() }) })
     }
 
     @Transactional
@@ -948,7 +951,7 @@ class LiftingService(
         defaultWeightUnit = this.defaultWeightUnit
     )
 
-    private fun LiftingActivity.toDTO(assignedRunnerIds: List<Int>? = null) = LiftingActivityDTO(
+    private fun LiftingActivity.toDTO(assignedRunnerIds: List<Int>? = null, assignedGroups: List<String>? = null) = LiftingActivityDTO(
         uuid = this.uuid,
         name = this.name,
         description = this.description,
@@ -961,7 +964,8 @@ class LiftingService(
             objectMapper.readValue<List<String>>(it)
         },
         venue = resolveVenue(this.venueId),
-        assignedRunnerIds = assignedRunnerIds
+        assignedRunnerIds = assignedRunnerIds,
+        assignedGroups = assignedGroups
     )
 
     private fun LiftingPR.toDTO(): LiftingPRDTO {

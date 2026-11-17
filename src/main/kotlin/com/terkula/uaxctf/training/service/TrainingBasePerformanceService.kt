@@ -43,6 +43,15 @@ class TrainingBasePerformanceService(
                 .filterNotNull()
     }
 
+    /**
+     * The as-of cutoff for historical lookups. Dates arrive at midnight, but createdAt carries a
+     * time of day, so comparing against midnight would drop a base performance set earlier the same
+     * day. Push the cutoff to the end of the day so same-day updates apply to that day's workout.
+     */
+    private fun endOfDay(date: Date): Timestamp {
+        return Timestamp.valueOf(date.toLocalDate().atTime(23, 59, 59, 999_000_000))
+    }
+
     fun getRunnersTrainingBasePerformance(
             runnerId: Int,
             season: String,
@@ -318,7 +327,7 @@ class TrainingBasePerformanceService(
                 .map { it.id to it }.toMap()
 
         val personalPercentages: List<RunnerBaseTrainingPercentage> = runnerBaseTrainingPercentagesRepository.findBySeasonAndYear(season, year)
-        val timestamp = Timestamp(date.time)
+        val timestamp = endOfDay(date)
         val trainingPaceRanges: List<RunnersTrainingRunPaceRange> = trainingBasePerformanceRepository.findBySeasonAndYearAndCreatedAtLessThanEqualOrderByCreatedAtDesc(season, year, timestamp,
             Pageable.unpaged())
                 .getMostRecentPerRunnerAndEvent()
@@ -467,7 +476,7 @@ class TrainingBasePerformanceService(
             season: String,
             date: Date
     ): TrainingBasePerformance? {
-        val timestamp = Timestamp(date.time)
+        val timestamp = endOfDay(date)
         val performances = trainingBasePerformanceRepository
                 .findByRunnerIdAndSeasonAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
                         runnerId,
@@ -487,7 +496,7 @@ class TrainingBasePerformanceService(
             season: String,
             date: Date
     ): TrainingBasePerformance? {
-        val timestamp = Timestamp(date.time)
+        val timestamp = endOfDay(date)
         val performances = trainingBasePerformanceRepository
                 .findByRunnerIdAndEventAndSeasonAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
                         runnerId,
@@ -509,7 +518,7 @@ class TrainingBasePerformanceService(
             year: String,
             date: Date
     ): TrainingBasePerformance? {
-        val timestamp = Timestamp(date.time)
+        val timestamp = endOfDay(date)
         val performances = trainingBasePerformanceRepository
                 .findByRunnerIdAndEventAndSeasonAndYearAndCreatedAtLessThanEqualOrderByCreatedAtDesc(
                         runnerId,

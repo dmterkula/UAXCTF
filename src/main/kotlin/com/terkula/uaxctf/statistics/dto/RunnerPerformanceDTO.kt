@@ -18,5 +18,10 @@ class TotalMeetPerformanceDTO(
     var mileThreeSplit: String,
     var passesLastMile: Int = 0,
     var passesSecondMile: Int = 0,
-    var skullsEarned: Int = 0
+    var skullsEarned: Int = 0,
+    var heatAdjustedTime: String? = null,
+    var divisionName: String? = null,
+    var meetId: Int? = null,
+    var conditionsTempF: Double? = null,
+    var conditionsHumidityPct: Double? = null
 )

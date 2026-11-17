@@ -27,7 +27,11 @@ class WorkoutComponentPlanElement(
     var duration: String?,
     var baseTime: String,
     var targetedPace: List<TargetedPace>,
-    var splits: SplitsResponse? = null
+    var splits: SplitsResponse? = null,
+    var heatAdjustedBaseTime: String? = null,
+    var heatAdjustedTargetedPace: List<TargetedPace>? = null,
+    var conditionsTempF: Double? = null,
+    var conditionsHumidityPct: Double? = null
 )
 
 class WorkoutComponentLabel(

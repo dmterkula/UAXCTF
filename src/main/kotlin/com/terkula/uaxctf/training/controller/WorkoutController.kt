@@ -45,6 +45,18 @@ class WorkoutController(
         return workoutService.getWorkoutsV2(startDate, endDate)
     }
 
+    /**
+     * One runner's result for one workout. Lets a screen open a single athlete's workout log
+     * directly from its key, the way the coach reply queue deep-links into a record.
+     */
+    @RequestMapping(value = ["xc/workout/runnerResult"], method = [RequestMethod.GET])
+    fun getRunnerWorkoutResult(
+            @RequestParam(value = "workoutUuid", required = true) workoutUuid: String,
+            @RequestParam(value = "runnerId", required = true) runnerId: Int
+    ): RunnerWorkoutResultResponse {
+        return workoutSplitService.getRunnerWorkoutResults(workoutUuid, runnerId)
+    }
+
     @RequestMapping(value = ["xc/workout/create"], method = [RequestMethod.POST])
     fun createWorkoutV2(
            @RequestBody @Valid createWorkoutRequest: CreateWorkoutRequest

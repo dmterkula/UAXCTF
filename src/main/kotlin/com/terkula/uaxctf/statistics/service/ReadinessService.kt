@@ -3,6 +3,7 @@ package com.terkula.uaxctf.statistics.service
 import com.terkula.uaxctf.statistics.response.ReadinessSignal
 import com.terkula.uaxctf.statistics.response.RunnerReadinessResponse
 import com.terkula.uaxctf.statistics.response.TeamReadinessResponse
+import com.terkula.uaxctf.statistics.response.WeeklyAttendance
 import com.terkula.uaxctf.training.response.getTotalDistance
 import com.terkula.uaxctf.training.response.getTotalSeconds
 import com.terkula.uaxctf.training.response.trainingdashboard.RunnerTrainingDashboardEntry
@@ -204,6 +205,8 @@ class ReadinessService(
             else -> "GREEN"
         }
 
+        val attendance = computeWeeklyAttendance(entry, refDate)
+
         return RunnerReadinessResponse(
             runner = entry.runner,
             status = status,
@@ -214,7 +217,41 @@ class ReadinessService(
             loggedSessions7d = week0Count,
             daysSinceLastLog = daysSinceLastLog,
             dataComplete = dataComplete,
-            weeklyLoads = weeklyLoads
+            weeklyLoads = weeklyLoads,
+            attendance = attendance
+        )
+    }
+
+    // Current-week logging attendance: which elapsed Mon–Sat days the runner has no log for.
+    // A day "counts" if the runner logged any training run, workout, cross-training, or meet on it.
+    private fun computeWeeklyAttendance(
+        entry: RunnerTrainingDashboardEntry,
+        refDate: LocalDate
+    ): WeeklyAttendance {
+        val monday = refDate.minusDays((refDate.dayOfWeek.value - 1).toLong())
+        // Expected = Mon–Sat of this week, but only days that have already elapsed (strictly before today).
+        val expected = (0L..5L)
+            .map { monday.plusDays(it) }
+            .filter { it.isBefore(refDate) }
+
+        val loggedDates = mutableSetOf<LocalDate>()
+        entry.trainingRuns
+            .filter { it.results.isNotEmpty() }
+            .forEach { loggedDates.add(it.trainingRun.date.toLocalDate()) }
+        entry.workouts.forEach { loggedDates.add(it.workout.date.toLocalDate()) }
+        entry.crossTrainingRecords.forEach { loggedDates.add(it.crossTrainingEvent.date.toLocalDate()) }
+        entry.xcMeetLogs.forEach { it.meet?.let { m -> loggedDates.add(m.date.toLocalDate()) } }
+        entry.trackMeetLogs.forEach { it.trackMeet?.let { tm -> loggedDates.add(tm.date.toLocalDate()) } }
+
+        val logged = expected.filter { it in loggedDates }
+        val missing = expected.filter { it !in loggedDates }
+
+        return WeeklyAttendance(
+            weekStart = monday.toString(),
+            expectedDays = expected.map { it.toString() },
+            loggedDays = logged.map { it.toString() },
+            missingDays = missing.map { it.toString() },
+            missingCount = missing.size
         )
     }
 

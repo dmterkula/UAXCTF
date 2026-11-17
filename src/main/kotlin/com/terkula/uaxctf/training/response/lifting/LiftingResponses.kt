@@ -38,7 +38,8 @@ data class LiftingActivityDTO(
     val team: String,
     val suggestedExercises: List<String>?,
     val venue: Venue? = null,
-    val assignedRunnerIds: List<Int>? = null
+    val assignedRunnerIds: List<Int>? = null,
+    val assignedGroups: List<String>? = null
 )
 
 data class LiftingActivitiesResponse(

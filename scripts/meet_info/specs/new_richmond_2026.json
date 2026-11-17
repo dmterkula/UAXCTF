@@ -1,0 +1,18 @@
+{
+  "venue": "New Richmond High School (Football Stadium)",
+  "address": "1131 Bethel-New Richmond Rd, New Richmond, OH 45157",
+  "date": "Saturday October 10, 2026",
+  "arrive_min": 85,
+  "results_site": "GHG Timing",
+  "course_map": "maps/new_richmond_hs.png",
+  "races": [
+    {"name": "High School Girls (3.1 mi)", "time": "10:30 am",
+     "athletes": ["Kate Finnan","Hannah Schmid","Rachel Stites","Tori Yeazell","Ella Dressing","Grace Melchers","Vivian Owen","Johanna Ray","Lucy Giordano","Molly Einwald","Ava Sarver","Lilly Weingartner","Addy Middleton","Ali Faile","Vera Foote","Julia Galles","Macey Beyrer*","Maggie McCarren","Lara Feeney","Emily Castilla","Ava Vitucci","Lucy Geoppinger*","Abby Machon","Stella Laurence","Gabby Zepf","Avery Baus","Rowan Paulson"]}
+  ],
+  "not_running": ["Caitlin", "Macy S", "Macie G", "Caroline", "Eva Casto", "Eleanor Schutte", "Addison Thieman", "Leslie Sabbagh", "Amelie Cobb", "Kaira Sarawagi", "Evangeline Resch", "Amy Bollinger", "Sarah Anderson"],
+  "awards": ["T-shirts for the top 10 placers in the High School Girls race."],
+  "notes": ["The race finishes in the Football Stadium.",
+            "Buses drop off at the stadium.",
+            "Coaches pick up the team packet (with course maps) at the rolling gate (Gate B). Each team gets a garbage bag, so keep our camp area clean.",
+            "An athletic trainer will be on site before and during the race."]
+}

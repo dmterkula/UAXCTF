@@ -6,6 +6,7 @@ import com.terkula.uaxctf.statisitcs.model.track.TrackMeet
 import com.terkula.uaxctf.statistics.dto.MeetToDatesRunDTO
 import com.terkula.uaxctf.statistics.repository.MeetInfoRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
+import com.terkula.uaxctf.statistics.repository.VenueCourseProfileRepository
 import com.terkula.uaxctf.statistics.repository.VenueRepository
 import com.terkula.uaxctf.statistics.repository.track.TrackMeetRepository
 import com.terkula.uaxctf.statistics.request.CreateMeetRequest
@@ -19,8 +20,16 @@ class MeetInfoService(
     var meetRepository: MeetRepository,
     var trackMeetRepository: TrackMeetRepository,
     var meetInfoRepository: MeetInfoRepository,
-    var venueRepository: VenueRepository
+    var venueRepository: VenueRepository,
+    var venueCourseProfileRepository: VenueCourseProfileRepository
 ) {
+
+    /** Defaults to the venue's current course profile unless the coach explicitly picked one -- mirrors
+     *  [com.terkula.uaxctf.statistics.service.MeetDivisionService.resolveDivisionId]'s override-then-default layering. */
+    private fun resolveCourseProfileId(venueId: Int?, explicitCourseProfileId: Int?): Int? {
+        if (explicitCourseProfileId != null) return explicitCourseProfileId
+        return venueId?.let { venueCourseProfileRepository.findByVenueIdAndIsCurrentTrue(it)?.id }
+    }
 
     private fun populateVenue(meets: List<Meet>): List<Meet> {
         val venueIds = meets.mapNotNull { it.venueId }.toSet()
@@ -87,7 +96,8 @@ class MeetInfoService(
     }
 
     fun createMeet(createMeetRequest: CreateMeetRequest): Meet {
-        val meet = Meet(createMeetRequest.name, createMeetRequest.date, createMeetRequest.uuid, createMeetRequest.icon, createMeetRequest.team, createMeetRequest.venueId)
+        val courseProfileId = resolveCourseProfileId(createMeetRequest.venueId, createMeetRequest.courseProfileId)
+        val meet = Meet(createMeetRequest.name, createMeetRequest.date, createMeetRequest.uuid, createMeetRequest.icon, createMeetRequest.team, createMeetRequest.venueId, createMeetRequest.startTime, courseProfileId, createMeetRequest.excludedFromStats ?: false)
         val saved = meetRepository.save(meet)
         saved.venue = createMeetRequest.venueId?.let { venueRepository.findById(it).orElse(null) }
         return saved
@@ -109,6 +119,9 @@ class MeetInfoService(
         meet.icon = createMeetRequest.icon
         meet.team = createMeetRequest.team
         meet.venueId = createMeetRequest.venueId
+        meet.startTime = createMeetRequest.startTime
+        meet.courseProfileId = resolveCourseProfileId(createMeetRequest.venueId, createMeetRequest.courseProfileId)
+        createMeetRequest.excludedFromStats?.let { meet.excludedFromStats = it }
         val saved = meetRepository.save(meet)
         saved.venue = createMeetRequest.venueId?.let { venueRepository.findById(it).orElse(null) }
         return saved

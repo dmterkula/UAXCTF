@@ -5,9 +5,12 @@ import com.terkula.uaxctf.statistics.dto.*
 import com.terkula.uaxctf.statistics.dto.leaderboard.RankedAchievementDTO
 import com.terkula.uaxctf.statistics.dto.personalizedsplits.PersonalizedSplitDTO
 import com.terkula.uaxctf.statistics.exception.RunnerNotFoundByPartialNameException
+import com.terkula.uaxctf.statistics.repository.MeetDivisionRepository
 import com.terkula.uaxctf.statistics.repository.MeetMileSplitRepository
 import com.terkula.uaxctf.statistics.repository.MeetRepository
 import com.terkula.uaxctf.statistics.repository.RunnerRepository
+import com.terkula.uaxctf.statistics.repository.TimeTrialRepository
+import com.terkula.uaxctf.statistics.repository.VenueRepository
 import com.terkula.uaxctf.statistics.request.MeetSplitsOption
 import com.terkula.uaxctf.statistics.request.SortingMethodContainer
 import com.terkula.uaxctf.statistics.response.RunnerMeetSplitResponse
@@ -15,9 +18,13 @@ import com.terkula.uaxctf.statistics.response.TTestResponse
 import com.terkula.uaxctf.training.repository.BaseTrainingPercentagesRepository
 import com.terkula.uaxctf.training.service.TrainingBasePerformanceService
 import com.terkula.uaxctf.util.*
+import com.terkula.uaxctf.weather.EventWeatherResolver
+import com.terkula.uaxctf.weather.HeatPaceAdjustmentService
+import com.terkula.uaxctf.weather.ResolvedWeather
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getFirstDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfGivenYear
 import com.terkula.uaxctf.util.TimeUtilities.Companion.getLastDayOfYear
+import org.apache.commons.math3.stat.inference.TestUtils
 import org.nield.kotlinstatistics.standardDeviation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -25,6 +32,22 @@ import java.lang.Exception
 import java.sql.Date
 import java.util.concurrent.Future
 import kotlin.math.absoluteValue
+
+private enum class PaceSource { SB, PR, TIME_TRIAL, NONE }
+
+private class RunnerPaceComparison(
+    val paceSource: PaceSource,
+    val mileOnePercent: Double?,
+    val mileTwoPercent: Double?,
+    val mileThreePercent: Double?
+)
+
+private class MeetPaceComparisonKeyResult(
+    val season: String,
+    val meetName: String,
+    val meet: Meet?,
+    val comparisons: List<RunnerPaceComparison>
+)
 
 @Component
 class MeetMileSplitService(
@@ -42,8 +65,32 @@ class MeetMileSplitService(
     private val personalRecordService: PersonalRecordService,
     @field:Autowired
     private val meetSplitsAsyncService: MeetMileSplitAsyncService,
-    val trainingBasePerformanceService: TrainingBasePerformanceService
+    val trainingBasePerformanceService: TrainingBasePerformanceService,
+    @field:Autowired
+    private val timeTrialRepository: TimeTrialRepository,
+    @field:Autowired
+    private val venueRepository: VenueRepository,
+    @field:Autowired
+    private val meetDivisionRepository: MeetDivisionRepository,
+    @field:Autowired
+    private val eventWeatherResolver: EventWeatherResolver,
+    private val venueCourseProfileRepository: com.terkula.uaxctf.statistics.repository.VenueCourseProfileRepository,
+    private val courseGradeAdjustmentService: com.terkula.uaxctf.weather.CourseGradeAdjustmentService,
+    @field:Autowired
+    private val heatPaceAdjustmentService: HeatPaceAdjustmentService
 ) {
+
+    /**
+     * Fallback pace-per-mile for runners with no PR on record before this meet (e.g. freshmen debuting).
+     * Uses that runner's time trial for the meet's season, scaled from 3 miles to 5k-equivalent pace,
+     * the same conversion TimeTrialService uses elsewhere.
+     */
+    private fun getTimeTrialFallbackPacePerMile(runnerId: Int, meetDate: Date): Double? {
+        val timeTrial = timeTrialRepository.findByRunnerIdAndSeason(runnerId, meetDate.getYearString()).firstOrNull()
+                ?: return null
+        val adjusted5kSeconds = timeTrial.time.calculateSecondsFrom().scaleTimeTo5k(4827.0)
+        return adjusted5kSeconds / 3.10686
+    }
 
 
     fun getAllMeetMileSplitsForRunner(name: String, startDate: Date, endDate: Date): RunnerMeetSplitResponse {
@@ -122,9 +169,7 @@ class MeetMileSplitService(
                     val prBeforeThisMeet = personalRecordService.getPRsByNameBeforeTargetDate(runners[it.key]!!.name, false, meetMap[split.meetId]!!.date.subtractDay())
 
                     val prPaceNullable = prBeforeThisMeet.firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
-                    if (prPaceNullable != null) {
-                       comparisonPace = prPaceNullable
-                    }
+                    comparisonPace = prPaceNullable ?: getTimeTrialFallbackPacePerMile(it.key, meetMap[split.meetId]!!.date)
                 }
 
                 if (comparisonPace == null) {
@@ -551,16 +596,15 @@ class MeetMileSplitService(
             splits.map {
                 runnerRepository.findById(it.runnerId).get() to it
             }.map {
-                personalRecordService.getPRsByNameBeforeTargetDate(it.first.name, false, meets[0].date.subtractDay()).firstOrNull() to it.second
+                val prPace = personalRecordService.getPRsByNameBeforeTargetDate(it.first.name, false, meets[0].date.subtractDay())
+                        .firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
+                (prPace ?: getTimeTrialFallbackPacePerMile(it.first.id, meets[0].date)) to it.second
             }
                     .filter { it.first != null }
-                    .map { it.first!!.pr to it.second}
-                    .filter { it.first.isNotEmpty() }
-                    .map { it.first.first().time.getPacePerMile() to it.second}
                     .map {
-                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first,
-                                it.second.mileTwo.calculateSecondsFrom() / it.first,
-                                it.second.mileThree.calculateSecondsFrom() / it.first)
+                        Triple(it.second.mileOne.calculateSecondsFrom() / it.first!!,
+                                it.second.mileTwo.calculateSecondsFrom() / it.first!!,
+                                it.second.mileThree.calculateSecondsFrom() / it.first!!)
                     }
 
         } else {
@@ -734,6 +778,375 @@ class MeetMileSplitService(
 
         return PersonalizedSplitDTO(avgSplit, targetMile1, targetMile2, targetMile3)
 
+    }
+
+    /**
+     * Compares mile-split pacing (as % of PR pace, with time-trial fallback for runners with no prior PR)
+     * across an arbitrary set of meets/seasons against one designated base meet. Powers /xc/meetSplit/paceComparison.
+     */
+    fun getPaceComparison(baseSeason: String, baseMeetName: String, compareKeys: List<Pair<String, String>>, paceAnchor: String, adjustForHeat: Boolean = false, adjustForGrade: Boolean = false): PaceComparisonResponse {
+
+        val allKeys = listOf(baseSeason to baseMeetName) + compareKeys
+
+        val candidateMeets = allKeys.mapNotNull { (season, meetName) ->
+            meetRepository.findByNameAndDateBetween(meetName, Date.valueOf("$season-01-01"), Date.valueOf("$season-12-31")).firstOrNull()
+        }
+        val heatAdjustmentApplied = heatAdjustmentFeasibleFor(candidateMeets, adjustForHeat)
+        val gradeAdjustmentApplied = gradeAdjustmentFeasibleFor(candidateMeets, adjustForGrade)
+
+        val meetResults = allKeys.map { (season, meetName) ->
+            val startDate = Date.valueOf("$season-01-01")
+            val endDate = Date.valueOf("$season-12-31")
+            val (meet, comparisons) = getRunnerPaceComparisonsForMeet(meetName, startDate, endDate, paceAnchor, heatAdjustmentApplied, gradeAdjustmentApplied)
+            MeetPaceComparisonKeyResult(season, meetName, meet, comparisons)
+        }.filter { it.meet != null }
+
+        if (meetResults.isEmpty()) {
+            return PaceComparisonResponse(paceAnchor, emptyList(), emptyList(), heatAdjustmentApplied, gradeAdjustmentApplied)
+        }
+
+        val baseMile1 = mileArray(meetResults.first().comparisons) { it.mileOnePercent }
+        val baseMile2 = mileArray(meetResults.first().comparisons) { it.mileTwoPercent }
+        val baseMile3 = mileArray(meetResults.first().comparisons) { it.mileThreePercent }
+
+        val meetDTOs = meetResults.mapIndexed { index, result ->
+            val meet = result.meet!!
+
+            val mile1 = mileArray(result.comparisons) { it.mileOnePercent }
+            val mile2 = mileArray(result.comparisons) { it.mileTwoPercent }
+            val mile3 = mileArray(result.comparisons) { it.mileThreePercent }
+
+            val splitStats = listOf(
+                    mileSplitStat(1, mile1),
+                    mileSplitStat(2, mile2),
+                    mileSplitStat(3, mile3)
+            )
+
+            val avgAcrossMiles = listOf(mile1, mile2, mile3)
+                    .filter { it.isNotEmpty() }
+                    .map { it.average() }
+                    .let { if (it.isEmpty()) 0.0 else it.average() }
+
+            val paceSourceBreakdown = paceSourceBreakdownFor(result.comparisons)
+
+            val rawSplits = meetMileSplitRepository.findByMeetId(meet.id)
+            val avgSplitDiffs = SplitDifferenceSecondsDTO(
+                    firstToSecond = rawSplits.calculateAverageFirstToSecondMileDifference(),
+                    secondToThird = rawSplits.calculateAverageSecondToThirdMileDifference(),
+                    spread = rawSplits.calculateAverageSpread()
+            )
+
+            val isBase = index == 0
+
+            val vsBase = if (isBase) {
+                null
+            } else {
+                VsBaseComparisonDTO(listOf(
+                        significanceFor(1, baseMile1, mile1),
+                        significanceFor(2, baseMile2, mile2),
+                        significanceFor(3, baseMile3, mile3)
+                ))
+            }
+
+            MeetPaceComparisonDTO(
+                    season = result.season,
+                    meetName = result.meetName,
+                    date = meet.date,
+                    runnerCount = result.comparisons.size,
+                    paceSourceBreakdown = paceSourceBreakdown,
+                    splits = splitStats,
+                    avgPercentOfPaceAllMiles = avgAcrossMiles.round(4),
+                    avgSplitDifferenceSeconds = avgSplitDiffs,
+                    isBase = isBase,
+                    vsBase = vsBase
+            )
+        }
+
+        val ranking = meetDTOs.sortedBy { it.avgPercentOfPaceAllMiles }
+                .mapIndexed { index, dto -> MeetPaceRankingDTO(dto.season, dto.meetName, index + 1, dto.avgPercentOfPaceAllMiles) }
+
+        return PaceComparisonResponse(paceAnchor, meetDTOs, ranking, heatAdjustmentApplied, gradeAdjustmentApplied)
+    }
+
+    /**
+     * Season-wide counterpart to [getPaceComparison]: aggregates every meet within each season (rather than
+     * one designated meet) into a season-level pace summary, plus a week-by-week breakdown where week 1 is the
+     * week of each season's first meet, so equivalent weeks-into-season line up across seasons of different length.
+     * Powers /xc/meetSplit/seasonPaceComparison.
+     */
+    fun getSeasonPaceComparison(baseSeason: String, compareSeasons: List<String>, paceAnchor: String, adjustForHeat: Boolean = false, adjustForGrade: Boolean = false): SeasonPaceComparisonResponse {
+
+        val allSeasons = listOf(baseSeason) + compareSeasons
+
+        val seasonResults = allSeasons.mapNotNull { season ->
+            // XC season runs roughly late-May through year end; this excludes the same team's spring track meets,
+            // matching the boundary RunnerProfileAsyncHelper uses elsewhere for XC vs. track date ranges.
+            val startDate = getFirstDayOfGivenYear(season).addDays(150)
+            val endDate = getLastDayOfGivenYear(season)
+            val meets = meetRepository.findByDateBetween(startDate, endDate).sortedBy { it.date }
+            if (meets.isEmpty()) null else season to meets
+        }
+
+        if (seasonResults.isEmpty()) {
+            return SeasonPaceComparisonResponse(paceAnchor, emptyList(), emptyList())
+        }
+
+        val heatAdjustmentApplied = heatAdjustmentFeasibleFor(seasonResults.flatMap { it.second }, adjustForHeat)
+        val gradeAdjustmentApplied = gradeAdjustmentFeasibleFor(seasonResults.flatMap { it.second }, adjustForGrade)
+
+        val seasonWeekData = seasonResults.mapNotNull { (season, meets) ->
+            // Drop meets with no recorded split data so week 1 anchors to each season's first real race
+            // (aligning seasons that open with a non-scoring intrasquad) and empty weeks don't plot as 0%.
+            val meetsWithData = meets
+                    .map { it to computeComparisonsForMeet(it, paceAnchor, heatAdjustmentApplied, gradeAdjustmentApplied) }
+                    .filter { it.second.isNotEmpty() }
+            if (meetsWithData.isEmpty()) return@mapNotNull null
+            val seasonStart = meetsWithData.first().first.date
+            val weekBuckets = meetsWithData.groupBy { weekOfSeason(seasonStart, it.first.date) }
+                    .toSortedMap()
+                    .map { (week, weekPairs) ->
+                        Triple(week, weekPairs.map { it.first }, weekPairs.flatMap { it.second })
+                    }
+            Triple(season, meetsWithData.map { it.first }, weekBuckets)
+        }
+
+        if (seasonWeekData.isEmpty()) {
+            return SeasonPaceComparisonResponse(paceAnchor, emptyList(), emptyList(), heatAdjustmentApplied, gradeAdjustmentApplied)
+        }
+
+        val baseComparisons = seasonWeekData.first().third.flatMap { it.third }
+        val baseMile1 = mileArray(baseComparisons) { it.mileOnePercent }
+        val baseMile2 = mileArray(baseComparisons) { it.mileTwoPercent }
+        val baseMile3 = mileArray(baseComparisons) { it.mileThreePercent }
+
+        val baseWeekMiles = seasonWeekData.first().third.associate { (week, _, comparisons) ->
+            week to Triple(
+                    mileArray(comparisons) { it.mileOnePercent },
+                    mileArray(comparisons) { it.mileTwoPercent },
+                    mileArray(comparisons) { it.mileThreePercent }
+            )
+        }
+
+        val seasonDTOs = seasonWeekData.mapIndexed { index, (season, meets, weekBuckets) ->
+            val isBase = index == 0
+            val comparisons = weekBuckets.flatMap { it.third }
+
+            val weekDTOs = weekBuckets.map { (week, weekMeets, weekComparisons) ->
+                val mile1 = mileArray(weekComparisons) { it.mileOnePercent }
+                val mile2 = mileArray(weekComparisons) { it.mileTwoPercent }
+                val mile3 = mileArray(weekComparisons) { it.mileThreePercent }
+
+                val vsBase = if (isBase) null else {
+                    val baseMiles = baseWeekMiles[week]
+                    if (baseMiles == null) null else VsBaseComparisonDTO(listOf(
+                            significanceFor(1, baseMiles.first, mile1),
+                            significanceFor(2, baseMiles.second, mile2),
+                            significanceFor(3, baseMiles.third, mile3)
+                    ))
+                }
+
+                WeekPaceComparisonDTO(
+                        week = week,
+                        meetNames = weekMeets.map { it.name },
+                        startDate = weekMeets.minByOrNull { it.date }!!.date,
+                        runnerCount = weekComparisons.size,
+                        paceSourceBreakdown = paceSourceBreakdownFor(weekComparisons),
+                        splits = listOf(mileSplitStat(1, mile1), mileSplitStat(2, mile2), mileSplitStat(3, mile3)),
+                        avgPercentOfPaceAllMiles = averageAcrossMiles(mile1, mile2, mile3).round(4),
+                        vsBase = vsBase
+                )
+            }
+
+            val mile1 = mileArray(comparisons) { it.mileOnePercent }
+            val mile2 = mileArray(comparisons) { it.mileTwoPercent }
+            val mile3 = mileArray(comparisons) { it.mileThreePercent }
+
+            val vsBase = if (isBase) null else VsBaseComparisonDTO(listOf(
+                    significanceFor(1, baseMile1, mile1),
+                    significanceFor(2, baseMile2, mile2),
+                    significanceFor(3, baseMile3, mile3)
+            ))
+
+            SeasonPaceComparisonDTO(
+                    season = season,
+                    meetCount = meets.size,
+                    runnerCount = comparisons.size,
+                    paceSourceBreakdown = paceSourceBreakdownFor(comparisons),
+                    splits = listOf(mileSplitStat(1, mile1), mileSplitStat(2, mile2), mileSplitStat(3, mile3)),
+                    avgPercentOfPaceAllMiles = averageAcrossMiles(mile1, mile2, mile3).round(4),
+                    isBase = isBase,
+                    vsBase = vsBase,
+                    weeks = weekDTOs
+            )
+        }
+
+        val ranking = seasonDTOs.sortedBy { it.avgPercentOfPaceAllMiles }
+                .mapIndexed { index, dto -> SeasonPaceRankingDTO(dto.season, index + 1, dto.avgPercentOfPaceAllMiles) }
+
+        return SeasonPaceComparisonResponse(paceAnchor, seasonDTOs, ranking, heatAdjustmentApplied, gradeAdjustmentApplied)
+    }
+
+    private fun weekOfSeason(seasonStart: Date, meetDate: Date): Int {
+        val diffDays = (meetDate.time - seasonStart.time) / (1000L * 60 * 60 * 24)
+        return (diffDays / 7).toInt() + 1
+    }
+
+    private fun paceSourceBreakdownFor(comparisons: List<RunnerPaceComparison>): PaceSourceBreakdownDTO {
+        return PaceSourceBreakdownDTO(
+                sb = comparisons.count { it.paceSource == PaceSource.SB },
+                pr = comparisons.count { it.paceSource == PaceSource.PR },
+                timeTrial = comparisons.count { it.paceSource == PaceSource.TIME_TRIAL },
+                none = comparisons.count { it.paceSource == PaceSource.NONE }
+        )
+    }
+
+    private fun averageAcrossMiles(vararg mileArrays: DoubleArray): Double {
+        return mileArrays.filter { it.isNotEmpty() }
+                .map { it.average() }
+                .let { if (it.isEmpty()) 0.0 else it.average() }
+    }
+
+    private fun getRunnerPaceComparisonsForMeet(filterMeet: String, startDate: Date, endDate: Date, paceAnchor: String, adjustForHeat: Boolean = false, adjustForGrade: Boolean = false): Pair<Meet?, List<RunnerPaceComparison>> {
+        val meets = meetRepository.findByNameAndDateBetween(filterMeet, startDate, endDate)
+        val meet = meets.firstOrNull() ?: return null to emptyList()
+        return meet to computeComparisonsForMeet(meet, paceAnchor, adjustForHeat, adjustForGrade)
+    }
+
+    private fun computeComparisonsForMeet(meet: Meet, paceAnchor: String, adjustForHeat: Boolean = false, adjustForGrade: Boolean = false): List<RunnerPaceComparison> {
+        val splits = meetMileSplitRepository.findByMeetId(meet.id)
+        val resolveWeather = weatherResolverFor(meet, adjustForHeat)
+        val courseCostFactor = courseCostFactorFor(meet, adjustForGrade)
+
+        return splits.map { split ->
+            val runner = runnerRepository.findById(split.runnerId).get()
+            val (pace, source) = resolvePaceAnchor(runner.name, runner.id, meet.date, paceAnchor)
+
+            if (pace == null) {
+                RunnerPaceComparison(PaceSource.NONE, null, null, null)
+            } else {
+                val weather = resolveWeather(split.runnerId)
+                RunnerPaceComparison(source,
+                        normalizedSeconds(split.mileOne, weather, courseCostFactor) / pace,
+                        normalizedSeconds(split.mileTwo, weather, courseCostFactor) / pace,
+                        normalizedSeconds(split.mileThree, weather, courseCostFactor) / pace)
+            }
+        }
+    }
+
+    private fun normalizedSeconds(splitTime: String, weather: ResolvedWeather?, courseCostFactor: Double? = null): Double {
+        var seconds = splitTime.calculateSecondsFrom()
+        if (weather != null) {
+            seconds = heatPaceAdjustmentService.normalizeResultTimeForHeat(seconds, weather.temperatureC, weather.humidityPct)
+        }
+        if (courseCostFactor != null) {
+            seconds = courseGradeAdjustmentService.normalizeResultTimeForGrade(seconds, courseCostFactor)
+        }
+        return seconds
+    }
+
+    /**
+     * Builds a per-runner weather lookup for a meet, used to normalize actual splits to their
+     * flat/ideal-condition equivalent before comparing against goal pace -- so a hot day doesn't
+     * read as a pacing miss. Resolves per-division weather when the runner's result has one (an
+     * early Open race and a late Varsity race at the same meet can see real different conditions),
+     * falling back to the meet-level lookup. Returns a function that always returns null (no
+     * adjustment) when [adjustForHeat] is false or the meet has no venue coordinates.
+     */
+    /** Meet-level feasibility check: can we resolve *any* weather for this meet at all? Used to decide
+     *  whether to trust a heat-adjusted comparison across a whole set of meets -- see [heatAdjustmentFeasibleFor]. */
+    private fun canResolveWeather(meet: Meet): Boolean {
+        val venue = meet.venueId?.let { venueRepository.findById(it).orElse(null) } ?: return false
+        return eventWeatherResolver.resolve(EventWeatherResolver.EVENT_TYPE_MEET, meet.id, venue, meet.date, meet.startTime) != null
+    }
+
+    /**
+     * Only ever returns true if heat adjustment was requested AND every meet in the set resolves
+     * weather -- comparing a heat-adjusted meet against a raw one would make the %-of-pace numbers
+     * and significance tests meaningless, so this is all-or-nothing rather than per-meet.
+     */
+    private fun heatAdjustmentFeasibleFor(meets: List<Meet>, adjustForHeat: Boolean): Boolean {
+        return adjustForHeat && meets.isNotEmpty() && meets.all { canResolveWeather(it) }
+    }
+
+    /** Meet-level feasibility check: does this meet have a course profile with a computed cost factor? */
+    private fun canResolveCourseProfile(meet: Meet): Boolean {
+        val courseProfileId = meet.courseProfileId ?: return false
+        val profile = venueCourseProfileRepository.findById(courseProfileId).orElse(null) ?: return false
+        return profile.courseCostFactor != null
+    }
+
+    /**
+     * Same all-or-nothing semantics as [heatAdjustmentFeasibleFor], independent of the heat flag --
+     * comparing a grade-adjusted meet against a raw one would make the comparison meaningless.
+     */
+    private fun gradeAdjustmentFeasibleFor(meets: List<Meet>, adjustForGrade: Boolean): Boolean {
+        return adjustForGrade && meets.isNotEmpty() && meets.all { canResolveCourseProfile(it) }
+    }
+
+    private fun courseCostFactorFor(meet: Meet, adjustForGrade: Boolean): Double? {
+        if (!adjustForGrade) return null
+        val courseProfileId = meet.courseProfileId ?: return null
+        return venueCourseProfileRepository.findById(courseProfileId).orElse(null)?.courseCostFactor
+    }
+
+    private fun weatherResolverFor(meet: Meet, adjustForHeat: Boolean): (Int) -> ResolvedWeather? {
+        if (!adjustForHeat) return { null }
+        val venue = meet.venueId?.let { venueRepository.findById(it).orElse(null) } ?: return { null }
+
+        val divisionIdByRunnerId = meetPerformanceService.getResultsForMeet(meet.id).associate { it.runnerId to it.divisionId }
+        val weatherByDivisionId = mutableMapOf<Int?, ResolvedWeather?>()
+
+        return { runnerId ->
+            val divisionId = divisionIdByRunnerId[runnerId]
+            weatherByDivisionId.getOrPut(divisionId) {
+                val division = divisionId?.let { meetDivisionRepository.findById(it).orElse(null) }
+                if (division != null) {
+                    eventWeatherResolver.resolve(EventWeatherResolver.EVENT_TYPE_MEET_DIVISION, division.id, venue, meet.date, division.startTime ?: meet.startTime)
+                } else {
+                    eventWeatherResolver.resolve(EventWeatherResolver.EVENT_TYPE_MEET, meet.id, venue, meet.date, meet.startTime)
+                }
+            }
+        }
+    }
+
+    /**
+     * Resolves the goal pace-per-mile a runner's splits are measured against, plus which source it came from.
+     * SB mode prefers this-season-before-meet season best, falling back to PR then time trial; PR mode keeps the
+     * original PR-then-time-trial waterfall. Fallbacks are evaluated lazily so PR mode issues no SB query.
+     */
+    private fun resolvePaceAnchor(runnerName: String, runnerId: Int, meetDate: Date, paceAnchor: String): Pair<Double?, PaceSource> {
+        val prPace: () -> Double? = {
+            personalRecordService.getPRsByNameBeforeTargetDate(runnerName, false, meetDate.subtractDay())
+                    .firstOrNull()?.pr?.firstOrNull()?.time?.getPacePerMile()
+        }
+
+        if (paceAnchor.equals("SB", true)) {
+            val sbPace = seasonBestService.getSeasonBestBeforeDate(runnerId, meetDate)?.time?.getPacePerMile()
+            if (sbPace != null) return sbPace to PaceSource.SB
+        }
+
+        prPace()?.let { return it to PaceSource.PR }
+        getTimeTrialFallbackPacePerMile(runnerId, meetDate)?.let { return it to PaceSource.TIME_TRIAL }
+        return null to PaceSource.NONE
+    }
+
+    private fun mileArray(comparisons: List<RunnerPaceComparison>, selector: (RunnerPaceComparison) -> Double?): DoubleArray {
+        return comparisons.mapNotNull(selector).toDoubleArray()
+    }
+
+    private fun mileSplitStat(mile: Int, values: DoubleArray): MileSplitStatDTO {
+        if (values.isEmpty()) {
+            return MileSplitStatDTO(mile, 0.0, 0.0, 0)
+        }
+        return MileSplitStatDTO(mile, values.average().round(4), values.toList().standardDeviation().round(4), values.size)
+    }
+
+    private fun significanceFor(mile: Int, base: DoubleArray, compare: DoubleArray): MileSplitSignificanceDTO {
+        if (base.size < 2 || compare.size < 2) {
+            return MileSplitSignificanceDTO(mile, 1.0, false)
+        }
+        val p = TestUtils.tTest(base, compare).round(4)
+        return MileSplitSignificanceDTO(mile, p, p < 0.05)
     }
 
 }

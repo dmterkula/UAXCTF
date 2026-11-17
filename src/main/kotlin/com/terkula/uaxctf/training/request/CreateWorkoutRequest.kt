@@ -14,7 +14,8 @@ class CreateWorkoutRequest (
     var components: List<ComponentCreationElement>,
     var season: String,
     var team: String,
-    var venueId: Int? = null
+    var venueId: Int? = null,
+    var startTime: java.sql.Time? = null
     )
 
 class ComponentCreationElement(

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.sql.Date
 import kotlin.math.roundToInt
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 @Component
 class PersonalRecordService(@field:Autowired
@@ -40,7 +41,7 @@ class PersonalRecordService(@field:Autowired
 
         // find all performances for those runners this year
 
-        val meets = meetRepository.findAll().toMutableList()
+        val meets = meetRepository.findAll().statsEligible().toMutableList()
 
         val meetMap = meets.map { it.id to it }.toMap()
 
@@ -89,7 +90,7 @@ class PersonalRecordService(@field:Autowired
 
         // find all performances for those runners this year
 
-        val meets = meetRepository.findAll().toMutableList()
+        val meets = meetRepository.findAll().statsEligible().toMutableList()
 
         val meetMap = meets.map { it.id to it }.toMap()
 
@@ -134,7 +135,7 @@ class PersonalRecordService(@field:Autowired
 
         // find all performances for those runners this year
 
-        val meets = meetRepository.findByDateLessThan(targetDate).toMutableList()
+        val meets = meetRepository.findByDateLessThan(targetDate).statsEligible().toMutableList()
 
         val meetMap = meets.map { it.id to it }.toMap()
 
@@ -173,7 +174,7 @@ class PersonalRecordService(@field:Autowired
 
     fun getPRsAtLastMeet(startDate: Date, endDate: Date, adjustForDistance: Boolean): List<PRDTO> {
 
-        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).sortedByDescending { it.date }.first()
+        val latestMeet = meetRepository.findByDateBetween(startDate, endDate).statsEligible().sortedByDescending { it.date }.first()
 
         return getAllPRs(MeetPerformanceController.CURRENT_YEAR, "", SortingMethodContainer.TIME, adjustForDistance)
                 .filter {
@@ -185,7 +186,7 @@ class PersonalRecordService(@field:Autowired
 
     fun getPRForRunnerAtPointInTime(pointInTime: Date, runnerName: String): MeetPerformanceDTO? {
 
-        val meets = meetRepository.findAll().map {
+        val meets = meetRepository.findAll().statsEligible().map {
             it.id to it
         }.toMap()
 
@@ -196,6 +197,7 @@ class PersonalRecordService(@field:Autowired
         }
 
         val performances = meetPerformanceRepository.findByRunnerId(runner.first().id)
+                .filter { it.meetId in meets }
 
         return performances.filter {
             meets[it.meetId]!!.date.before(pointInTime) || meets[it.meetId]!!.date == pointInTime
@@ -208,7 +210,7 @@ class PersonalRecordService(@field:Autowired
 
     fun getPRDistributionByYear(startDate: Date, endDate: Date): Map<String, Map<Meet, PRCountDTO>> {
 
-        val meets = meetRepository.findByDateBetween(startDate, endDate)
+        val meets = meetRepository.findByDateBetween(startDate, endDate).statsEligible()
 
         val runners = runnerRepository.findByGraduatingClassGreaterThan(startDate.getYearString())
 
@@ -254,13 +256,15 @@ class PersonalRecordService(@field:Autowired
 
         val runners = runnerRepository.findAll()
 
-        val meetsById = meetRepository.findAll().map { it.id to it }.toMap()
+        val meetsById = meetRepository.findAll().statsEligible().map { it.id to it }.toMap()
 
         var prCount = 0;
         var totalTimeTakenOff = 0.0
 
         runners.forEach {
-            val raceResults = meetPerformanceRepository.findByRunnerId(it.id).sortedBy { result -> meetsById[result.meetId]!!.date }
+            val raceResults = meetPerformanceRepository.findByRunnerId(it.id)
+                    .filter { result -> result.meetId in meetsById }
+                    .sortedBy { result -> meetsById[result.meetId]!!.date }
             if (raceResults.isNotEmpty()) {
                 var fastestTime = raceResults[0].time.calculateSecondsFrom()
 
@@ -288,12 +292,14 @@ class PersonalRecordService(@field:Autowired
 
         val runner = runnerRepository.findById(runnerId).get()
 
-        val meetsById = meetRepository.findAll().map { it.id to it }.toMap()
+        val meetsById = meetRepository.findAll().statsEligible().map { it.id to it }.toMap()
 
         var prCount = 0;
         var prs = mutableListOf<MeetPerformanceDTO>()
 
-        val raceResults = meetPerformanceRepository.findByRunnerId(runnerId).sortedBy { result -> meetsById[result.meetId]!!.date }
+        val raceResults = meetPerformanceRepository.findByRunnerId(runnerId)
+                .filter { result -> result.meetId in meetsById }
+                .sortedBy { result -> meetsById[result.meetId]!!.date }
         if (raceResults.isNotEmpty()) {
             var fastestTime = raceResults[0].time.calculateSecondsFrom()
 

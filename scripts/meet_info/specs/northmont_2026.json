@@ -1,0 +1,23 @@
+{
+  "venue": "Northmont High School/Middle School Campus",
+  "address": "4916 W. National Rd, Clayton, OH 45315",
+  "date": "Saturday October 3, 2026",
+  "arrive_min": 85,
+  "results_site": "FinishTiming.com",
+  "course_map": "maps/northmont_hs.png",
+  "races": [
+    {"name": "High School Girls Varsity", "time": "8:30 am",
+     "athletes": ["Eva Casto","Eleanor Schutte","Addison Thieman","Leslie Sabbagh","Amelie Cobb","Kate Finnan","Hannah Schmid"]},
+    {"name": "High School Girls JV (Open)", "time": "9:50 am",
+     "athletes": ["Rachel Stites","Ella Dressing","Grace Melchers","Tori Yeazell","Vivian Owen","Johanna Ray","Lucy Giordano","Sarah Anderson","Ava Sarver","Lilly Weingartner","Ali Faile","Molly Einwald","Addy Middleton","Vera Foote","Kaira Sarawagi*","Julia Galles","Lara Feeney","Ava Vitucci","Macey Beyrer*","Maggie McCarren","Emily Castilla","Amy Bollinger","Lucy Geoppinger*","Abby Machon","Stella Laurence","Avery Baus","Rowan Paulson","Evangeline Resch"]}
+  ],
+  "not_running": ["Caitlin", "Macy S", "Macie G", "Caroline"],
+  "awards": ["Varsity: top 2 teams receive trophies; top 20 individuals receive medals.",
+             "JV: top 10 individuals receive medals.",
+             "Awards are available about 20 minutes after each race at the awards tent (next to the T-shirt tent, outside the stadium by the finish-line exit gate)."],
+  "notes": ["Spikes must be 1/4 inch or less.",
+            "The race ends on the track.",
+            "Parking is $10 per car, CASH ONLY, on the Northmont HS campus. Buses drop off by the Varsity Softball field near the start line.",
+            "Team camps: outside the stadium near the start line, or inside the stadium (blacktop area of the visitor stands / under the home stands). No camps in the softball fields.",
+            "T-shirts are $15, outside the stadium near team camps. Concessions are available."]
+}

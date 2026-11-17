@@ -1,6 +1,7 @@
 package com.terkula.uaxctf.statistics.service.authentication
 
 import com.terkula.uaxctf.statisitcs.model.AppUser
+import com.terkula.uaxctf.statisitcs.model.CoachOptionDTO
 import com.terkula.uaxctf.statisitcs.model.Runner
 import com.terkula.uaxctf.statisitcs.model.RunnerAccount
 import com.terkula.uaxctf.statistics.dto.authentication.AuthenticationResponse
@@ -104,6 +105,16 @@ class AuthenticationService(
                 .map {
                     RunnerAccount(runners[it.runnerId]!!, it)
                 }
+    }
+
+    fun getCoachOptions(): List<CoachOptionDTO> {
+        val eligible = setOf("full_coach", "xc_only")
+        return authenticationRepository.findAll()
+                .filterNotNull()
+                .filter { it.role == "coach" && it.subRole != null && it.subRole in eligible }
+                .map { CoachOptionDTO(it.username, it.subRole!!) }
+                .distinctBy { it.username }
+                .sortedBy { it.username.lowercase() }
     }
 
     fun getAllAppUsersForSeason(season: String, type: String): List<AppUser> {

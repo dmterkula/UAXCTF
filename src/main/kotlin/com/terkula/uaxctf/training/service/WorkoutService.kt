@@ -32,6 +32,7 @@ import org.springframework.stereotype.Component
 import java.lang.RuntimeException
 import java.sql.Date
 import java.time.Month
+import com.terkula.uaxctf.statisitcs.model.statsEligible
 
 @Component
 class WorkoutService (
@@ -50,7 +51,10 @@ class WorkoutService (
      val trackSBService: TrackSBService,
      val trainingBasePerformanceService: TrainingBasePerformanceService,
      val venueRepository: VenueRepository,
-     val eventVisibilityRepository: EventVisibilityRepository
+     val eventVisibilityRepository: EventVisibilityRepository,
+     val eventGroupService: EventGroupService,
+     val eventWeatherResolver: com.terkula.uaxctf.weather.EventWeatherResolver,
+     val heatPaceAdjustmentService: com.terkula.uaxctf.weather.HeatPaceAdjustmentService
 ) {
 
     private fun resolveVenue(venueId: Int?) = venueId?.let { venueRepository.findById(it).orElse(null) }
@@ -67,6 +71,8 @@ class WorkoutService (
             .groupBy { it.eventUuid }
             .mapValues { (_, entries) -> entries.map { it.runnerId } }
 
+        val groupsMap = eventGroupService.buildGroupsMap(uuids)
+
         return workouts.map {
             WorkoutResponseDTO(
                     it.date,
@@ -78,7 +84,9 @@ class WorkoutService (
                     it.season,
                     it.team,
                     resolveVenue(it.venueId),
-                    visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() }
+                    visibilityMap[it.uuid]?.takeIf { ids -> ids.isNotEmpty() },
+                    it.startTime,
+                    groupsMap[it.uuid]?.takeIf { g -> g.isNotEmpty() }
             )
         }
 
@@ -88,12 +96,14 @@ class WorkoutService (
            createWorkoutRequest: CreateWorkoutRequest
     ): WorkoutResponseDTO {
 
+        WorkoutComponentRules.normalizeAndValidate(createWorkoutRequest.components)
+
         if (workoutRepository.findByDate(createWorkoutRequest.date).firstOrNull()?.title == createWorkoutRequest.title) {
             throw RuntimeException("Workout with that date and title already exists")
         } else {
            val workoutV2 = Workout(createWorkoutRequest.date, createWorkoutRequest.description, createWorkoutRequest.title,
            createWorkoutRequest.icon, createWorkoutRequest.uuid, createWorkoutRequest.season, createWorkoutRequest.team,
-           createWorkoutRequest.venueId)
+           createWorkoutRequest.venueId, createWorkoutRequest.startTime)
 
            val workoutComponents: List<WorkoutComponent> = createWorkoutRequest.components.map {
                WorkoutComponent(it.uuid, workoutV2.uuid, it.type, it.description, it.targetDistance,
@@ -113,7 +123,9 @@ class WorkoutService (
                     workoutComponents,
                     workoutV2.season,
                     workoutV2.team,
-                    resolveVenue(workoutV2.venueId)
+                    resolveVenue(workoutV2.venueId),
+                    null,
+                    workoutV2.startTime
             )
         }
 
@@ -123,6 +135,8 @@ class WorkoutService (
         uuid: String,
         createWorkoutRequest: CreateWorkoutRequest
     ): WorkoutResponseDTO {
+
+        WorkoutComponentRules.normalizeAndValidate(createWorkoutRequest.components)
 
         val workoutToUpdate = workoutRepositoryV2.findByUuid(uuid).firstOrNull()
 
@@ -135,6 +149,7 @@ class WorkoutService (
             workoutToUpdate.season = createWorkoutRequest.season
             workoutToUpdate.team = createWorkoutRequest.team
             workoutToUpdate.venueId = createWorkoutRequest.venueId
+            workoutToUpdate.startTime = createWorkoutRequest.startTime
             workoutRepositoryV2.save(workoutToUpdate)
 
 
@@ -189,7 +204,9 @@ class WorkoutService (
                    updatedComponents.filterNotNull(),
                    workoutToUpdate.season,
                    workoutToUpdate.team,
-                   resolveVenue(workoutToUpdate.venueId)
+                   resolveVenue(workoutToUpdate.venueId),
+                   null,
+                   workoutToUpdate.startTime
            )
         } else {
             throw (RuntimeException("Workout not found"))
@@ -246,8 +263,33 @@ class WorkoutService (
                     RunnerWorkoutPlanDTOV2(it.first, it.second.map { dto-> dto.componentPlans[0] })
                 }
 
+        applyHeatAdjustment(workout, runnerWorkoutPlans)
 
         return WorkoutPlanResponseV2(componentPlans, runnerWorkoutPlans)
+    }
+
+    /** Mutates each plan element in place, adding heat-adjusted pace/time when the workout's venue + weather are resolvable. */
+    private fun applyHeatAdjustment(workout: Workout, runnerWorkoutPlans: List<RunnerWorkoutPlanDTOV2>) {
+        val venue = resolveVenue(workout.venueId) ?: return
+        val weather = eventWeatherResolver.resolve(
+            com.terkula.uaxctf.weather.EventWeatherResolver.EVENT_TYPE_WORKOUT, workout.id, venue, workout.date, workout.startTime
+        ) ?: return
+
+        val tempF = (weather.temperatureC * 9.0 / 5.0 + 32.0).round(1)
+        val humidityPct = weather.humidityPct.round(1)
+
+        runnerWorkoutPlans.forEach { plan ->
+            plan.componentPlans.forEach { element ->
+                // element.distance is the component's targetDistance, which gates the short-effort
+                // scaling in HeatPaceAdjustmentService (a 400m rep is scaled, a 7-mile tempo isn't).
+                element.heatAdjustedBaseTime = heatPaceAdjustmentService.adjustPlanTimeForHeat(element.baseTime, weather.temperatureC, weather.humidityPct, element.distance)
+                element.heatAdjustedTargetedPace = element.targetedPace.map {
+                    TargetedPace(it.type, heatPaceAdjustmentService.adjustPlanTimeForHeat(it.pace, weather.temperatureC, weather.humidityPct, element.distance))
+                }
+                element.conditionsTempF = tempF
+                element.conditionsHumidityPct = humidityPct
+            }
+        }
     }
 
     fun calculateTargetPace(component: WorkoutComponent, timeToAdjust: String): String {
@@ -798,7 +840,7 @@ class WorkoutService (
 
     fun getSeasonAverages(eligibleRunners: Map<Int, Runner>, startDate: Date, endDate: Date): Map<Int, List<Double>> {
 
-        val meets = meetRepository.findByDateBetween(startDate, endDate)
+        val meets = meetRepository.findByDateBetween(startDate, endDate).statsEligible()
                 .toMutableList().sortedByDescending { it.date }
 
         val meetMap = meets.map { it.id to it }.toMap()
