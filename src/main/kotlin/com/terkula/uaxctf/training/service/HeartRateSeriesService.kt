@@ -6,6 +6,7 @@ import com.terkula.uaxctf.training.model.heartrate.HeartRateSeries
 import com.terkula.uaxctf.training.repository.HeartRateSeriesRepository
 import com.terkula.uaxctf.training.request.heartrate.SaveHeartRateSeriesRequest
 import com.terkula.uaxctf.training.response.heartrate.HeartRatePointDTO
+import com.terkula.uaxctf.training.response.heartrate.PacePointDTO
 import com.terkula.uaxctf.training.response.heartrate.HeartRateSeriesResponse
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -23,6 +24,9 @@ class HeartRateSeriesService(
         const val MAX_SAMPLES = 2000
         const val MIN_VALID_BPM = 30
         const val MAX_VALID_BPM = 250
+        // 3:00/mi .. 30:00/mi; anything outside is GPS/sensor noise, not running.
+        const val MIN_VALID_PACE = 180
+        const val MAX_VALID_PACE = 1800
     }
 
     fun get(activityType: String, activityUuid: String, runnerId: Int): HeartRateSeriesResponse? {
@@ -44,16 +48,27 @@ class HeartRateSeriesService(
             .distinctBy { it.offsetSeconds }
             .map { HeartRatePointDTO(it.offsetSeconds, it.bpm) }
 
-        if (cleaned.size < 2) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Need at least 2 valid heart rate samples")
+        val cleanedPace = (request.paceSamples ?: emptyList())
+            .filter { it.offsetSeconds >= 0 && it.secPerMile in MIN_VALID_PACE..MAX_VALID_PACE }
+            .sortedBy { it.offsetSeconds }
+            .distinctBy { it.offsetSeconds }
+            .map { PacePointDTO(it.offsetSeconds, it.secPerMile) }
+
+        // Heart rate and pace are independent: a workout may have either, both, or (rejected) neither.
+        val hasHr = cleaned.size >= 2
+        val hasPace = cleanedPace.size >= 2
+        if (!hasHr && !hasPace) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Need at least 2 valid heart rate or pace samples")
         }
-        if (cleaned.size > MAX_SAMPLES) {
+        if (cleaned.size > MAX_SAMPLES || cleanedPace.size > MAX_SAMPLES) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Too many samples (max $MAX_SAMPLES)")
         }
+        val hrPoints = if (hasHr) cleaned else emptyList()
 
-        val duration = request.durationSeconds ?: cleaned.last().offsetSeconds
-        val bpms = cleaned.map { it.bpm }
-        val json = mapper.writeValueAsString(cleaned)
+        val duration = request.durationSeconds ?: maxOf(hrPoints.lastOrNull()?.offsetSeconds ?: 0, cleanedPace.lastOrNull()?.offsetSeconds ?: 0)
+        val bpms = hrPoints.map { it.bpm }
+        val json = mapper.writeValueAsString(hrPoints)
+        val paceJson = if (hasPace) mapper.writeValueAsString(cleanedPace) else null
 
         val existing = heartRateSeriesRepository
             .findByActivityTypeAndActivityUuidAndRunnerId(request.activityType, request.activityUuid, request.runnerId)
@@ -61,14 +76,15 @@ class HeartRateSeriesService(
 
         val row = existing ?: HeartRateSeries(
             request.activityType, request.activityUuid, request.runnerId,
-            cleaned.size, duration, null, null, null, json, request.source
+            hrPoints.size, duration, null, null, null, json, request.source
         )
-        row.sampleCount = cleaned.size
+        row.sampleCount = hrPoints.size
         row.durationSeconds = duration
-        row.avgHr = bpms.average().toInt()
+        row.avgHr = if (bpms.isEmpty()) null else bpms.average().toInt()
         row.maxHr = bpms.maxOrNull()
         row.minHr = bpms.minOrNull()
         row.samples = json
+        row.paceSamples = paceJson
         row.source = request.source
         heartRateSeriesRepository.save(row)
 
@@ -83,7 +99,8 @@ class HeartRateSeriesService(
         val points: List<HeartRatePointDTO> = mapper.readValue(row.samples, object : TypeReference<List<HeartRatePointDTO>>() {})
         return HeartRateSeriesResponse(
             row.activityType, row.activityUuid, row.runnerId, row.durationSeconds,
-            row.avgHr, row.maxHr, row.minHr, row.source, points
+            row.avgHr, row.maxHr, row.minHr, row.source, points,
+            row.paceSamples?.let { mapper.readValue(it, object : TypeReference<List<PacePointDTO>>() {}) }
         )
     }
 }

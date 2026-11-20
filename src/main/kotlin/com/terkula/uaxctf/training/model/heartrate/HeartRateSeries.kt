@@ -26,6 +26,8 @@ class HeartRateSeries(
         var samples: String,
         @Column(name = "source")
         var source: String?,
+        @Column(name = "pace_samples", columnDefinition = "LONGTEXT")
+        var paceSamples: String? = null,
 ) {
 
     @JsonIgnore
