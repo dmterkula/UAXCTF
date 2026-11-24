@@ -246,8 +246,15 @@ class WorkoutService (
         val components = workoutComponentRepository.findByWorkoutUuid(workout.uuid)
 
 
+       // When the workout is limited to specific runners, only they appear in the plan (empty = everyone).
+       val assignedRunnerIds: Set<Int> = eventVisibilityRepository.findByEventUuid(workout.uuid).map { it.runnerId }.toSet()
+
        val componentPlans: List<ComponentToRunnerWorkoutPlans> = components.map {
-           ComponentToRunnerWorkoutPlans(it, buildComponentPlan(workout, it))
+           val plans = buildComponentPlan(workout, it)
+           ComponentToRunnerWorkoutPlans(
+                   it,
+                   if (assignedRunnerIds.isEmpty()) plans else plans.filter { plan -> plan.runner.id in assignedRunnerIds }
+           )
        }
 
        val runnerWorkoutPlans: List<RunnerWorkoutPlanDTOV2> = componentPlans.map {
